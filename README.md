@@ -10,7 +10,7 @@ Hệ thống hỗ trợ học tập thông minh dựa trên kiến thuật **RAG
 
 ## 🏗 Kiến trúc hệ thống (3-Layers Architecture)
 Dự án tuân thủ nghiêm ngặt kiến trúc 3 lớp để đảm bảo tính mở rộng và dễ bảo trì:
-- **SmartEdu.Web:** Presentation Layer - Sử dụng ASP.NET Core MVC (ASM1) và Razor Pages (ASM2).
+- **SmartEdu.Web:** Presentation Layer - Sử dụng ASP.NET Core MVC và Razor Pages.
 - **SmartEdu.Business:** Business Logic Layer (BLL) - Xử lý nghiệp vụ AI, RAG logic và điều phối dữ liệu.
 - **SmartEdu.Data:** Data Access Layer (DAL) - Quản lý cơ sở dữ liệu PostgreSQL và các thao tác với Entity Framework Core.
 - **SmartEdu.Shared:** Common Layer - Chứa các Entities, DTOs và cấu hình dùng chung cho toàn bộ Solution.
