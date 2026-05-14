@@ -1,0 +1,27 @@
+﻿@model SmartEdu.Shared.Entities.Subject
+@{
+    ViewData["Title"] = "Thêm môn học";
+}
+
+<div class="container mt-4" style="max-width:600px">
+    <h2>➕ Thêm môn học</h2>
+    <hr />
+
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label">Tên môn học</label>
+            <input asp-for="Name" class="form-control" placeholder="VD: Lập trình .NET" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">Mô tả</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">💾 Lưu</button>
+        <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+    </form>
+</div>

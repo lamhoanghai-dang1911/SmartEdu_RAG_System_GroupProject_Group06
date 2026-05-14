@@ -1,0 +1,29 @@
+﻿@model SmartEdu.Shared.Entities.Subject
+@{
+    ViewData["Title"] = "Chỉnh sửa môn học";
+}
+
+<div class="container mt-4" style="max-width:600px">
+    <h2>✏️ Chỉnh sửa môn học</h2>
+    <hr />
+
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="CreatedAt" type="hidden" />
+
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label">Tên môn học</label>
+            <input asp-for="Name" class="form-control" />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label">Mô tả</label>
+            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary">💾 Cập nhật</button>
+        <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+    </form>
+</div>

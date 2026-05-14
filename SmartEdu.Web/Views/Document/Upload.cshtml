@@ -1,0 +1,49 @@
+﻿@{
+    ViewData["Title"] = "Upload tài liệu";
+}
+
+<div class="container mt-4" style="max-width:600px">
+    <h2>⬆️ Upload tài liệu</h2>
+    <hr />
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @foreach (var error in ViewData.ModelState.Values
+                .SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <form asp-action="Upload" method="post" enctype="multipart/form-data">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label class="form-label">Tiêu đề tài liệu</label>
+            <input name="title" class="form-control"
+                   placeholder="VD: Bài giảng Chương 1" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Môn học</label>
+            <select name="subjectId" asp-items="ViewBag.Subjects"
+                    class="form-select" required>
+                <option value="">-- Chọn môn học --</option>
+            </select>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">File (PDF hoặc DOCX)</label>
+            <input name="file" type="file" class="form-control"
+                   accept=".pdf,.docx" required />
+            <div class="form-text">Chỉ hỗ trợ .pdf và .docx</div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            💾 Upload
+        </button>
+        <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+    </form>
+</div>

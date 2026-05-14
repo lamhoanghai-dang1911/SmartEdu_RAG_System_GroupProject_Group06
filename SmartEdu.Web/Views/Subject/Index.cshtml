@@ -1,0 +1,51 @@
+﻿@model IEnumerable<SmartEdu.Shared.Entities.Subject>
+@{
+    ViewData["Title"] = "Danh sách môn học";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>📚 Danh sách môn học</h2>
+        <a asp-action="Create" class="btn btn-primary">+ Thêm môn học</a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">@TempData["Success"]</div>
+    }
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>#</th>
+                <th>Tên môn học</th>
+                <th>Mô tả</th>
+                <th>Ngày tạo</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in Model)
+            {
+                <tr>
+                    <td>@s.Id</td>
+                    <td>@s.Name</td>
+                    <td>@s.Description</td>
+                    <td>@s.CreatedAt.ToString("dd/MM/yyyy")</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@s.Id"
+                           class="btn btn-sm btn-warning">✏️ Sửa</a>
+                        <form asp-action="Delete" asp-route-id="@s.Id"
+                              method="post" class="d-inline"
+                              onsubmit="return confirm('Xóa môn học này?')">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                🗑️ Xóa
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

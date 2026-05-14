@@ -1,0 +1,39 @@
+﻿@model SmartEdu.Shared.Entities.Document
+@{
+    ViewData["Title"] = "Chi tiết tài liệu";
+}
+
+<div class="container mt-4" style="max-width:700px">
+    <h2>🔍 Chi tiết tài liệu</h2>
+    <hr />
+
+    <dl class="row">
+        <dt class="col-sm-4">Tiêu đề</dt>
+        <dd class="col-sm-8">@Model.Title</dd>
+
+        <dt class="col-sm-4">File gốc</dt>
+        <dd class="col-sm-8">@Model.FileName</dd>
+
+        <dt class="col-sm-4">Loại file</dt>
+        <dd class="col-sm-8">
+            <span class="badge bg-secondary">@Model.FileType.ToUpper()</span>
+        </dd>
+
+        <dt class="col-sm-4">Kích thước</dt>
+        <dd class="col-sm-8">@($"{Model.FileSize / 1024.0:F1}") KB</dd>
+
+        <dt class="col-sm-4">Môn học</dt>
+        <dd class="col-sm-8">@Model.Subject?.Name</dd>
+
+        <dt class="col-sm-4">Trạng thái</dt>
+        <dd class="col-sm-8">@Model.Status</dd>
+
+        <dt class="col-sm-4">Ngày upload</dt>
+        <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+
+        <dt class="col-sm-4">Số chunks</dt>
+        <dd class="col-sm-8">@Model.Chunks.Count</dd>
+    </dl>
+
+    <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+</div>

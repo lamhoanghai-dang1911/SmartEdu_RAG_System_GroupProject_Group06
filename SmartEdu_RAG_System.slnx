@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SmartEdu.Business/SmartEdu.Business.csproj" />
+  <Project Path="SmartEdu.Data/SmartEdu.Data.csproj" />
+  <Project Path="SmartEdu.Shared/SmartEdu.Shared.csproj" />
+  <Project Path="SmartEdu.Web/SmartEdu.Web.csproj" />
+</Solution>
