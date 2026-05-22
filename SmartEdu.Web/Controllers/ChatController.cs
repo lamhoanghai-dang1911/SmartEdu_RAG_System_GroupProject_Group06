@@ -22,7 +22,15 @@ namespace SmartEdu.Web.Controllers
             var subjects = await _subjectService.GetAllAsync();
             var sessions = await _chatService.GetAllSessionsAsync();
 
-            ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
+            // Nếu có sessionId, cố gắng tìm SubjectId tương ứng để chọn trong dropdown
+            int? selectedSubjectId = null;
+            if (!string.IsNullOrEmpty(sessionId))
+            {
+                var sess = sessions.FirstOrDefault(x => x.SessionId == sessionId);
+                if (sess != null) selectedSubjectId = sess.SubjectId;
+            }
+
+            ViewBag.Subjects = new SelectList(subjects, "Id", "Name", selectedSubjectId);
             ViewBag.Sessions = sessions;
             ViewBag.CurrentSessionId = sessionId ?? Guid.NewGuid().ToString();
 

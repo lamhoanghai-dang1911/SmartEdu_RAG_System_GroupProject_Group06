@@ -3,57 +3,137 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - SmartEdu.Web</title>
+    <title>@ViewData["Title"] - SmartEdu</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SmartEdu.Web.styles.css" asp-append-version="true" />
+    <style>
+        /* Layout: make body full-height flex column */
+        body.d-flex-root {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Global font-size tweak (slightly larger for readability) */
+        body {
+            font-size: 1.1rem;
+        }
+
+        /* Header subtle shadow (if not provided by bootstrap) */
+        header .box-shadow {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+        }
+
+        /* Main area should grow and not cause page scroll (inner regions can scroll) */
+        main.flex-fill {
+            flex: 1 1 auto;
+            overflow: hidden; /* important: prevent footer overlap */
+        }
+
+        /* Option A: use mt-auto on footer to keep it at page bottom when content is short */
+        .footer.mt-auto {
+            /* no extra styles needed; mt-auto on a flex column pushes footer down */
+        }
+
+        /* Option B: hide footer entirely on chat pages to maximize space */
+        body.chat-page .footer {
+            display: none !important;
+        }
+        /* -----------------
+           Header & Footer custom styles
+           ----------------- */
+        .site-header {
+            background: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%);
+            color: #fff;
+        }
+
+        .site-header .navbar-brand,
+        .site-header .nav-link {
+            color: rgba(255,255,255,0.95) !important;
+        }
+
+        .site-header .navbar-brand {
+            font-size: 1.25rem; /* slightly larger */
+            font-weight: 700;
+            letter-spacing: 0.2px;
+        }
+
+        .site-header .nav-link {
+            transition: color 0.15s ease, opacity 0.15s ease;
+            opacity: 0.95;
+        }
+
+        .site-header .nav-link:hover {
+            color: rgba(255,255,255,1) !important;
+            opacity: 1;
+        }
+
+        /* make header taller */
+        .site-header .navbar {
+            padding-top: 0.8rem;
+            padding-bottom: 0.8rem;
+        }
+
+        /* Footer styles */
+        .site-footer {
+            padding: 1.25rem 0;
+            background-color: #0d1117; /* dark shade */
+            color: rgba(255,255,255,0.85);
+        }
+
+        .site-footer a { color: rgba(255,255,255,0.9); }
+        .site-footer a:hover { color: #ffffff; text-decoration: underline; }
+    </style>
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100 @(ViewBag.BodyClass ?? String.Empty)">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-dark site-header py-3 mb-3 align-items-center">
             <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SmartEdu.Web</a>
+                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="me-3 fs-3" aria-hidden="true" style="line-height:1;">🎓</span>
+                    <span class="fs-3 fw-bold">SmartEdu</span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
+                <div class="navbar-collapse collapse d-sm-inline-flex">
+                    <ul class="navbar-nav me-auto gap-3 align-items-center">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link fs-5 px-3" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                            <a class="nav-link fs-5 px-3" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Subject" asp-action="Index">
-                                📚 Môn học
-                            </a>
+                            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Subject" asp-action="Index"><span class="fs-4 me-2" aria-hidden="true">📚</span> Môn học</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Document" asp-action="Index">
-                                📄 Tài liệu
-                            </a>
+                            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Document" asp-action="Index"><span class="fs-4 me-2" aria-hidden="true">📄</span> Tài liệu</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-controller="Chat" asp-action="Index">
-                                🤖 Chat RAG
-                            </a>
+                            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Chat" asp-action="Index"><span class="fs-4 me-2" aria-hidden="true">🤖</span> Chat RAG</a>
                         </li>
                     </ul>
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
+    <main role="main" class="flex-grow-1">
+        <div class="container h-100 d-flex flex-column">
             @RenderBody()
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <footer class="border-top footer text-muted">
+    <!-- Footer: Option A (sticky at bottom via mt-auto) or Option B (hidden on chat pages). 
+         To hide footer on chat page, set ViewBag.BodyClass = "chat-page" in controller or layout. -->
+    <footer class="site-footer text-center mt-auto py-4">
         <div class="container">
-            &copy; 2026 - SmartEdu.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                <div class="d-flex flex-column align-items-center">
+                <div class="mb-1 fs-6 fw-bold">SmartEdu</div>
+                <div class="fs-6">&copy; 2026 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a></div>
+            </div>
         </div>
     </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

@@ -3,6 +3,7 @@ using SmartEdu.Business.Interfaces;
 using SmartEdu.Business.Services;
 using SmartEdu.Data;
 using SmartEdu.Data.Repositories;
+using SmartEdu.Web.Models;
 
 namespace SmartEdu.Web
 {
@@ -23,6 +24,12 @@ namespace SmartEdu.Web
             // HttpClient factory for calling OpenAI
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<ISubjectService, SubjectService>();
+            // Đăng ký cấu hình từ Configuration (tự động lấy từ appsettings + secrets)
+            builder.Services.Configure<GeminiSettings>(
+                builder.Configuration.GetSection("Gemini"));
+
+            builder.Services.Configure<HuggingFaceSettings>(
+                builder.Configuration.GetSection("HuggingFace"));
 
             var app = builder.Build();
 

@@ -7,121 +7,156 @@
                    ?? Enumerable.Empty<SmartEdu.Shared.DTOs.ChatSessionDto>();
 }
 
+<style>
+    /* Chat panel with fixed height */
+    .chat-panel {
+        /* You can adjust height to 80vh or calculate against header: */
+        height: calc(100vh - 120px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Messages area grows and scrolls */
+    .chat-messages {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Keep input area fixed visually at bottom of the panel */
+    .chat-input-area {
+        flex: 0 0 auto;
+    }
+
+    /* Sidebar styling: fixed height, header fixed, list scrolls */
+    .sidebar-panel {
+        height: calc(100vh - 120px); /* keep same height as chat-panel */
+        display: flex;
+        flex-direction: column;
+    }
+
+    .sidebar-header {
+        flex: 0 0 auto;
+        background: #fff;
+        z-index: 2;
+    }
+
+    .sidebar-list {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: transparent;
+    }
+</style>
+
 <div class="container-fluid mt-3">
     <div class="row" style="height: calc(100vh - 120px)">
 
         @* SIDEBAR: Lịch sử phiên *@
-        <div class="col-md-3 border-end d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h6 class="mb-0">💬 Phiên chat</h6>
-                <a href="@Url.Action("Index", "Chat")"
-                   class="btn btn-sm btn-primary">+ Mới</a>
-            </div>
+        <div class="col-md-3">
+            <div class="sidebar-panel border-end d-flex flex-column">
 
-            <div class="overflow-auto flex-grow-1 p-2">
-                @foreach (var s in sessions)
-                {
-                    <div class="card mb-2 shadow-sm @(s.SessionId == currentSessionId ? "border-primary" : "")">
-                        <div class="card-body p-2">
-                            <div class="d-flex justify-content-between">
-                                <a href="@Url.Action("Index", "Chat",
-                                                                                                                   new { sessionId = s.SessionId })"
-                                       class="text-decoration-none text-dark
-                                    fw-bold small text-truncate"
+                <div class="sidebar-header p-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">💬 Phiên chat</h6>
+                    <a href="@Url.Action("Index", "Chat")" class="btn btn-sm btn-primary">+ Mới</a>
+                </div>
+
+                <div class="sidebar-list p-2">
+                    @foreach (var s in sessions)
+                    {
+                        <div class="card mb-2 shadow-sm @(s.SessionId == currentSessionId ? "border-primary" : "")">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between">
+                                    <a href="@Url.Action("Index", "Chat", new { sessionId = s.SessionId })"
+                                       class="text-decoration-none text-dark fw-bold small text-truncate"
                                        style="max-width:150px">
-                                    @(s.Title ?? "Phiên mới")
-                                </a>
-                                <form asp-action="DeleteSession" method="post"
-                                      class="d-inline">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="sessionId"
-                                           value="@s.SessionId" />
-                                    <button type="submit"
-                                            class="btn btn-sm btn-link text-danger p-0"
-                                            onclick="return confirm('Xóa phiên này?')">
-                                        🗑️
-                                    </button>
-                                </form>
+                                        @(s.Title ?? "Phiên mới")
+                                    </a>
+                                    <form asp-action="DeleteSession" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="sessionId" value="@s.SessionId" />
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Xóa phiên này?')">🗑️</button>
+                                    </form>
+                                </div>
+                                <small class="text-muted">📚 @s.SubjectName | 💬 @s.MessageCount tin</small>
                             </div>
-                            <small class="text-muted">
-                                📚 @s.SubjectName |
-                                💬 @s.MessageCount tin
-                            </small>
                         </div>
-                    </div>
-                }
+                    }
+                </div>
             </div>
         </div>
 
         @* MAIN: Khung chat *@
-        <div class="col-md-9 d-flex flex-column">
+        <div class="col-md-9">
+            <div class="chat-panel border d-flex flex-column">
 
-            @* Header *@
-            <div class="d-flex align-items-center gap-2 mb-2">
-                <h5 class="mb-0">🤖 SmartEdu RAG Chatbot</h5>
-                <select id="subjectSelect" asp-items="ViewBag.Subjects"
-                        class="form-select form-select-sm w-auto">
-                    <option value="">-- Tất cả môn học --</option>
-                </select>
-            </div>
+                @* Header *@
+                <div class="d-flex align-items-center gap-2 mb-2 p-2">
+                    <h5 class="mb-0">🤖 SmartEdu RAG Chatbot</h5>
+                    <select id="subjectSelect" asp-items="ViewBag.Subjects"
+                            class="form-select form-select-sm w-auto">
+                        <option value="">-- Tất cả môn học --</option>
+                    </select>
+                </div>
 
-            @* Messages *@
-            <div id="chatBox"
-                 class="flex-grow-1 overflow-auto border rounded p-3 bg-light mb-2"
-                 style="min-height:200px">
+                @* Messages area: grows and scrolls *@
+                <div id="chatBox" class="chat-messages p-3 bg-light mb-2">
 
-                @if (!history.Any())
-                {
-                    <div id="emptyMsg" class="text-center text-muted mt-5">
-                        <h4>👋 Xin chào!</h4>
-                        <p>Hãy đặt câu hỏi về tài liệu học tập của bạn.</p>
+                    @if (!history.Any())
+                    {
+                        <div id="emptyMsg" class="text-center text-muted mt-5">
+                            <h4>👋 Xin chào!</h4>
+                            <p>Hãy đặt câu hỏi về tài liệu học tập của bạn.</p>
+                        </div>
+                    }
+
+                    @foreach (var msg in history)
+                    {
+                        if (msg.Role == "user")
+                        {
+                            <div class="d-flex justify-content-end mb-2">
+                                <div class="bg-primary text-white rounded p-2 px-3"
+                                     style="max-width:75%">
+                                    @msg.Content
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="d-flex justify-content-start mb-2">
+                                <div class="bg-white border rounded p-2 px-3"
+                                     style="max-width:75%">
+                                    <small class="text-muted d-block mb-1">
+                                        🤖 SmartEdu AI
+                                    </small>
+                                    @msg.Content
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @* Input area fixed at bottom of panel *@
+                <div class="chat-input-area p-2 bg-white border-top">
+                    <div id="typingIndicator" class="text-muted small mb-1 d-none">
+                        🤖 Đang trả lời...
                     </div>
-                }
 
-                @foreach (var msg in history)
-                {
-                    if (msg.Role == "user")
-                    {
-                        <div class="d-flex justify-content-end mb-2">
-                            <div class="bg-primary text-white rounded p-2 px-3"
-                                 style="max-width:75%">
-                                @msg.Content
-                            </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="d-flex justify-content-start mb-2">
-                            <div class="bg-white border rounded p-2 px-3"
-                                 style="max-width:75%">
-                                <small class="text-muted d-block mb-1">
-                                    🤖 SmartEdu AI
-                                </small>
-                                @msg.Content
-                            </div>
-                        </div>
-                    }
-                }
-            </div>
+                    <div class="input-group">
+                        <input id="questionInput" type="text"
+                               class="form-control"
+                               placeholder="Nhập câu hỏi của bạn..."
+                               autocomplete="off" />
+                        <button id="sendBtn" class="btn btn-primary" type="button">
+                            ➤ Gửi
+                        </button>
+                    </div>
 
-            @* Typing indicator *@
-            <div id="typingIndicator" class="text-muted small mb-1 d-none">
-                🤖 Đang trả lời...
+                    <small class="text-muted mt-1 d-block">
+                        Enter để gửi • Session: <code>@currentSessionId</code>
+                    </small>
+                </div>
             </div>
-
-            @* Input *@
-            <div class="input-group">
-                <input id="questionInput" type="text"
-                       class="form-control"
-                       placeholder="Nhập câu hỏi của bạn..."
-                       autocomplete="off" />
-                <button id="sendBtn" class="btn btn-primary" type="button">
-                    ➤ Gửi
-                </button>
-            </div>
-            <small class="text-muted mt-1">
-                Enter để gửi • Session: <code>@currentSessionId</code>
-            </small>
         </div>
     </div>
 </div>
