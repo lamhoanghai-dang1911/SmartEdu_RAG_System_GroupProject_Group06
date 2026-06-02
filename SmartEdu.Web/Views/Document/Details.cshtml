@@ -1,8 +1,7 @@
-﻿@model SmartEdu.Shared.Entities.Document
+﻿@model SmartEdu.Shared.DTOs.DocumentDto
 @{
     ViewData["Title"] = "Chi tiết tài liệu";
 }
-
 <div class="container mt-4" style="max-width:700px">
     <h2>🔍 Chi tiết tài liệu</h2>
     <hr />
@@ -23,17 +22,28 @@
         <dd class="col-sm-8">@($"{Model.FileSize / 1024.0:F1}") KB</dd>
 
         <dt class="col-sm-4">Môn học</dt>
-        <dd class="col-sm-8">@Model.Subject?.Name</dd>
+        <dd class="col-sm-8">@Model.SubjectName</dd>
 
         <dt class="col-sm-4">Trạng thái</dt>
-        <dd class="col-sm-8">@Model.Status</dd>
+        <dd class="col-sm-8">
+            @{
+                var (badge, label) = Model.Status.ToString() switch
+                {
+                    "Pending" => ("warning", "⏳ Chờ xử lý"),
+                    "Processing" => ("info", "⚙️ Đang xử lý"),
+                    "Ready" => ("success", "✅ Sẵn sàng"),
+                    "Failed" => ("danger", "❌ Lỗi"),
+                    _ => ("secondary", Model.Status.ToString())
+                };
+            }
+            <span class="badge bg-@badge">@label</span>
+        </dd>
 
         <dt class="col-sm-4">Ngày upload</dt>
         <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
-
-        <dt class="col-sm-4">Số chunks</dt>
-        <dd class="col-sm-8">@Model.Chunks.Count</dd>
     </dl>
 
-    <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+    <div class="mt-4">
+        <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
+    </div>
 </div>

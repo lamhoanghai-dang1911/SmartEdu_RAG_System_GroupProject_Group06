@@ -62,7 +62,6 @@ public class DocumentController : Controller
         return View();
     }
 
-    // POST: /Document/Upload
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Upload(IFormFile file, string title, int subjectId)
@@ -158,6 +157,11 @@ public class DocumentController : Controller
     {
         var doc = await _documentService.GetByIdAsync(id);
         if (doc == null) return NotFound();
+        if (doc.Status == SmartEdu.Shared.Enums.DocumentStatus.Pending)
+        {
+            TempData["Error"] = "Tài liệu này đang chờ xử lý, chưa thể tải xuống lúc này.";
+            return RedirectToAction(nameof(Index));
+        }
 
         int userId = User.GetUserId();
         bool isStaff = User.IsInRole("Lecturer") || User.IsInRole("Admin");

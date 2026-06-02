@@ -1,8 +1,7 @@
-﻿@model SmartEdu.Shared.Entities.Document
+﻿@model SmartEdu.Shared.DTOs.DocumentDto
 @{
     ViewData["Title"] = "Cập nhật tiêu đề tài liệu";
 }
-
 <div class="container mt-4" style="max-width: 600px;">
     <div class="card shadow-sm">
         <div class="card-header bg-warning text-dark">
@@ -16,7 +15,7 @@
                 <div class="mb-3 text-muted">
                     <small>
                         <strong>File gốc:</strong> @Model.FileName <br />
-                        <strong>Môn học:</strong> @Model.Subject?.Name <br />
+                        <strong>Môn học:</strong> @Model.SubjectName <br />
                         <strong>Trạng thái:</strong> @Model.Status
                     </small>
                 </div>
