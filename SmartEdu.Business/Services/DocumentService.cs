@@ -1,17 +1,18 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using DocumentFormat.OpenXml.Packaging;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using SmartEdu.Business.Interfaces;
 using SmartEdu.Data.Repositories;
+using SmartEdu.Shared.DTOs;
 using SmartEdu.Shared.Entities;
 using SmartEdu.Shared.Enums;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Headers;
-using System.Text.Json;
+using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using UglyToad.PdfPig;
-using DocumentFormat.OpenXml.Packaging;
 using EntityDocument = SmartEdu.Shared.Entities.Document;
-using Microsoft.Extensions.Configuration;
-using SmartEdu.Shared.DTOs;
 
 namespace SmartEdu.Business.Services;
 
@@ -24,6 +25,8 @@ public class DocumentService : IDocumentService
     private readonly IConfiguration _configuration;
     private readonly IUnitOfWork _uow;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IRepository<EmbeddingSet> _embeddingSetRepo;
+    private readonly IChunkingConfigService _chunkingConfigService;
 
     public DocumentService(
     IRepository<EntityDocument> docRepo,
@@ -32,7 +35,9 @@ public class DocumentService : IDocumentService
     IHttpClientFactory httpFactory,
     IConfiguration configuration,
     IUnitOfWork uow,
-    IServiceScopeFactory scopeFactory)
+    IServiceScopeFactory scopeFactory,
+    IRepository<EmbeddingSet> embeddingSetRepo,
+    IChunkingConfigService chunkingConfigService)
     {
         _docRepo = docRepo;
         _chunkRepo = chunkRepo;
@@ -41,16 +46,21 @@ public class DocumentService : IDocumentService
         _configuration = configuration;
         _uow = uow;
         _scopeFactory = scopeFactory;
+        _embeddingSetRepo = embeddingSetRepo;
+        _chunkingConfigService = chunkingConfigService;
     }
 
-    public async Task<IEnumerable<SmartEdu.Shared.DTOs.DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
+    public async Task<IEnumerable<DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
     {
-        var chunks = await _chunkRepo.GetAllAsync(c => c.DocumentId == documentId);
         var doc = await _docRepo.GetByIdAsync(documentId);
-        var title = doc?.Title ?? string.Empty;
+        if (doc?.EmbeddingSetId == null) return Enumerable.Empty<DocumentChunkDto>();
+
+        var chunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == doc.EmbeddingSetId.Value);
+        var title = doc.Title;
+
         return chunks
             .OrderBy(c => c.ChunkIndex)
-            .Select(c => new SmartEdu.Shared.DTOs.DocumentChunkDto
+            .Select(c => new DocumentChunkDto
             {
                 ChunkIndex = c.ChunkIndex,
                 Content = c.Content,
@@ -116,6 +126,14 @@ public class DocumentService : IDocumentService
 
         await using var stream = File.Create(savedPath);
         await file.CopyToAsync(stream);
+        stream.Position = 0;
+
+        string fileHash;
+        using (var sha256 = SHA256.Create())
+        {
+            var hashBytes = await sha256.ComputeHashAsync(stream);
+            fileHash = Convert.ToHexString(hashBytes);
+        }
 
         var doc = new EntityDocument
         {
@@ -124,6 +142,7 @@ public class DocumentService : IDocumentService
             FilePath = savedPath,
             FileType = ext.TrimStart('.'),
             FileSize = file.Length,
+            FileHash = fileHash,
             SubjectId = subjectId,
             Status = DocumentStatus.Pending,
             CreatedAt = DateTime.UtcNow,
@@ -170,6 +189,39 @@ public class DocumentService : IDocumentService
 
         try
         {
+            var activeConfig = await _chunkingConfigService.ResolveActiveConfigAsync(doc.SubjectId);
+
+            var existingSets = await _embeddingSetRepo.GetAllAsync(
+                e => e.FileHash == doc.FileHash
+                     && e.ChunkingConfigId == activeConfig.Id
+                     && e.Status == EmbeddingSetStatus.Ready
+            );
+            var existingSet = existingSets.FirstOrDefault();
+
+            if (existingSet != null)
+            {
+                doc.EmbeddingSetId = existingSet.Id;
+                doc.Status = DocumentStatus.Ready;
+                doc.UpdatedAt = DateTime.UtcNow;
+                _docRepo.Update(doc);
+                await _docRepo.SaveChangesAsync();
+                await SaveLogAsync(documentId, "Tái sử dụng EmbeddingSet có sẵn (trùng nội dung + config)", "Info");
+                return;
+            }
+
+            // Không có sẵn -> tạo EmbeddingSet mới rồi chunk/embed như cũ
+            var embeddingSet = new EmbeddingSet
+            {
+                FileHash = doc.FileHash,
+                ChunkingConfigId = activeConfig.Id,
+                EmbeddingModel = "multilingual-e5-base",
+                Status = EmbeddingSetStatus.Processing,
+                SourceDocumentId = doc.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _embeddingSetRepo.AddAsync(embeddingSet);
+            await _embeddingSetRepo.SaveChangesAsync();
+
             var ext = Path.GetExtension(doc.FilePath).ToLowerInvariant();
             var fileType = (doc.FileType ?? ext.TrimStart('.')).ToLowerInvariant();
             string rawText = string.Empty;
@@ -178,10 +230,7 @@ public class DocumentService : IDocumentService
             {
                 using var pdf = PdfDocument.Open(doc.FilePath);
                 var sb = new StringBuilder();
-                foreach (var page in pdf.GetPages())
-                {
-                    sb.AppendLine(page.Text);
-                }
+                foreach (var page in pdf.GetPages()) sb.AppendLine(page.Text);
                 rawText = sb.ToString();
             }
             else if (fileType == "docx" || ext == ".docx")
@@ -194,11 +243,10 @@ public class DocumentService : IDocumentService
             }
 
             if (string.IsNullOrWhiteSpace(rawText))
-            {
                 throw new InvalidOperationException("Không thể trích xuất văn bản từ file.");
-            }
 
-            var chunks = ChunkText(rawText, 800, 0.1);
+            var chunks = ChunkText(rawText, activeConfig.ChunkSize, activeConfig.ChunkOverlap / (double)activeConfig.ChunkSize);
+
             var hfToken = _configuration["HuggingFace:Token"];
             if (string.IsNullOrWhiteSpace(hfToken))
                 throw new InvalidOperationException("Hugging Face token không được cấu hình.");
@@ -214,7 +262,6 @@ public class DocumentService : IDocumentService
             var pendingCount = 0;
             foreach (var text in chunks)
             {
-                // Save per-chunk log before calling external service
                 await SaveLogAsync(documentId, $"Processing chunk {idx}", "Processing");
 
                 string formattedText = $"passage: {text}";
@@ -223,41 +270,31 @@ public class DocumentService : IDocumentService
                 using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var resp = await client.PostAsync(modelUrl, content);
-
                 if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                {
                     throw new InvalidOperationException("Server AI đang khởi động, vui lòng đợi 20 giây và bấm nút lại!");
-                }
 
                 resp.EnsureSuccessStatusCode();
                 var respJson = await resp.Content.ReadAsStringAsync();
 
                 using var docJson = JsonDocument.Parse(respJson);
                 var vector = new List<float>();
-
                 var root = docJson.RootElement;
                 if (root.ValueKind == JsonValueKind.Array)
                 {
                     var firstElement = root[0];
                     var vectorArray = firstElement.ValueKind == JsonValueKind.Number ? root : firstElement;
-
-                    foreach (var el in vectorArray.EnumerateArray())
-                    {
-                        vector.Add(el.GetSingle());
-                    }
+                    foreach (var el in vectorArray.EnumerateArray()) vector.Add(el.GetSingle());
                 }
 
                 var chunkEntity = new DocumentChunk
                 {
-                    DocumentId = documentId,
+                    EmbeddingSetId = embeddingSet.Id,
                     Content = text,
                     ChunkIndex = idx++,
                     EmbeddingJson = JsonSerializer.Serialize(vector),
-                    EmbeddingModel = "multilingual-e5-base",
                     CreatedAt = DateTime.UtcNow
                 };
 
-                // add to repo and flush in batches to reduce IO
                 await _chunkRepo.AddAsync(chunkEntity);
                 pendingCount++;
                 if (pendingCount >= batchSize)
@@ -266,17 +303,19 @@ public class DocumentService : IDocumentService
                     pendingCount = 0;
                 }
 
-                // Log successful chunk embedding
                 await SaveLogAsync(documentId, $"Chunk {chunkEntity.ChunkIndex} embedded successfully", "Info");
-
                 await Task.Delay(300);
             }
-            // flush remaining pending chunks
-            if (pendingCount > 0)
-            {
-                await _chunkRepo.SaveChangesAsync();
-            }
+            if (pendingCount > 0) await _chunkRepo.SaveChangesAsync();
+
             await SaveLogAsync(documentId, "All chunks saved", "Info");
+
+            embeddingSet.Status = EmbeddingSetStatus.Ready;
+            embeddingSet.UpdatedAt = DateTime.UtcNow;
+            _embeddingSetRepo.Update(embeddingSet);
+            await _embeddingSetRepo.SaveChangesAsync();
+
+            doc.EmbeddingSetId = embeddingSet.Id;
             doc.Status = DocumentStatus.Ready;
             doc.UpdatedAt = DateTime.UtcNow;
             _docRepo.Update(doc);

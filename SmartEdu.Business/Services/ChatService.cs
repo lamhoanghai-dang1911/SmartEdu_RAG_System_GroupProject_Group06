@@ -82,9 +82,13 @@ public class ChatService : IChatService
         await _messageRepo.SaveChangesAsync();
 
         float[] queryVector = await GetHuggingFaceEmbeddingAsync(request.Question);
+
+        // Lấy chunk thông qua EmbeddingSet -> Documents có SubjectId khớp và Status = Ready
         var chunks = await _chunkRepo.GetAllWithIncludeAsync(
-            c => c.Document != null && c.Document.Status == DocumentStatus.Ready && c.Document.SubjectId == request.SubjectId.Value,
-            c => c.Document
+            c => c.EmbeddingSet != null
+                 && c.EmbeddingSet.Status == EmbeddingSetStatus.Ready
+                 && c.EmbeddingSet.Documents.Any(d => d.SubjectId == request.SubjectId.Value && !d.IsDeleted),
+            c => c.EmbeddingSet
         );
 
         var topChunks = chunks.Select(c => new { Chunk = c, Score = CosineSimilarity(queryVector, JsonSerializer.Deserialize<float[]>(c.EmbeddingJson)) })
@@ -94,8 +98,13 @@ public class ChatService : IChatService
         var sources = new HashSet<string>();
         foreach (var item in topChunks)
         {
-            contextBuilder.AppendLine($"[Nguồn: {item.Chunk.Document.Title}]\n{item.Chunk.Content}\n---\n");
-            sources.Add(item.Chunk.Document.Title);
+            // Document title lấy theo đúng SubjectId của phiên chat, không phải Document đầu tiên bất kỳ
+            var sourceDoc = item.Chunk.EmbeddingSet.Documents
+                .FirstOrDefault(d => d.SubjectId == request.SubjectId.Value && !d.IsDeleted);
+            var title = sourceDoc?.Title ?? "Không xác định";
+
+            contextBuilder.AppendLine($"[Nguồn: {title}]\n{item.Chunk.Content}\n---\n");
+            sources.Add(title);
         }
 
         string answer = await GenerateGeminiResponseAsync(contextBuilder.ToString(), request.Question);

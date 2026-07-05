@@ -65,6 +65,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
             // Register filter for requiring password change after first login
             builder.Services.AddScoped<SmartEdu.Web.Filters.RequirePasswordChangeFilter>();
             builder.Services.AddControllersWithViews(options =>
