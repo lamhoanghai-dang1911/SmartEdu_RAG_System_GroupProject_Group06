@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SmartEdu.Business.Interfaces;
+using SmartEdu.Shared.DTOs;
+using SmartEdu.Shared.Enums;
 using SmartEdu.Web.Extensions;
 
 namespace SmartEdu.Web.Controllers;
@@ -13,6 +15,7 @@ public class DocumentController : Controller
     private readonly ISubjectService _subjectService;
     private readonly IPermissionService _permissionService;
     private readonly IWebHostEnvironment _env;
+
 
     public DocumentController(
         IDocumentService documentService,
@@ -201,38 +204,123 @@ public class DocumentController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> Upload(IFormFile file, string title, int subjectId)
     {
-        if (file is null || file.Length == 0)
+        if (file == null || file.Length == 0)
         {
-            ModelState.AddModelError("file", "Vui lòng chọn file.");
-            var subjects = await _subjectService.GetAllAsync();
-            ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
-            return View();
+            TempData["Error"] = "Vui lòng chọn file.";
+            return RedirectToAction(nameof(Index));
         }
+
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+            return RedirectToAction("Login", "Account");
+
+        // Check quyền truy cập subject
+        bool canAccess = await _permissionService.CanUserAccessSubject(userId, subjectId);
+        if (!canAccess)
+            return Forbid();
 
         try
         {
-            int userId = User.GetUserId();
-            // check permission: only leader of subject can upload
-            bool canUpload = await _subjectService.CanUploadDocument(userId, subjectId);
-            if (!canUpload)
-                throw new InvalidOperationException("Bạn không có quyền upload tài liệu cho môn này. Chỉ trưởng môn được phép.");
+            var webRootPath = _env.WebRootPath;
 
-            await _documentService.UploadAsync(file, title, subjectId, _env.WebRootPath);
-            TempData["Success"] = $"Upload '{title}' thành công!";
+            var dto = await _documentService.UploadAsync(file, title, subjectId, webRootPath);
+
+            // **Thêm: kiểm tra duplicate**
+            string fileHash = await ComputeFileHashAsync(file);
+            var dupCheck = await _documentService.CheckDuplicateAsync(fileHash, subjectId);
+
+            if (dupCheck.HasDuplicate)
+            {
+                // Lưu vào session để modal handle
+                HttpContext.Session.SetInt32("NewDocumentId", (int)dto.Id);
+                HttpContext.Session.SetInt32("OldDocumentId", dupCheck.DuplicateDocumentId.Value);
+
+                TempData["DuplicateWarning"] = $"Phát hiện tài liệu trùng: '{dupCheck.DuplicateTitle}' (upload lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy HH:mm}). Vui lòng chọn hành động.";
+                return RedirectToAction(nameof(HandleDuplicate));
+            }
+
+            TempData["Success"] = "Upload thành công! Nhấn nút ⚡ để bắt đầu embedding.";
+            return RedirectToAction(nameof(Index), new { subjectId });
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
             return RedirectToAction(nameof(Index));
         }
-        catch (InvalidOperationException ex)
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> HandleDuplicate()
+    {
+        var newDocId = HttpContext.Session.GetInt32("NewDocumentId");
+        var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
+
+        if (!newDocId.HasValue || !oldDocId.HasValue)
+            return RedirectToAction(nameof(Index));
+
+        var newDoc = await _documentService.GetByIdAsync(newDocId.Value);
+        var oldDoc = await _documentService.GetByIdAsync(oldDocId.Value);
+
+        if (newDoc == null || oldDoc == null)
+            return RedirectToAction(nameof(Index));
+
+        ViewBag.NewDocument = newDoc;
+        ViewBag.OldDocument = oldDoc;
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ConfirmDuplicate(int action)
+    {
+        var newDocId = HttpContext.Session.GetInt32("NewDocumentId");
+        var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
+
+        if (!newDocId.HasValue || !oldDocId.HasValue)
+            return RedirectToAction(nameof(Index));
+
+        var userIdClaim = User.FindFirst("UserId")?.Value;
+        if (!int.TryParse(userIdClaim, out var userId))
+            return RedirectToAction("Login", "Account");
+
+        try
         {
-            ModelState.AddModelError("file", ex.Message);
-            var subjects = User.IsInRole("Admin")
-                ? await _subjectService.GetAllAsync()
-                : await _subject_service_getsubjects_for_current_user();
-            ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
-            return View();
+            var dto = new DuplicateHandleDto
+            {
+                NewDocumentId = newDocId.Value,
+                OldDocumentId = oldDocId.Value,
+                Action = (DocumentDuplicateAction)action
+            };
+
+            await _documentService.HandleDuplicateAsync(dto, userId);
+
+            HttpContext.Session.Remove("NewDocumentId");
+            HttpContext.Session.Remove("OldDocumentId");
+
+            TempData["Success"] = "Xử lý tài liệu trùng thành công!";
+            return RedirectToAction(nameof(Index));
         }
+        catch (UnauthorizedAccessException)
+        {
+            TempData["Error"] = "Bạn không có quyền xử lý tài liệu trùng. Chỉ trưởng môn học mới có quyền này.";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            TempData["Error"] = ex.Message;
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    // Helper: tính hash file (dùng lại logic từ DocumentService)
+    private async Task<string> ComputeFileHashAsync(IFormFile file)
+    {
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        using var stream = file.OpenReadStream();
+        var hashBytes = await sha256.ComputeHashAsync(stream);
+        return Convert.ToHexString(hashBytes);
     }
 
     // helper wrapper to avoid repeating code and protect against exceptions

@@ -16,13 +16,17 @@ namespace SmartEdu.Business.Services
     {
         private readonly IRepository<StudentSubject> _studentSubjectRepo;
         private readonly IRepository<User> _userRepo;
+        private readonly IRepository<LecturerSubject> _lecturerSubjectRepo;
+
 
         public PermissionService(
             IRepository<StudentSubject> studentSubjectRepo,
-            IRepository<User> userRepo)
+            IRepository<User> userRepo,
+            IRepository<LecturerSubject> lecturerSubjectRepo)
         {
             _studentSubjectRepo = studentSubjectRepo;
             _userRepo = userRepo;
+            _lecturerSubjectRepo = lecturerSubjectRepo;
         }
 
         public async Task<bool> CanUserAccessSubject(int userId, int subjectId)
@@ -37,6 +41,13 @@ namespace SmartEdu.Business.Services
             );
 
             return enrollments.Any();
+        }
+
+        public async Task<bool> IsLecturerLeaderAsync(int userId, int subjectId)
+        {
+            var leadership = await _lecturerSubjectRepo.GetAllAsync(
+                ls => ls.LecturerId == userId && ls.SubjectId == subjectId && ls.IsLeader);
+            return leadership.Any();
         }
     }
 }

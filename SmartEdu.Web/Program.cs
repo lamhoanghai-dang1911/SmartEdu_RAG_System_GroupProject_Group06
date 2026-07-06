@@ -22,6 +22,8 @@ namespace SmartEdu.Web
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddHttpClient<PaymentService>();
             // HttpClient factory for calling OpenAI
             builder.Services.AddHttpClient();
             builder.Services.AddScoped<ISubjectService, SubjectService>();
@@ -72,6 +74,13 @@ namespace SmartEdu.Web
             {
                 options.Filters.AddService<SmartEdu.Web.Filters.RequirePasswordChangeFilter>();
             });
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
             var app = builder.Build();
 
             using (var scope = app.Services.CreateScope())
@@ -96,7 +105,7 @@ namespace SmartEdu.Web
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
-
+            app.UseSession();
             app.UseRouting();
             app.UseAuthentication();
             app.UseAuthorization();

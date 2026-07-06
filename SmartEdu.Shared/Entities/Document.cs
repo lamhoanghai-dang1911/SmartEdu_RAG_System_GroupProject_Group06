@@ -17,7 +17,7 @@ namespace SmartEdu.Shared.Entities
         public Subject Subject { get; set; } = null!;
 
         // Versioning trong cùng Subject (Ignore/Replace/KeepBoth)
-        public int Version { get; set; } = 1;
+        public int? Version { get; set; }
         public int? ParentDocumentId { get; set; }
         public Document? ParentDocument { get; set; }
 
@@ -26,5 +26,6 @@ namespace SmartEdu.Shared.Entities
         public EmbeddingSet? EmbeddingSet { get; set; }
 
         public ICollection<DocumentLog> Logs { get; set; } = new List<DocumentLog>();
+        public DocumentDuplicateAction? DuplicateAction { get; set; }
     }
 }

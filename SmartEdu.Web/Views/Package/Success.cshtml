@@ -1,0 +1,40 @@
+﻿@model SmartEdu.Shared.DTOs.UserSubscriptionDto
+@{
+    ViewData["Title"] = "Thanh toán thành công";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <h1 class="display-4 text-success mb-3">✅</h1>
+                    <h2 class="card-title mb-4">Thanh toán thành công!</h2>
+
+                    <p class="text-muted mb-4">Gói dịch vụ của bạn đã được kích hoạt.</p>
+
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <h5 class="mb-3">📦 Thông tin gói</h5>
+                        <p><strong>Gói:</strong> @Model.PackageName</p>
+                        <p><strong>🎫 Token còn lại:</strong> <span class="text-success">@Model.RemainingTokenQuota.ToString("N0")</span></p>
+                        <p><strong>⏱️ Bắt đầu:</strong> @Model.StartDate.ToString("dd/MM/yyyy HH:mm")</p>
+                        <p><strong>⏰ Hết hạn:</strong> @Model.EndDate.ToString("dd/MM/yyyy HH:mm")</p>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <strong>🎉 Chúc mừng!</strong> Bạn có thể bắt đầu sử dụng dịch vụ ngay bây giờ.
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="/" class="btn btn-primary">
+                            🏠 Về trang chủ
+                        </a>
+                        <a asp-action="MySubscription" class="btn btn-outline-secondary">
+                            📊 Xem gói của tôi
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

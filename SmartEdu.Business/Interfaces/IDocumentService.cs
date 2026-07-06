@@ -15,5 +15,7 @@ namespace SmartEdu.Business.Interfaces
         Task<DocumentDownloadDto?> GetFileForDownloadAsync(int id);
         Task<bool> HasReadyDocumentsAsync(int subjectId);
         Task<IEnumerable<SmartEdu.Shared.DTOs.DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId);
+        Task<DuplicateCheckDto> CheckDuplicateAsync(string fileHash, int subjectId);
+        Task HandleDuplicateAsync(DuplicateHandleDto dto, int currentUserId);
     }
 }

@@ -14,5 +14,7 @@ namespace SmartEdu.Shared.Entities
         public string Email { get; set; } = string.Empty;
         public string? StudentCode { get; set; }
         public bool RequirePasswordChange { get; set; } = false;
+        // Trong User.cs
+        public string? PhoneNumber { get; set; }
     }
 }

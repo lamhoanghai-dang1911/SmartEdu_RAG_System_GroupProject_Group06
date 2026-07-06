@@ -9,5 +9,7 @@ namespace SmartEdu.Business.Interfaces
     public interface IPermissionService
     {
         Task<bool> CanUserAccessSubject(int userId, int subjectId);
+        Task<bool> IsLecturerLeaderAsync(int userId, int subjectId);
+
     }
 }

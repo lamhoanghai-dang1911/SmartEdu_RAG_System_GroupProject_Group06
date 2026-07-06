@@ -1,0 +1,60 @@
+﻿@model SmartEdu.Shared.DTOs.PackageDto
+@{
+    ViewData["Title"] = "Mua gói - " + Model.Name;
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">🛒 Xác nhận mua gói</h2>
+
+                    @if (TempData["Error"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show">
+                            @TempData["Error"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <h5>@Model.Name</h5>
+                        <p class="text-muted mb-2">@Model.Description</p>
+                        <hr />
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>⏱️ Thời hạn</strong>
+                                <p>@Model.DurationDays ngày</p>
+                            </div>
+                            <div class="col-6">
+                                <strong>🎫 Token</strong>
+                                <p>@Model.TokenQuota.ToString("N0")</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-warning bg-opacity-10 rounded border border-warning">
+                        <h5 class="text-warning mb-2">💰 Tổng tiền thanh toán</h5>
+                        <h3 class="text-danger">@Model.Price.ToString("N0") đ</h3>
+                    </div>
+
+                    <form asp-action="ConfirmPayment" asp-route-packageId="@Model.Id" method="post" class="mb-3">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            ✅ Tiếp tục thanh toán
+                        </button>
+                    </form>
+
+                    <a asp-action="List" class="btn btn-secondary w-100">
+                        ⬅️ Quay lại danh sách
+                    </a>
+                </div>
+            </div>
+
+            <div class="alert alert-info mt-4 text-center">
+                <small>🔒 Thanh toán an toàn qua PayOS. Bạn sẽ được chuyển hướng sang cổng thanh toán để hoàn tất giao dịch.</small>
+            </div>
+        </div>
+    </div>
+</div>

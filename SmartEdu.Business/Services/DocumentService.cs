@@ -27,6 +27,8 @@ public class DocumentService : IDocumentService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IRepository<EmbeddingSet> _embeddingSetRepo;
     private readonly IChunkingConfigService _chunkingConfigService;
+    private readonly IRepository<LecturerSubject> _lecturerSubjectRepo;
+
 
     public DocumentService(
     IRepository<EntityDocument> docRepo,
@@ -37,7 +39,8 @@ public class DocumentService : IDocumentService
     IUnitOfWork uow,
     IServiceScopeFactory scopeFactory,
     IRepository<EmbeddingSet> embeddingSetRepo,
-    IChunkingConfigService chunkingConfigService)
+    IChunkingConfigService chunkingConfigService,
+    IRepository<LecturerSubject> lecturerSubjectRepo)
     {
         _docRepo = docRepo;
         _chunkRepo = chunkRepo;
@@ -48,6 +51,7 @@ public class DocumentService : IDocumentService
         _scopeFactory = scopeFactory;
         _embeddingSetRepo = embeddingSetRepo;
         _chunkingConfigService = chunkingConfigService;
+        _lecturerSubjectRepo = lecturerSubjectRepo;
     }
 
     public async Task<IEnumerable<DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
@@ -487,5 +491,84 @@ public class DocumentService : IDocumentService
             !d.IsDeleted);
 
         return docs.Any();
+    }
+
+    public async Task<DuplicateCheckDto> CheckDuplicateAsync(string fileHash, int subjectId)
+    {
+        var existing = await _docRepo.GetAllAsync(d =>
+            d.FileHash == fileHash &&
+            d.SubjectId == subjectId &&
+            !d.IsDeleted);
+
+        var doc = existing.FirstOrDefault();
+        if (doc == null)
+        {
+            return new DuplicateCheckDto { HasDuplicate = false };
+        }
+
+        return new DuplicateCheckDto
+        {
+            HasDuplicate = true,
+            DuplicateDocumentId = doc.Id,
+            DuplicateTitle = doc.Title,
+            DuplicateCreatedAt = doc.CreatedAt
+        };
+    }
+
+    public async Task HandleDuplicateAsync(DuplicateHandleDto dto, int currentUserId)
+    {
+        var newDoc = await _docRepo.GetByIdAsync(dto.NewDocumentId);
+        var oldDoc = await _docRepo.GetByIdAsync(dto.OldDocumentId);
+
+        if (newDoc == null || oldDoc == null)
+            throw new InvalidOperationException("Tài liệu không tồn tại.");
+
+        // Check quyền: chỉ leader của subject mới có quyền
+        var isLeader = await _lecturerSubjectRepo.GetAllAsync(
+            ls => ls.LecturerId == currentUserId &&
+                  ls.SubjectId == newDoc.SubjectId &&
+                  ls.IsLeader);
+
+        if (!isLeader.Any())
+            throw new UnauthorizedAccessException("Chỉ trưởng môn học mới có quyền xử lý tài liệu trùng.");
+
+        switch (dto.Action)
+        {
+            case DocumentDuplicateAction.Ignored:
+                // Xóa tài liệu mới, giữ tài liệu cũ
+                newDoc.IsDeleted = true;
+                newDoc.UpdatedAt = DateTime.UtcNow;
+                newDoc.DuplicateAction = DocumentDuplicateAction.Ignored;
+                _docRepo.Update(newDoc);
+                await _docRepo.SaveChangesAsync();
+                break;
+
+            case DocumentDuplicateAction.Replaced:
+                // Mark tài liệu cũ là deleted, tài liệu mới thay thế
+                oldDoc.IsDeleted = true;
+                oldDoc.UpdatedAt = DateTime.UtcNow;
+                _docRepo.Update(oldDoc);
+
+                newDoc.DuplicateAction = DocumentDuplicateAction.Replaced;
+                newDoc.ParentDocumentId = oldDoc.Id;
+                newDoc.Version = (oldDoc.Version > 0 ? oldDoc.Version : 1) + 1;
+                newDoc.UpdatedAt = DateTime.UtcNow;
+                _docRepo.Update(newDoc);
+                await _docRepo.SaveChangesAsync();
+                break;
+
+            case DocumentDuplicateAction.KeptBoth:
+                // Giữ cả 2, đánh dấu version
+                newDoc.DuplicateAction = DocumentDuplicateAction.KeptBoth;
+                newDoc.Version = (oldDoc.Version > 0 ? oldDoc.Version : 1) + 1;
+                newDoc.ParentDocumentId = oldDoc.Id;
+                newDoc.UpdatedAt = DateTime.UtcNow;
+                _docRepo.Update(newDoc);
+                await _docRepo.SaveChangesAsync();
+                break;
+
+            default:
+                throw new InvalidOperationException("Hành động không hợp lệ.");
+        }
     }
 }

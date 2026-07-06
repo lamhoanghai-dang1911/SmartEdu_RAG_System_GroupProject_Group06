@@ -1,0 +1,42 @@
+﻿@model IEnumerable<SmartEdu.Shared.DTOs.PackageDto>
+@{
+    ViewData["Title"] = "Gói dịch vụ";
+}
+
+<div class="container mt-4">
+    <h2 class="mb-4">💳 Chọn gói dịch vụ</h2>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        @foreach (var package in Model)
+        {
+            <div class="col-md-4">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="card-body">
+                        <h5 class="card-title">@package.Name</h5>
+                        <p class="card-text text-muted">@package.Description</p>
+
+                        <hr />
+
+                        <div class="mb-3">
+                            <p class="mb-2"><strong>💰 Giá:</strong> <span class="text-danger fs-5">@package.Price.ToString("N0") đ</span></p>
+                            <p class="mb-2"><strong>⏱️ Thời hạn:</strong> @package.DurationDays ngày</p>
+                            <p class="mb-2"><strong>🎫 Token:</strong> @package.TokenQuota.ToString("N0")</p>
+                        </div>
+
+                        <a asp-action="Buy" asp-route-packageId="@package.Id" class="btn btn-primary w-100">
+                            🛒 Mua ngay
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>

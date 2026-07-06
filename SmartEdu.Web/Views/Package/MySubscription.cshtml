@@ -1,0 +1,90 @@
+﻿@model IEnumerable<SmartEdu.Shared.DTOs.UserSubscriptionDto>
+@{
+    ViewData["Title"] = "Gói dịch vụ của tôi";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>📊 Gói dịch vụ của tôi</h2>
+        <a asp-action="List" class="btn btn-primary">
+            💳 Mua thêm gói
+        </a>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-4">
+            <h5>📭 Bạn chưa có gói nào</h5>
+            <p class="mb-3">Hãy mua một gói dịch vụ để bắt đầu sử dụng.</p>
+            <a asp-action="List" class="btn btn-primary">🛒 Xem gói dịch vụ</a>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var sub in Model)
+            {
+                <div class="col-md-6">
+                    <div class="card shadow-sm border-0 h-100">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="card-title">@sub.PackageName</h5>
+                                @if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Active)
+                                {
+                                    <span class="badge bg-success">✅ Đang hoạt động</span>
+                                }
+                                else if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Expired)
+                                {
+                                    <span class="badge bg-secondary">⏰ Hết hạn</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">❌ Đã hủy</span>
+                                }
+                            </div>
+
+                            <hr />
+
+                            <div class="mb-3">
+                                <p class="mb-2"><strong>🎫 Token còn lại:</strong> <span class="text-info">@sub.RemainingTokenQuota.ToString("N0")</span></p>
+                                <p class="mb-2"><strong>📅 Ngày bắt đầu:</strong> @sub.StartDate.ToString("dd/MM/yyyy HH:mm")</p>
+                                <p class="mb-2"><strong>📅 Ngày kết thúc:</strong> @sub.EndDate.ToString("dd/MM/yyyy HH:mm")</p>
+
+                                @{
+                                    var daysRemaining = (sub.EndDate - DateTime.UtcNow).Days;
+                                    if (daysRemaining > 0)
+                                    {
+                                        <p class="mb-0"><strong>⏳ Còn lại:</strong> <span class="text-warning">@daysRemaining ngày</span></p>
+                                    }
+                                    else
+                                    {
+                                        <p class="mb-0 text-danger"><strong>⚠️ Đã hết hạn</strong></p>
+                                    }
+                                }
+                            </div>
+
+                            @if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Expired && daysRemaining <= 0)
+                            {
+                                <a asp-action="List" class="btn btn-sm btn-primary w-100">
+                                    🛒 Gia hạn gói
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Nếu URL chứa "success" từ redirect PayOS, hiển thị toast thành công
+        document.addEventListener("DOMContentLoaded", function () {
+            if (window.location.search.includes("success=true")) {
+                // Bootstrap toast (nếu cần)
+                console.log("Payment successful!");
+            }
+        });
+    </script>
+}
