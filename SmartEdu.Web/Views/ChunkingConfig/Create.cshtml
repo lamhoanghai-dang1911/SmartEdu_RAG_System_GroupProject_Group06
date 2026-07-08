@@ -3,15 +3,147 @@
     ViewData["Title"] = "Thêm cấu hình Chunking";
 }
 
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --danger: #e5484d;
+    }
+
+    .config-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        padding: 1.75rem;
+        opacity: 0;
+        animation: fadeUp 0.45s ease forwards;
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .page-head .btn-secondary {
+        border-radius: 999px;
+        border: none;
+        background: #eef0f6;
+        color: #33384f;
+        font-weight: 600;
+        font-size: 0.88rem;
+        padding: 0.5rem 1.1rem;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+        .page-head .btn-secondary:hover {
+            background: #e2e5f0;
+            transform: translateY(-1px);
+            color: #12162b;
+        }
+
+    .alert-danger {
+        border: none;
+        border-radius: 12px;
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        border-left: 3px solid var(--danger);
+        animation: fadeUp 0.35s ease forwards;
+    }
+
+        .alert-danger ul {
+            padding-left: 1.1rem;
+        }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #33384f;
+        margin-bottom: 0.4rem;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1.5px solid #e3e5ef;
+        border-radius: 10px;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+        }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: var(--slate-light);
+        margin-top: 0.35rem;
+    }
+
+    #subjectGroup {
+        transition: opacity 0.2s ease;
+    }
+
+    .btn-save {
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.6rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        box-shadow: 0 10px 24px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .btn-save:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+            color: #fff;
+        }
+
+        .btn-save:active {
+            transform: scale(0.98);
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="page-head d-flex justify-content-between align-items-center mb-3">
         <h2>➕ Thêm cấu hình Chunking</h2>
         <a asp-action="Index" class="btn btn-secondary">⬅ Quay lại</a>
     </div>
 
     @if (!ViewData.ModelState.IsValid)
     {
-        <div class="alert alert-danger">
+        <div class="alert alert-danger mb-3">
             <ul class="mb-0">
                 @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
                 {
@@ -21,45 +153,42 @@
         </div>
     }
 
-    <form asp-action="Create" method="post" class="row g-3">
-        @Html.AntiForgeryToken()
+    <div class="config-card">
+        <form asp-action="Create" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
 
-        <div class="col-md-6">
-            <label class="form-label">Chunk Size</label>
-            <input asp-for="ChunkSize" type="number" class="form-control" min="200" max="2000" />
-            <div class="form-text">Từ 200 đến 2000.</div>
-        </div>
+            <div class="col-md-6">
+                <label class="form-label">Chunk Size</label>
+                <input asp-for="ChunkSize" type="number" class="form-control" min="200" max="2000" />
+                <div class="form-text">Từ 200 đến 2000.</div>
+            </div>
 
-        <div class="col-md-6">
-            <label class="form-label">Chunk Overlap</label>
-            <input asp-for="ChunkOverlap" type="number" class="form-control" min="0" />
-            <div class="form-text">Phải nhỏ hơn một nửa Chunk Size.</div>
-        </div>
+            <div class="col-md-6">
+                <label class="form-label">Chunk Overlap</label>
+                <input asp-for="ChunkOverlap" type="number" class="form-control" min="0" />
+                <div class="form-text">Phải nhỏ hơn một nửa Chunk Size.</div>
+            </div>
 
-        <div class="col-md-6">
-            <label class="form-label">Strategy</label>
-            <select class="form-select" disabled>
-                <option selected>FixedSize</option>
-            </select>
+            @* Strategy: ẩn khỏi UI (chỉ hỗ trợ FixedSize hiện tại), nhưng vẫn gửi field này lên BE vì ChunkingConfigSaveDto yêu cầu *@
             <input type="hidden" asp-for="Strategy" value="@SmartEdu.Shared.Enums.ChunkingStrategy.FixedSize" />
-        </div>
 
-        <div class="col-md-6">
-            <label class="form-label">Phạm vi (Scope)</label>
-            <select asp-for="Scope" id="scopeSelect" asp-items="Html.GetEnumSelectList<SmartEdu.Shared.Enums.ChunkingScope>()" class="form-select"></select>
-        </div>
+            <div class="col-md-6">
+                <label class="form-label">Phạm vi (Scope)</label>
+                <select asp-for="Scope" id="scopeSelect" asp-items="Html.GetEnumSelectList<SmartEdu.Shared.Enums.ChunkingScope>()" class="form-select"></select>
+            </div>
 
-        <div class="col-md-6" id="subjectGroup">
-            <label class="form-label">Môn học (chỉ áp dụng nếu Scope = PerSubject)</label>
-            <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
-                <option value="">-- Chọn môn học --</option>
-            </select>
-        </div>
+            <div class="col-md-6" id="subjectGroup">
+                <label class="form-label">Môn học (chỉ áp dụng nếu Scope = PerSubject)</label>
+                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
+                    <option value="">-- Chọn môn học --</option>
+                </select>
+            </div>
 
-        <div class="col-12">
-            <button type="submit" class="btn btn-primary">💾 Lưu cấu hình</button>
-        </div>
-    </form>
+            <div class="col-12">
+                <button type="submit" class="btn btn-save">💾 Lưu cấu hình</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 @section Scripts {

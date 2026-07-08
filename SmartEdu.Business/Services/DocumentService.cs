@@ -28,7 +28,8 @@ public class DocumentService : IDocumentService
     private readonly IRepository<EmbeddingSet> _embeddingSetRepo;
     private readonly IChunkingConfigService _chunkingConfigService;
     private readonly IRepository<LecturerSubject> _lecturerSubjectRepo;
-
+    private readonly IRepository<Subject> _subjectRepo;
+    private readonly IRealtimeNotifier _realtime;
 
     public DocumentService(
     IRepository<EntityDocument> docRepo,
@@ -40,7 +41,9 @@ public class DocumentService : IDocumentService
     IServiceScopeFactory scopeFactory,
     IRepository<EmbeddingSet> embeddingSetRepo,
     IChunkingConfigService chunkingConfigService,
-    IRepository<LecturerSubject> lecturerSubjectRepo)
+    IRepository<LecturerSubject> lecturerSubjectRepo,
+    IRealtimeNotifier realtime,
+    IRepository<Subject> subjectRepo)
     {
         _docRepo = docRepo;
         _chunkRepo = chunkRepo;
@@ -52,6 +55,75 @@ public class DocumentService : IDocumentService
         _embeddingSetRepo = embeddingSetRepo;
         _chunkingConfigService = chunkingConfigService;
         _lecturerSubjectRepo = lecturerSubjectRepo;
+        _realtime = realtime;
+        _subjectRepo = subjectRepo;
+    }
+
+    public async Task<DocumentChunkDetailDto?> GetChunkDetailAsync(int chunkId)
+    {
+        var chunks = await _chunkRepo.GetAllWithIncludeAsync(c => c.Id == chunkId, c => c.EmbeddingSet, c => c.EmbeddingSet.Documents);
+        var chunk = chunks.FirstOrDefault();
+        if (chunk == null) return null;
+
+        var dto = new DocumentChunkDetailDto
+        {
+            ChunkId = chunk.Id,
+            ChunkIndex = chunk.ChunkIndex,
+            Content = chunk.Content,
+            EmbeddingSetId = chunk.EmbeddingSetId,
+            Documents = chunk.EmbeddingSet.Documents
+                        .Where(d => !d.IsDeleted)
+                        .Select(d => new DocumentShortDto { Id = d.Id, Title = d.Title, Status = (int)d.Status, CreatedAt = d.CreatedAt })
+                        .ToList()
+        };
+
+        return dto;
+    }
+
+    public async Task<DocumentDto> CreateFromTempAsync(string tempFilePath, string originalFileName, string title, int subjectId, string fileHash, long fileSize, string webRootPath)
+    {
+        if (string.IsNullOrWhiteSpace(webRootPath))
+        {
+            webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        }
+
+        var uploadRoot = Path.Combine(webRootPath, "uploads");
+        Directory.CreateDirectory(uploadRoot);
+
+        var ext = Path.GetExtension(originalFileName).ToLowerInvariant();
+        var savedName = $"{Guid.NewGuid()}{ext}";
+        var savedPath = Path.Combine(uploadRoot, savedName);
+
+        System.IO.File.Move(tempFilePath, savedPath);
+
+        var doc = new EntityDocument
+        {
+            Title = title,
+            FileName = originalFileName,
+            FilePath = savedPath,
+            FileType = ext.TrimStart('.'),
+            FileSize = fileSize,
+            FileHash = fileHash,
+            SubjectId = subjectId,
+            Status = DocumentStatus.Pending,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        };
+
+        await _docRepo.AddAsync(doc);
+        await _docRepo.SaveChangesAsync();
+
+        return new DocumentDto
+        {
+            Id = doc.Id,
+            Title = doc.Title,
+            FileName = doc.FileName,
+            FileType = doc.FileType,
+            FileSize = doc.FileSize,
+            SubjectId = doc.SubjectId,
+            Status = doc.Status,
+            CreatedAt = doc.CreatedAt
+        };
     }
 
     public async Task<IEnumerable<DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId)
@@ -155,8 +227,9 @@ public class DocumentService : IDocumentService
 
         await _docRepo.AddAsync(doc);
         await _docRepo.SaveChangesAsync();
+        var subject = await _subjectRepo.GetByIdAsync(doc.SubjectId);
 
-        return new DocumentDto
+        var resultDto = new DocumentDto
         {
             Id = doc.Id,
             Title = doc.Title,
@@ -165,8 +238,12 @@ public class DocumentService : IDocumentService
             FileSize = doc.FileSize,
             SubjectId = doc.SubjectId,
             Status = doc.Status,
-            CreatedAt = doc.CreatedAt
+            CreatedAt = doc.CreatedAt,
+            SubjectName = subject?.Name
         };
+        await _realtime.SendDocumentCreatedAsync(resultDto);
+
+        return resultDto;
     }
 
     public async Task DeleteAsync(int id)
@@ -179,6 +256,8 @@ public class DocumentService : IDocumentService
 
         _docRepo.Update(doc);
         await _docRepo.SaveChangesAsync();
+
+        await _realtime.SendDocumentDeletedAsync(doc.Id, doc.SubjectId);
     }
 
     public async Task TriggerEmbeddingAsync(int documentId)
@@ -190,10 +269,12 @@ public class DocumentService : IDocumentService
         doc.UpdatedAt = DateTime.UtcNow;
         _docRepo.Update(doc);
         await _docRepo.SaveChangesAsync();
-
+        await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
         try
         {
             var activeConfig = await _chunkingConfigService.ResolveActiveConfigAsync(doc.SubjectId);
+
+            await SaveLogAsync(documentId, $"ChunkingConfig: size={activeConfig.ChunkSize}, overlap={activeConfig.ChunkOverlap}, strategy={activeConfig.Strategy}, scope={activeConfig.Scope}, subjectId={activeConfig.SubjectId}", "Info");
 
             var existingSets = await _embeddingSetRepo.GetAllAsync(
                 e => e.FileHash == doc.FileHash
@@ -210,10 +291,13 @@ public class DocumentService : IDocumentService
                 _docRepo.Update(doc);
                 await _docRepo.SaveChangesAsync();
                 await SaveLogAsync(documentId, "Tái sử dụng EmbeddingSet có sẵn (trùng nội dung + config)", "Info");
+                await SaveLogAsync(documentId, "Document status set to Ready", "Info");
+
+                await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+                await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Reused");
                 return;
             }
 
-            // Không có sẵn -> tạo EmbeddingSet mới rồi chunk/embed như cũ
             var embeddingSet = new EmbeddingSet
             {
                 FileHash = doc.FileHash,
@@ -221,6 +305,7 @@ public class DocumentService : IDocumentService
                 EmbeddingModel = "multilingual-e5-base",
                 Status = EmbeddingSetStatus.Processing,
                 SourceDocumentId = doc.Id,
+                CanonicalTitle = doc.Title,
                 CreatedAt = DateTime.UtcNow
             };
             await _embeddingSetRepo.AddAsync(embeddingSet);
@@ -307,6 +392,8 @@ public class DocumentService : IDocumentService
                     pendingCount = 0;
                 }
 
+                var display = text.Length > 2000 ? text.Substring(0, 2000) + "...(truncated)" : text;
+                await SaveLogAsync(documentId, $"ChunkContent:{chunkEntity.ChunkIndex}:{display}", "ChunkContent");
                 await SaveLogAsync(documentId, $"Chunk {chunkEntity.ChunkIndex} embedded successfully", "Info");
                 await Task.Delay(300);
             }
@@ -325,6 +412,9 @@ public class DocumentService : IDocumentService
             _docRepo.Update(doc);
             await SaveLogAsync(documentId, "Document status set to Ready", "Info");
             await _docRepo.SaveChangesAsync();
+
+            await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+            await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Ready");
         }
         catch (Exception)
         {
@@ -333,6 +423,9 @@ public class DocumentService : IDocumentService
             _docRepo.Update(doc);
             await _docRepo.SaveChangesAsync();
             await SaveLogAsync(documentId, "Document processing failed", "Error");
+
+            await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+            await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Failed");
             throw;
         }
     }
@@ -343,7 +436,6 @@ public class DocumentService : IDocumentService
         {
             if (_scopeFactory == null)
             {
-                // fallback: try via unit of work
                 var log = new DocumentLog
                 {
                     DocumentId = documentId,
@@ -372,7 +464,17 @@ public class DocumentService : IDocumentService
         {
             Console.WriteLine($"Failed to save document log: {ex}");
         }
+
+        try
+        {
+            await _realtime.SendDocumentLogAsync(documentId, message, status);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast document log via SignalR: {ex}");
+        }
     }
+
     private static string ExtractTextFromDocx(string path)
     {
         var sb = new StringBuilder();
@@ -380,10 +482,10 @@ public class DocumentService : IDocumentService
         {
             var body = doc.MainDocumentPart?.Document?.Body;
             if (body == null) return string.Empty;
-                foreach (var para in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
-                {
-                    sb.AppendLine(para.InnerText);
-                }
+            foreach (var para in body.Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>())
+            {
+                sb.AppendLine(para.InnerText);
+            }
         }
         return sb.ToString();
     }
@@ -511,7 +613,8 @@ public class DocumentService : IDocumentService
             HasDuplicate = true,
             DuplicateDocumentId = doc.Id,
             DuplicateTitle = doc.Title,
-            DuplicateCreatedAt = doc.CreatedAt
+            DuplicateCreatedAt = doc.CreatedAt,
+            IsEmbeddingReady = doc.Status == DocumentStatus.Ready || doc.EmbeddingSetId != null
         };
     }
 
@@ -523,7 +626,6 @@ public class DocumentService : IDocumentService
         if (newDoc == null || oldDoc == null)
             throw new InvalidOperationException("Tài liệu không tồn tại.");
 
-        // Check quyền: chỉ leader của subject mới có quyền
         var isLeader = await _lecturerSubjectRepo.GetAllAsync(
             ls => ls.LecturerId == currentUserId &&
                   ls.SubjectId == newDoc.SubjectId &&
@@ -535,7 +637,6 @@ public class DocumentService : IDocumentService
         switch (dto.Action)
         {
             case DocumentDuplicateAction.Ignored:
-                // Xóa tài liệu mới, giữ tài liệu cũ
                 newDoc.IsDeleted = true;
                 newDoc.UpdatedAt = DateTime.UtcNow;
                 newDoc.DuplicateAction = DocumentDuplicateAction.Ignored;
@@ -544,7 +645,6 @@ public class DocumentService : IDocumentService
                 break;
 
             case DocumentDuplicateAction.Replaced:
-                // Mark tài liệu cũ là deleted, tài liệu mới thay thế
                 oldDoc.IsDeleted = true;
                 oldDoc.UpdatedAt = DateTime.UtcNow;
                 _docRepo.Update(oldDoc);
@@ -555,20 +655,99 @@ public class DocumentService : IDocumentService
                 newDoc.UpdatedAt = DateTime.UtcNow;
                 _docRepo.Update(newDoc);
                 await _docRepo.SaveChangesAsync();
+                var subject = await _subjectRepo.GetByIdAsync(newDoc.SubjectId);
+                await _realtime.SendDocumentDeletedAsync(oldDoc.Id, oldDoc.SubjectId);
+                await _realtime.SendDocumentCreatedAsync(new DocumentDto
+                {
+                    Id = newDoc.Id,
+                    Title = newDoc.Title,
+                    FileName = newDoc.FileName,
+                    FileType = newDoc.FileType,
+                    FileSize = newDoc.FileSize,
+                    SubjectId = newDoc.SubjectId,
+                    Status = newDoc.Status,
+                    CreatedAt = newDoc.CreatedAt,
+                    SubjectName = subject?.Name
+                });
                 break;
 
             case DocumentDuplicateAction.KeptBoth:
-                // Giữ cả 2, đánh dấu version
                 newDoc.DuplicateAction = DocumentDuplicateAction.KeptBoth;
                 newDoc.Version = (oldDoc.Version > 0 ? oldDoc.Version : 1) + 1;
                 newDoc.ParentDocumentId = oldDoc.Id;
                 newDoc.UpdatedAt = DateTime.UtcNow;
                 _docRepo.Update(newDoc);
                 await _docRepo.SaveChangesAsync();
+                var subjects = await _subjectRepo.GetByIdAsync(newDoc.SubjectId);
+                await _realtime.SendDocumentCreatedAsync(new DocumentDto
+                {
+                    Id = newDoc.Id,
+                    Title = newDoc.Title,
+                    FileName = newDoc.FileName,
+                    FileType = newDoc.FileType,
+                    FileSize = newDoc.FileSize,
+                    SubjectId = newDoc.SubjectId,
+                    Status = newDoc.Status,
+                    CreatedAt = newDoc.CreatedAt,
+                    SubjectName = subjects?.Name
+                });
                 break;
 
             default:
                 throw new InvalidOperationException("Hành động không hợp lệ.");
         }
+    }
+
+    public async Task<IEnumerable<DocumentDto>> GetAllByUserIdAsync(int userId, bool isAdmin, bool isLecturer, int? subjectId = null)
+    {
+        IEnumerable<EntityDocument> docs;
+
+        if (isAdmin)
+        {
+            docs = await _docRepo.GetAllWithIncludeAsync(
+                d => (!subjectId.HasValue || d.SubjectId == subjectId.Value) && !d.IsDeleted,
+                d => d.Subject
+            );
+        }
+        else if (isLecturer)
+        {
+            var lecturerRels = await _lecturerSubjectRepo.GetAllAsync(ls => ls.LecturerId == userId);
+            var allowedSubjectIds = lecturerRels.Select(ls => ls.SubjectId).ToList();
+
+            docs = await _docRepo.GetAllWithIncludeAsync(
+                d => allowedSubjectIds.Contains(d.SubjectId) &&
+                     (!subjectId.HasValue || d.SubjectId == subjectId.Value) &&
+                     !d.IsDeleted,
+                d => d.Subject
+            );
+        }
+        else
+        {
+            var enrollments = await _studentSubjectRepo.GetAllAsync();
+            var allowedSubjectIds = enrollments
+                .Where(ss => ss.StudentId == userId && !ss.IsDeleted)
+                .Select(ss => ss.SubjectId)
+                .ToList();
+
+            docs = await _docRepo.GetAllWithIncludeAsync(
+                d => allowedSubjectIds.Contains(d.SubjectId) &&
+                     (!subjectId.HasValue || d.SubjectId == subjectId.Value) &&
+                     !d.IsDeleted,
+                d => d.Subject
+            );
+        }
+
+        return docs.Select(d => new DocumentDto
+        {
+            Id = d.Id,
+            Title = d.Title,
+            FileName = d.FileName,
+            FileType = d.FileType,
+            FileSize = d.FileSize,
+            SubjectId = d.SubjectId,
+            Status = d.Status,
+            CreatedAt = d.CreatedAt,
+            SubjectName = d.Subject?.Name
+        });
     }
 }

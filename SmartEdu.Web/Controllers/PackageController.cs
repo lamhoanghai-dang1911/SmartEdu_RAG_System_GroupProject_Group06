@@ -1,9 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartEdu.Business.Interfaces;
-using SmartEdu.Data.Repositories;
-using SmartEdu.Shared.DTOs;
-using SmartEdu.Shared.Entities;
 using System.Text.Json;
 
 namespace SmartEdu.Web.Controllers
@@ -12,41 +9,27 @@ namespace SmartEdu.Web.Controllers
     public class PackageController : Controller
     {
         private readonly IPaymentService _paymentService;
-        private readonly IRepository<Package> _packageRepo;
-        private readonly IRepository<UserSubscription> _subscriptionRepo;
-        private readonly IRepository<Order> _orderRepo;
-        private readonly IConfiguration _configuration;
+        private readonly IPackageService _packageService;
+        private readonly IUserSubscriptionService _subscriptionService;
+        private readonly IOrderService _orderService;
 
         public PackageController(
             IPaymentService paymentService,
-            IRepository<Package> packageRepo,
-            IRepository<UserSubscription> subscriptionRepo,
-            IRepository<Order> orderRepo,
-            IConfiguration configuration)
+            IPackageService packageService,
+            IUserSubscriptionService subscriptionService,
+            IOrderService orderService)
         {
             _paymentService = paymentService;
-            _packageRepo = packageRepo;
-            _subscriptionRepo = subscriptionRepo;
-            _orderRepo = orderRepo;
-            _configuration = configuration;
+            _packageService = packageService;
+            _subscriptionService = subscriptionService;
+            _orderService = orderService;
         }
 
         // Danh sách gói - không cần Auth (ai cũng xem được)
         [AllowAnonymous]
         public async Task<IActionResult> List()
         {
-            var packages = await _packageRepo.GetAllAsync(p => p.IsActive && !p.IsDeleted);
-            var dtos = packages.Select(p => new PackageDto
-            {
-                Id = p.Id,
-                Name = p.Name,
-                Description = p.Description,
-                Price = p.Price,
-                DurationDays = p.DurationDays,
-                TokenQuota = p.TokenQuota,
-                IsActive = p.IsActive
-            }).ToList();
-
+            var dtos = await _packageService.GetActivePackagesAsync();
             return View(dtos);
         }
 
@@ -54,19 +37,22 @@ namespace SmartEdu.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Buy(int packageId)
         {
-            var package = await _packageRepo.GetByIdAsync(packageId);
-            if (package == null || !package.IsActive)
-                return NotFound("Gói dịch vụ không tồn tại.");
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return RedirectToAction("Login", "Account");
 
-            var dto = new PackageDto
+            // === Chặn mua gói mới khi đang có gói còn hạn + còn token (Phương án A) ===
+            bool hasUsable = await _subscriptionService.HasUsableActiveSubscriptionAsync(userId);
+            if (hasUsable)
             {
-                Id = package.Id,
-                Name = package.Name,
-                Description = package.Description,
-                Price = package.Price,
-                DurationDays = package.DurationDays,
-                TokenQuota = package.TokenQuota
-            };
+                TempData["Error"] = "Bạn đang có gói dịch vụ còn hiệu lực (chưa hết hạn và vẫn còn token). " +
+                                     "Vui lòng sử dụng hết gói hiện tại hoặc đợi hết hạn trước khi mua gói mới.";
+                return RedirectToAction(nameof(MySubscription));
+            }
+
+            var dto = await _packageService.GetByIdAsync(packageId);
+            if (dto == null)
+                return NotFound("Gói dịch vụ không tồn tại.");
 
             return View(dto);
         }
@@ -79,6 +65,15 @@ namespace SmartEdu.Web.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if (!int.TryParse(userIdClaim, out var userId))
                 return RedirectToAction("Login", "Account");
+
+            // === Chặn lần nữa ở bước xác nhận, phòng trường hợp user mở 2 tab
+            // hoặc bấm nút quá nhanh trước khi trang Buy kịp redirect ===
+            bool hasUsable = await _subscriptionService.HasUsableActiveSubscriptionAsync(userId);
+            if (hasUsable)
+            {
+                TempData["Error"] = "Bạn đang có gói dịch vụ còn hiệu lực, không thể mua thêm gói mới lúc này.";
+                return RedirectToAction(nameof(MySubscription));
+            }
 
             try
             {
@@ -146,28 +141,6 @@ namespace SmartEdu.Web.Controllers
             }
         }
 
-        private bool VerifyPayOSSignature(string rawBody, string signatureFromHeader, string checksumKey)
-        {
-            try
-            {
-                using (var hmac = new System.Security.Cryptography.HMACSHA256(System.Text.Encoding.UTF8.GetBytes(checksumKey)))
-                {
-                    var hashBytes = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawBody));
-                    string calculatedSignature = Convert.ToHexString(hashBytes).ToLower();
-
-                    // So sánh (remove "Bearer " prefix nếu có)
-                    string signatureToCheck = signatureFromHeader.Replace("Bearer ", "").Trim();
-
-                    return calculatedSignature == signatureToCheck;
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Signature verification error: {ex.Message}");
-                return false;
-            }
-        }
-
         // Trang success - người dùng quay lại sau thanh toán
         [HttpGet]
         public async Task<IActionResult> Success()
@@ -176,30 +149,13 @@ namespace SmartEdu.Web.Controllers
             if (!int.TryParse(userIdClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
-            // Lấy subscription hiện tại của user
-            var subscriptions = await _subscriptionRepo.GetAllAsync(s =>
-                s.UserId == userId && s.Status == Shared.Enums.SubscriptionStatus.Active && !s.IsDeleted);
+            var dto = await _subscriptionService.GetActiveSubscriptionDtoAsync(userId);
 
-            var subscription = subscriptions
-                .OrderByDescending(s => s.EndDate)
-                .FirstOrDefault();
-
-            if (subscription == null)
+            if (dto == null)
             {
                 TempData["Info"] = "Thanh toán đang được xử lý, vui lòng đợi...";
                 return RedirectToAction(nameof(MySubscription));
             }
-
-            var dto = new UserSubscriptionDto
-            {
-                Id = subscription.Id,
-                UserId = subscription.UserId,
-                PackageName = subscription.Package?.Name ?? "N/A",
-                StartDate = subscription.StartDate,
-                EndDate = subscription.EndDate,
-                RemainingTokenQuota = subscription.RemainingTokenQuota,
-                Status = subscription.Status
-            };
 
             return View(dto);
         }
@@ -220,26 +176,7 @@ namespace SmartEdu.Web.Controllers
             if (!int.TryParse(userIdClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
-            var subscriptions = await _subscriptionRepo.GetAllWithIncludeAsync(
-                s => s.UserId == userId && !s.IsDeleted,
-                s => s.Package
-            );
-
-            var dtos = subscriptions
-                .OrderByDescending(s => s.Status == Shared.Enums.SubscriptionStatus.Active)
-                .ThenByDescending(s => s.EndDate)
-                .Select(s => new UserSubscriptionDto
-                {
-                    Id = s.Id,
-                    UserId = s.UserId,
-                    PackageName = s.Package?.Name ?? "N/A",
-                    StartDate = s.StartDate,
-                    EndDate = s.EndDate,
-                    RemainingTokenQuota = s.RemainingTokenQuota,
-                    Status = s.Status
-                })
-                .ToList();
-
+            var dtos = await _subscriptionService.GetAllByUserIdAsync(userId);
             return View(dtos);
         }
 
@@ -253,17 +190,13 @@ namespace SmartEdu.Web.Controllers
 
             try
             {
-                // Lấy Order cuối cùng của user (chưa Success)
-                var orders = await _orderRepo.GetAllAsync(o =>
-                    o.UserId == userId && o.Status != Shared.Enums.OrderStatus.Success);
+                var pendingOrder = await _orderService.GetLatestNonSuccessOrderAsync(userId);
 
-                var order = orders.OrderByDescending(o => o.CreatedAt).FirstOrDefault();
-
-                if (order == null)
+                if (pendingOrder == null || string.IsNullOrWhiteSpace(pendingOrder.Value.TransactionCode))
                     throw new InvalidOperationException("Không tìm thấy order");
 
                 // Gọi HandlePaymentCallbackAsync manually (mô phỏng webhook)
-                await _paymentService.HandlePaymentCallbackAsync(order.TransactionCode, 1);
+                await _paymentService.HandlePaymentCallbackAsync(pendingOrder.Value.TransactionCode!, 1);
 
                 return RedirectToAction(nameof(MySubscription));
             }
@@ -272,6 +205,31 @@ namespace SmartEdu.Web.Controllers
                 TempData["Error"] = ex.Message;
                 return RedirectToAction(nameof(Success));
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return RedirectToAction("Login", "Account");
+
+            try
+            {
+                await _subscriptionService.CancelSubscriptionAsync(userId, id);
+                TempData["Success"] = "Đã hủy gói dịch vụ thành công.";
+            }
+            catch (UnauthorizedAccessException)
+            {
+                TempData["Error"] = "Bạn không có quyền hủy gói này.";
+            }
+            catch (InvalidOperationException ex)
+            {
+                TempData["Error"] = ex.Message;
+            }
+
+            return RedirectToAction(nameof(MySubscription));
         }
     }
 }

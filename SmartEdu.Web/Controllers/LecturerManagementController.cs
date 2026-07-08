@@ -23,12 +23,13 @@ public class LecturerManagementController : Controller
         var subjects = await _subjectService.GetAllAsync();
         ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
 
-        // load lecturers
         var lecturers = await _uow.Users.GetAllAsync(u => u.Role == SmartEdu.Shared.Enums.UserRole.Lecturer && !u.IsDeleted);
         ViewBag.Lecturers = new SelectList(lecturers, "Id", "FullName");
 
-        // current assignments
-        var assignments = await _uow.LecturerSubjects.GetAllWithIncludeAsync(ls => true, ls => ls.Lecturer, ls => ls.Subject);
+        var assignments = await _uow.LecturerSubjects.GetAllWithIncludeAsync(
+            ls => ls.Subject != null && !ls.Subject.IsDeleted
+                  && ls.Lecturer != null && !ls.Lecturer.IsDeleted,
+            ls => ls.Lecturer, ls => ls.Subject);
         ViewBag.Assignments = assignments;
 
         return View();

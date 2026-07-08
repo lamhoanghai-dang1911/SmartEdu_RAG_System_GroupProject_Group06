@@ -3,8 +3,213 @@
     ViewData["Title"] = "Gói dịch vụ";
 }
 
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --danger: #e5484d;
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.6rem;
+        color: #12162b;
+        margin-bottom: 0.4rem;
+    }
+
+    .page-head .subtitle {
+        color: var(--slate);
+        font-size: 0.95rem;
+        margin-bottom: 1.75rem;
+    }
+
+    .alert-danger {
+        border: none;
+        border-radius: 10px;
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        border-left: 3px solid var(--danger);
+    }
+
+    .package-card {
+        position: relative;
+        background: #fff;
+        border: 1px solid #edeef5 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 26px -16px rgba(11, 17, 32, 0.16);
+        transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+        opacity: 0;
+        animation: fadeUp 0.5s ease forwards;
+        overflow: hidden;
+    }
+
+    .col-md-4:nth-of-type(1) .package-card {
+        animation-delay: 0.05s;
+    }
+
+    .col-md-4:nth-of-type(2) .package-card {
+        animation-delay: 0.12s;
+    }
+
+    .col-md-4:nth-of-type(3) .package-card {
+        animation-delay: 0.19s;
+    }
+
+    .col-md-4:nth-of-type(4) .package-card {
+        animation-delay: 0.26s;
+    }
+
+    .package-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 22px 44px -18px rgba(11, 17, 32, 0.24);
+        border-color: rgba(13, 110, 253, 0.3) !important;
+    }
+
+    .package-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--brand-blue), var(--brand-purple));
+        opacity: 0;
+        transition: opacity 0.22s ease;
+    }
+
+    .package-card:hover::before {
+        opacity: 1;
+    }
+
+    .package-card .card-title {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #12162b;
+        margin-bottom: 0.35rem;
+    }
+
+    .package-card .card-text {
+        color: var(--slate) !important;
+        font-size: 0.88rem;
+        min-height: 2.6rem;
+    }
+
+    .package-card hr {
+        border-color: #eef0f6;
+        margin: 1.1rem 0;
+    }
+
+    .price-tag {
+        font-family: 'Sora', sans-serif;
+        font-weight: 800;
+        font-size: 1.9rem;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        line-height: 1.1;
+    }
+
+    .price-unit {
+        font-size: 0.82rem;
+        color: var(--slate-light);
+        font-weight: 600;
+        margin-left: 0.2rem;
+    }
+
+    .package-specs {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1.4rem;
+    }
+
+        .package-specs li {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0;
+            font-size: 0.88rem;
+            color: #33384f;
+            border-bottom: 1px dashed #eef0f6;
+        }
+
+            .package-specs li:last-child {
+                border-bottom: none;
+            }
+
+        .package-specs .spec-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            background: rgba(13, 110, 253, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+        }
+
+        .package-specs strong {
+            color: #12162b;
+            font-weight: 700;
+        }
+
+    .btn-buy {
+        width: 100%;
+        border: none;
+        border-radius: 999px;
+        padding: 0.75rem 1rem;
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple), var(--brand-blue));
+        background-size: 220% 220%;
+        box-shadow: 0 10px 22px -10px rgba(13, 110, 253, 0.5);
+        transition: background-position 0.5s ease, transform 0.15s ease;
+    }
+
+        .btn-buy:hover {
+            background-position: 100% 50%;
+            transform: translateY(-2px);
+            color: #fff;
+        }
+
+        .btn-buy:active {
+            transform: scale(0.98);
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <h2 class="mb-4">💳 Chọn gói dịch vụ</h2>
+    <div class="page-head">
+        <h2>💳 Chọn gói dịch vụ</h2>
+        <div class="subtitle">Chọn gói phù hợp với nhu cầu học tập của bạn.</div>
+    </div>
 
     @if (TempData["Error"] != null)
     {
@@ -18,22 +223,33 @@
         @foreach (var package in Model)
         {
             <div class="col-md-4">
-                <div class="card h-100 shadow-sm border-0">
-                    <div class="card-body">
+                <div class="card package-card h-100 shadow-none">
+                    <div class="card-body d-flex flex-column">
                         <h5 class="card-title">@package.Name</h5>
-                        <p class="card-text text-muted">@package.Description</p>
+                        <p class="card-text">@package.Description</p>
 
                         <hr />
 
                         <div class="mb-3">
-                            <p class="mb-2"><strong>💰 Giá:</strong> <span class="text-danger fs-5">@package.Price.ToString("N0") đ</span></p>
-                            <p class="mb-2"><strong>⏱️ Thời hạn:</strong> @package.DurationDays ngày</p>
-                            <p class="mb-2"><strong>🎫 Token:</strong> @package.TokenQuota.ToString("N0")</p>
+                            <span class="price-tag">@package.Price.ToString("N0") đ</span>
                         </div>
 
-                        <a asp-action="Buy" asp-route-packageId="@package.Id" class="btn btn-primary w-100">
-                            🛒 Mua ngay
-                        </a>
+                        <ul class="package-specs">
+                            <li>
+                                <span class="spec-icon">⏱️</span>
+                                <span>Thời hạn <strong>@package.DurationDays ngày</strong></span>
+                            </li>
+                            <li>
+                                <span class="spec-icon">🎫</span>
+                                <span>Token <strong>@package.TokenQuota.ToString("N0")</strong></span>
+                            </li>
+                        </ul>
+
+                        <div class="mt-auto">
+                            <a asp-action="Buy" asp-route-packageId="@package.Id" class="btn-buy d-inline-block text-center">
+                                🛒 Mua ngay
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>

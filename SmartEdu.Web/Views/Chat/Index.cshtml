@@ -8,39 +8,478 @@
 }
 
 <style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+    }
+
+    /* ===== Panels ===== */
     .chat-panel {
         height: calc(100vh - 120px);
         display: flex;
         flex-direction: column;
+        border: none !important;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        overflow: hidden;
     }
 
     .chat-messages {
         flex: 1 1 auto;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        background: var(--paper) !important;
     }
+
+        .chat-messages::-webkit-scrollbar,
+        .sidebar-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb,
+        .sidebar-list::-webkit-scrollbar-thumb {
+            background: #d7dbe8;
+            border-radius: 8px;
+        }
+
+            .chat-messages::-webkit-scrollbar-thumb:hover,
+            .sidebar-list::-webkit-scrollbar-thumb:hover {
+                background: #b9bfd4;
+            }
 
     .chat-input-area {
         flex: 0 0 auto;
+        background: #fff !important;
+        border-top: 1px solid #ecedf4 !important;
     }
 
     .sidebar-panel {
         height: calc(100vh - 120px);
         display: flex;
         flex-direction: column;
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        overflow: hidden;
+        border: none !important;
     }
 
     .sidebar-header {
         flex: 0 0 auto;
         background: #fff;
         z-index: 2;
+        border-bottom: 1px solid #ecedf4;
+        padding: 1rem !important;
     }
+
+        .sidebar-header h6 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: #12162b;
+            margin: 0;
+        }
+
+        .sidebar-header .btn-primary {
+            background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+            border: none;
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.82rem;
+            padding: 0.35rem 0.9rem;
+            transition: transform 0.15s ease, filter 0.15s ease;
+        }
+
+            .sidebar-header .btn-primary:hover {
+                transform: translateY(-1px);
+                filter: brightness(1.08);
+            }
 
     .sidebar-list {
         flex: 1 1 auto;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         background: transparent;
+        padding: 0.75rem !important;
+    }
+
+        /* ===== Session cards ===== */
+        .sidebar-list .card {
+            border: 1px solid #edeef5 !important;
+            border-radius: 12px !important;
+            border-left: 3px solid transparent !important;
+            transition: border-color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+            box-shadow: none !important;
+        }
+
+            .sidebar-list .card:hover {
+                transform: translateX(2px);
+                box-shadow: 0 6px 16px -8px rgba(11, 17, 32, 0.18) !important;
+            }
+
+            .sidebar-list .card.border-primary {
+                border-left-color: var(--brand-blue) !important;
+                border-color: #edeef5 !important;
+                background: linear-gradient(90deg, rgba(13, 110, 253, 0.05), transparent 60%);
+            }
+
+            .sidebar-list .card a.fw-bold {
+                font-family: 'Sora', sans-serif;
+                font-size: 0.9rem;
+                color: #1c2033 !important;
+            }
+
+            .sidebar-list .card small.text-muted {
+                font-size: 0.76rem;
+            }
+
+        .sidebar-list .btn-link.text-danger {
+            opacity: 0.5;
+            transition: opacity 0.15s ease;
+        }
+
+        .sidebar-list .card:hover .btn-link.text-danger {
+            opacity: 1;
+        }
+
+    /* ===== Chat header ===== */
+    .chat-panel > .d-flex.align-items-center {
+        padding: 1rem !important;
+        border-bottom: 1px solid #ecedf4;
+        background: #fff;
+    }
+
+    #chatTitle {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: #12162b;
+    }
+
+    #subjectSelect {
+        border-radius: 999px;
+        border: 1.5px solid #e3e5ef;
+        font-size: 0.85rem;
+        padding-top: 0.35rem;
+        padding-bottom: 0.35rem;
+    }
+
+        #subjectSelect:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+        }
+
+    #tokenBadge {
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple)) !important;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 0.45rem 0.9rem;
+    }
+
+    .chat-panel > .d-flex.align-items-center .btn-warning {
+        border-radius: 999px;
+        font-weight: 600;
+        border: none;
+        background: linear-gradient(120deg, var(--amber), #f5a52c);
+        transition: transform 0.15s ease;
+    }
+
+        .chat-panel > .d-flex.align-items-center .btn-warning:hover {
+            transform: translateY(-1px);
+        }
+
+    /* ===== Empty state ===== */
+    #emptyMsg {
+        animation: floatIcon 3s ease-in-out infinite;
+    }
+
+        #emptyMsg h4 {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            color: #33384f;
+        }
+
+    @@keyframes floatIcon {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-6px);
+        }
+    }
+
+    /* ===== Message bubbles (also used by JS-appended messages) ===== */
+    .chat-messages .bg-primary {
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple)) !important;
+        border: none !important;
+        border-radius: 16px 16px 4px 16px !important;
+        box-shadow: 0 6px 18px -8px rgba(13, 110, 253, 0.45);
+    }
+
+    .chat-messages .bg-white.border {
+        border: 1px solid #ecedf4 !important;
+        border-radius: 16px 16px 16px 4px !important;
+        box-shadow: 0 4px 14px -8px rgba(11, 17, 32, 0.15);
+    }
+
+    .chat-messages .d-flex.mb-2,
+    .chat-messages > .d-flex {
+        animation: msgIn 0.3s ease;
+    }
+
+    @@keyframes msgIn {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .chat-message-content small.text-muted {
+        font-family: 'Sora', sans-serif;
+        font-weight: 600;
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+    }
+
+    /* ===== Citations (khối "Nguồn:") ===== */
+    .citation-block {
+        margin-top: 0.7rem;
+        padding-top: 0.65rem;
+        border-top: 1px dashed #e3e5ef;
+    }
+
+    .citation-block-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--slate-light);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .citation-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .citation-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(13, 110, 253, 0.07);
+        border: 1px solid rgba(13, 110, 253, 0.15);
+        border-radius: 999px;
+        padding: 0.28rem 0.7rem 0.28rem 0.32rem;
+        text-decoration: none !important;
+        max-width: 220px;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+    }
+
+        .citation-link:hover {
+            background: rgba(13, 110, 253, 0.14);
+            border-color: rgba(13, 110, 253, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .citation-link .chip-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--brand-blue);
+            color: #fff;
+            font-size: 0.66rem;
+            font-weight: 700;
+            flex: 0 0 auto;
+        }
+
+        .citation-link .chip-title {
+            color: #1c2033;
+            font-size: 0.78rem;
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+    /* ===== Typing indicator ===== */
+    #typingIndicator {
+        font-size: 0.85rem;
+        color: var(--slate);
+    }
+
+        #typingIndicator::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--brand-blue);
+            margin-right: 6px;
+            animation: pulseDot 1s ease-in-out infinite;
+        }
+
+    @@keyframes pulseDot {
+        0%, 100% {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+
+        50% {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+    }
+
+    /* ===== Input area ===== */
+    .chat-input-area .input-group {
+        background: var(--paper);
+        border-radius: 14px;
+        padding: 0.35rem;
+        border: 1.5px solid #e3e5ef;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .chat-input-area .input-group:focus-within {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.1);
+        }
+
+    #questionInput {
+        border: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        resize: none;
+        font-size: 0.95rem;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+        #questionInput:focus {
+            box-shadow: none !important;
+        }
+
+    #sendBtn {
+        border: none;
+        border-radius: 10px !important;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        font-weight: 600;
+        padding: 0 1.1rem;
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        #sendBtn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        #sendBtn:disabled {
+            opacity: 0.6;
+        }
+
+    /* ===== Chunk detail modal ===== */
+    #chunkDetailModal .modal-content {
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    #chunkDetailModal .modal-header {
+        background: linear-gradient(120deg, var(--ink-navy), #171d3d);
+        color: #fff;
+        border: none;
+    }
+
+    #chunkDetailModal .modal-title {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    #chunkDetailModal .btn-close {
+        filter: invert(1) brightness(2);
+    }
+
+    #chunkDetailModal .list-group-item {
+        border-radius: 10px !important;
+        margin-bottom: 0.4rem;
+        border: 1px solid #edeef5 !important;
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+    /* ===== Responsive: màn hình hẹp / chia đôi cửa sổ ===== */
+    @@media (max-width: 991.98px) {
+        .container-fluid.mt-3 .row {
+            height: auto !important;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-panel,
+        .chat-panel {
+            height: 45vh !important; /* hoặc auto nếu muốn co giãn theo nội dung */
+            min-height: 320px;
+            margin-bottom: 1rem;
+        }
+
+        .chat-panel {
+            height: 55vh !important;
+        }
+
+        .col-md-3,
+        .col-md-9 {
+            width: 100%;
+            max-width: 100%;
+            flex: 0 0 100%;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .chat-panel > .d-flex.align-items-center {
+            flex-wrap: wrap;
+            row-gap: 0.5rem;
+        }
+
+        #subjectSelect {
+            max-width: 160px;
+        }
+
+        #tokenBadge {
+            margin-left: 0 !important;
+        }
+
+        .citation-link {
+            max-width: 140px;
+        }
+    }
+
+    /* Ngăn tràn ngang toàn trang */
+    html, body {
+        overflow-x: hidden;
     }
 </style>
 
@@ -57,7 +496,8 @@
                 <div class="sidebar-list p-2">
                     @foreach (var s in sessions)
                     {
-                        <div class="card mb-2 shadow-sm @(s.SessionId == currentSessionId ? "border-primary" : "")">
+                        <div class="card mb-2 shadow-sm @(s.SessionId == currentSessionId ? "border-primary" : "")"
+                             data-session-card="@s.SessionId">
                             <div class="card-body p-2">
                                 <div class="d-flex justify-content-between">
                                     <a href="@Url.Action("Index", "Chat", new { sessionId = s.SessionId })"
@@ -84,11 +524,24 @@
 
                 <div class="d-flex align-items-center gap-2 mb-2 p-2">
                     <h5 id="chatTitle" class="mb-0">🤖 @ViewBag.CurrentSessionTitle</h5>
-    
+
                     <select id="subjectSelect" asp-items="ViewBag.Subjects"
                             class="form-select form-select-sm w-auto">
                         <option value="">-- Tất cả môn học --</option>
                     </select>
+
+                    @if (ViewBag.HasActiveSubscription == true)
+                    {
+                        <span class="badge bg-info ms-auto" id="tokenBadge">
+                            🎫 Token còn lại: <span id="remainingTokens">@(((int)ViewBag.RemainingTokens).ToString("N0"))</span>
+                        </span>
+                    }
+                    else
+                    {
+                        <a asp-controller="Package" asp-action="List" class="btn btn-sm btn-warning ms-auto">
+                            💳 Mua gói để chat
+                        </a>
+                    }
                 </div>
 
                 @* Messages area: grows and scrolls *@
@@ -114,13 +567,35 @@
                         }
                         else
                         {
+                            var histBubbleId = "hist_" + msg.Id;
                             <div class="d-flex justify-content-start mb-2">
-                                <div class="bg-white border rounded p-2 px-3 chat-message-content" style="max-width:75%">
+                                <div class="bg-white border rounded p-2 px-3" style="max-width:75%" data-role="assistant-bubble">
                                     <small class="text-muted d-block mb-1">🤖 SmartEdu AI</small>
-                                    @* Dùng thẻ div để render markdown cũ *@
-                                    <div class="markdown-body">@Html.Raw(msg.Content.Replace("\n", "<br/>"))</div>
+                                    <div id="@histBubbleId"></div>
+                                    @if (msg.Citations != null && msg.Citations.Any())
+                                    {
+                                        <div class="citation-block">
+                                            <div class="citation-block-label">📎 Nguồn tham khảo</div>
+                                            <div class="citation-chips">
+                                                @Html.Raw(string.Join(
+                                                    "",
+                                                    msg.Citations.Select(c =>
+                                                        $"<a href='#' class='citation-link' data-chunkid='{c.ChunkId}' title='{System.Net.WebUtility.HtmlEncode(c.DocumentTitle)}'>" +
+                                                        $"<span class='chip-num'>{c.Number}</span>" +
+                                                        $"<span class='chip-title'>{System.Net.WebUtility.HtmlEncode(c.DocumentTitle)}</span>" +
+                                                        $"</a>"
+                                                    )
+                                                ))
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             </div>
+                            <script>
+                                                    document.addEventListener("DOMContentLoaded", function() {
+                                                        renderChatMarkdown("@histBubbleId", @Html.Raw(System.Text.Json.JsonSerializer.Serialize(msg.Content)));
+                                                    });
+                            </script>
                         }
                     }
                 </div>
@@ -147,148 +622,442 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
-        const sessionId   = "@currentSessionId";
-        const chatBox     = document.getElementById("chatBox");
-        const input       = document.getElementById("questionInput");
-        const sendBtn     = document.getElementById("sendBtn");
-        const typing      = document.getElementById("typingIndicator");
-        const emptyMsg    = document.getElementById("emptyMsg");
+                const sessionId   = "@currentSessionId";
+                const chatBox     = document.getElementById("chatBox");
+                const input       = document.getElementById("questionInput");
+                const sendBtn     = document.getElementById("sendBtn");
+                const typing      = document.getElementById("typingIndicator");
+                const emptyMsg    = document.getElementById("emptyMsg");
 
-        // Scroll xuống cuối
-        function scrollBottom() {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-        scrollBottom();
+                
 
-        // Autosize textarea to content
-        function autosizeTextarea(el, maxHeight = 400) {
-            if (!el) return;
-            el.style.height = 'auto';
-            const newH = Math.min(el.scrollHeight, maxHeight);
-            el.style.height = newH + 'px';
-        }
+                // Scroll xuống cuối
+                function scrollBottom() {
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+                scrollBottom();
 
-        // Render markdown safely into element by id
-        function renderChatMarkdown(containerId, markdownText) {
-            const container = document.getElementById(containerId);
-            if (!container) return;
-            if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-                marked.setOptions({ gfm: true, breaks: true, smartLists: true, smartypants: false });
-                const raw = marked.parse(markdownText ?? '');
-                const safe = DOMPurify.sanitize(raw);
-                container.classList.add('chat-message-content');
-                container.innerHTML = safe;
-            } else {
-                container.classList.add('chat-message-content');
-                container.textContent = (markdownText ?? '').replace(/\\n/g, '\n');
-            }
-        }
+                // Autosize textarea to content
+                function autosizeTextarea(el, maxHeight = 400) {
+                    if (!el) return;
+                    el.style.height = 'auto';
+                    const newH = Math.min(el.scrollHeight, maxHeight);
+                    el.style.height = newH + 'px';
+                }
 
-        // Thêm bubble tin nhắn
-        function appendMessage(role, content) {
-            if (emptyMsg) emptyMsg.remove();
+                // Render markdown safely into element by id
+                function renderChatMarkdown(containerId, markdownText) {
+                    const container = document.getElementById(containerId);
+                    if (!container) return;
+                    if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+                        marked.setOptions({ gfm: true, breaks: true, smartLists: true, smartypants: false });
+                        const raw = marked.parse(markdownText ?? '');
+                        const safe = DOMPurify.sanitize(raw);
+                        container.classList.add('chat-message-content');
+                        container.innerHTML = safe;
+                    } else {
+                        container.classList.add('chat-message-content');
+                        container.textContent = (markdownText ?? '').replace(/\\n/g, '\n');
+                    }
+                }
 
-            const wrapper = document.createElement("div");
-            wrapper.className = `d-flex mb-2 ${role === "user"
-                ? "justify-content-end"
-                : "justify-content-start"}`;
+                // Thêm bubble tin nhắn
+                function appendMessage(role, content) {
+                    if (emptyMsg) emptyMsg.remove();
 
-            const bubble = document.createElement("div");
-            bubble.style.maxWidth = "75%";
+                    const wrapper = document.createElement("div");
+                    wrapper.className = `d-flex mb-2 ${role === "user"
+                        ? "justify-content-end"
+                        : "justify-content-start"}`;
 
-            if (role === "user") {
-                bubble.className = "bg-primary text-white rounded p-2 px-3";
-                // Use textContent but preserve newlines visually via CSS pre-wrap
-                bubble.classList.add('chat-message-content');
-                bubble.textContent = content.replace(/\\n/g, '\n');
-            } else {
-                bubble.className = "bg-white border rounded p-2 px-3";
-                // Create a temporary container to render markdown safely
-                const tmpId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-                const header = `<small class="text-muted d-block mb-1">🤖 SmartEdu AI</small>`;
-                bubble.innerHTML = header + `<div id="${tmpId}"></div>`;
-                // Render markdown into that inner div
-                // Use setTimeout to ensure element is in DOM
-                setTimeout(() => renderChatMarkdown(tmpId, content), 0);
-            }
+                    const bubble = document.createElement("div");
+                    bubble.style.maxWidth = "75%";
 
-            wrapper.appendChild(bubble);
-            chatBox.appendChild(wrapper);
-            scrollBottom();
-        }
+                    if (role === "user") {
+                        bubble.className = "bg-primary text-white rounded p-2 px-3";
+                        // Use textContent but preserve newlines visually via CSS pre-wrap
+                        bubble.classList.add('chat-message-content');
+                        bubble.textContent = content.replace(/\\n/g, '\n');
+                    } else {
+                        bubble.className = "bg-white border rounded p-2 px-3";
+                        // Create a temporary container to render markdown safely
+                        const tmpId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+                        const header = `<small class="text-muted d-block mb-1">🤖 SmartEdu AI</small>`;
+                        bubble.innerHTML = header + `<div id="${tmpId}"></div>`;
+                        // Render markdown into that inner div
+                        // Use setTimeout to ensure element is in DOM
+                        setTimeout(() => renderChatMarkdown(tmpId, content), 0);
+                        // Trả về bubble để sendMessage() có thể gắn citation ngay bên trong (thay vì tách rời)
+                        bubble.dataset.role = 'assistant-bubble';
+                    }
 
-        // Gửi câu hỏi
-        async function sendMessage() {
-            const questionRaw = input.value;
-            const question = questionRaw.trim();
-            if (!question) return;
+                    wrapper.appendChild(bubble);
+                    chatBox.appendChild(wrapper);
+                    scrollBottom();
+                    return bubble;
+                }
 
-            const subjectId = document.getElementById("subjectSelect").value;
+                // Gửi câu hỏi
+                async function sendMessage() {
+                    const questionRaw = input.value;
+                    const question = questionRaw.trim();
+                    if (!question) return;
 
-            input.value = "";
-            autosizeTextarea(input);
-            sendBtn.disabled = true;
-            appendMessage("user", questionRaw);
-            typing.classList.remove("d-none");
+                    const subjectId = document.getElementById("subjectSelect").value;
 
-            try {
-                const res = await fetch("/Chat/Ask", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
+                    input.value = "";
+                    autosizeTextarea(input);
+                    sendBtn.disabled = true;
+                    appendMessage("user", questionRaw);
+                    typing.classList.remove("d-none");
+
+                    try {
+                        await chatHubReady;
+
+                        const res = await fetch("/Chat/Ask", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
                         sessionId,
                         question,
-                        subjectId: subjectId ? parseInt(subjectId) : null
-                    })
+                        subjectId: subjectId ? parseInt(subjectId) : null,
+                        connectionId: chatHubConnection.connectionId
+                        })
+                        });
+
+                        const data = await res.json();
+
+                        typing.classList.add("d-none");
+
+                        if (res.ok) {
+                            const assistantBubble = appendMessage("assistant", data.answer);
+
+                            // Hiển thị citations dạng chip gộp số + tên tài liệu, gắn ngay bên trong bubble
+                            if (data.citations && data.citations.length > 0) {
+                                setTimeout(() => {
+                                    const block = document.createElement("div");
+                                    block.className = "citation-block";
+                                    const label = document.createElement("div");
+                                    label.className = "citation-block-label";
+                                    label.textContent = "📎 Nguồn tham khảo";
+                                    const chips = document.createElement("div");
+                                    chips.className = "citation-chips";
+                                    chips.innerHTML = data.citations.map(c =>
+                                        `<a href="#" class="citation-link" data-chunkid="${c.chunkId}" title="${escapeHtml(c.documentTitle)}">` +
+                                        `<span class="chip-num">${c.number}</span>` +
+                                        `<span class="chip-title">${escapeHtml(c.documentTitle)}</span>` +
+                                        `</a>`
+                                    ).join("");
+                                    block.appendChild(label);
+                                    block.appendChild(chips);
+                                    assistantBubble.appendChild(block);
+                                    scrollBottom();
+                                }, 10);
+                            }
+
+                            // Update token badge
+                            if (data.remainingTokenQuota !== undefined) {
+                                const tokenSpan = document.getElementById("remainingTokens");
+                                if (tokenSpan) {
+                                    tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+                                }
+                            }
+                        } else {
+                            appendMessage("assistant", "❌ Lỗi: " + data.error);
+
+                            // Nếu hết token/chưa mua gói, hiện nút mua gói
+                            if (data.error && (data.error.includes("token") || data.error.includes("gói"))) {
+                                const btnDiv = document.createElement("div");
+                                btnDiv.className = "text-center my-2";
+                                btnDiv.innerHTML = '<a href="/Package/List" class="btn btn-sm btn-warning">💳 Mua gói dịch vụ</a>';
+                                chatBox.appendChild(btnDiv);
+                                scrollBottom();
+                            }
+                        }
+                    } catch (err) {
+                        typing.classList.add("d-none");
+                        appendMessage("assistant", "❌ Không thể kết nối server.");
+                    } finally {
+                        sendBtn.disabled = false;
+                        input.focus();
+                    }
+                }
+
+                // Event listeners
+                sendBtn.addEventListener("click", sendMessage);
+                // Initialize autosize
+                autosizeTextarea(input);
+                input.addEventListener('input', () => autosizeTextarea(input));
+                input.addEventListener("keydown", e => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                    }
+                    // Shift+Enter => allow newline
+                });
+                    document.addEventListener("DOMContentLoaded", function() {
+                    const selectEl = document.getElementById("subjectSelect");
+                    const selectedValue = "@(ViewBag.Subjects?.SelectedValue ?? "")";
+                    if (selectedValue) {
+                        selectEl.value = selectedValue;
+                    }
                 });
 
-                const data = await res.json();
-
-                typing.classList.add("d-none");
-
-                if (res.ok) {
-                    appendMessage("assistant", data.answer);
-
-                    // Hiển thị sources nếu có
-                    if (data.sources && data.sources.length > 0) {
-                        const srcDiv = document.createElement("div");
-                        srcDiv.className = "text-muted small ms-2 mb-2";
-                        srcDiv.innerHTML = "📎 Nguồn: " +
-                            data.sources.map(s => `<em>${s}</em>`).join(", ");
-                        chatBox.appendChild(srcDiv);
-                        scrollBottom();
-                    }
-                } else {
-                    appendMessage("assistant", "❌ Lỗi: " + data.error);
+                // Utility to escape HTML in strings
+                function escapeHtml(unsafe) {
+                    if (!unsafe) return '';
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/\"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
                 }
-            } catch (err) {
-                typing.classList.add("d-none");
-                appendMessage("assistant", "❌ Không thể kết nối server.");
-            } finally {
-                sendBtn.disabled = false;
-                input.focus();
-            }
-        }
 
-        // Event listeners
-        sendBtn.addEventListener("click", sendMessage);
-        // Initialize autosize
-        autosizeTextarea(input);
-        input.addEventListener('input', () => autosizeTextarea(input));
-        input.addEventListener("keydown", e => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-            }
-            // Shift+Enter => allow newline
-        });
-            document.addEventListener("DOMContentLoaded", function() {
-            const selectEl = document.getElementById("subjectSelect");
-            const selectedValue = "@(ViewBag.Subjects?.SelectedValue ?? "")";
-            if (selectedValue) {
-                selectEl.value = selectedValue;
-            }
-        });
+                // Map DocumentStatus enum (0=Pending, 1=Processing, 2=Ready, 3=Failed) sang badge dễ đọc
+                function documentStatusBadge(status) {
+                    const map = {
+                        0: { label: 'Chờ xử lý', cls: 'bg-secondary' },
+                        1: { label: 'Đang xử lý', cls: 'bg-warning text-dark' },
+                        2: { label: 'Sẵn sàng', cls: 'bg-success' },
+                        3: { label: 'Thất bại', cls: 'bg-danger' }
+                    };
+                    const info = map[status] || { label: `Không rõ (${status})`, cls: 'bg-secondary' };
+                    return `<span class="badge ${info.cls}">${info.label}</span>`;
+                }
+
+                // Click handler for citation links - fetch chunk detail and show modal
+                document.addEventListener('click', async function (e) {
+                    const el = e.target.closest('.citation-link');
+                    if (el) {
+                        e.preventDefault();
+                        const chunkId = el.getAttribute('data-chunkid');
+                        if (!chunkId) return;
+
+                        try {
+                            const res = await fetch(`/Document/GetChunkDetail?chunkId=${encodeURIComponent(chunkId)}`);
+                            if (!res.ok) {
+                                alert('Không thể tải nguồn');
+                                return;
+                            }
+                            const json = await res.json();
+
+                            // Build modal content
+                            let modal = document.getElementById('chunkDetailModal');
+                            if (!modal) {
+                                modal = document.createElement('div');
+                                modal.id = 'chunkDetailModal';
+                                modal.className = 'modal fade';
+                                modal.tabIndex = -1;
+                                modal.innerHTML = `
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">📎 Thông tin nguồn</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="chunkDetailBody"></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+          </div>
+        </div>`;
+                                document.body.appendChild(modal);
+                                // initialize bootstrap modal if available
+                            }
+
+                            const body = document.getElementById('chunkDetailBody');
+                            if (body) {
+                                body.innerHTML = '';
+
+                                // Nội dung trích dẫn
+                                const contentLabel = document.createElement('h6');
+                                contentLabel.className = 'text-muted mb-2';
+                                contentLabel.textContent = 'Nội dung trích dẫn';
+                                body.appendChild(contentLabel);
+
+                                const contentBox = document.createElement('div');
+                                contentBox.className = 'p-3 bg-light rounded border';
+                                contentBox.style.whiteSpace = 'pre-wrap';
+                                contentBox.style.maxHeight = '350px';
+                                contentBox.style.overflowY = 'auto';
+                                contentBox.style.fontSize = '0.9rem';
+                                contentBox.textContent = json.content || '';
+                                body.appendChild(contentBox);
+
+                                // Danh sách tài liệu liên quan
+                                const docLabel = document.createElement('h6');
+                                docLabel.className = 'text-muted mt-3 mb-2';
+                                docLabel.textContent = 'Tài liệu liên quan';
+                                body.appendChild(docLabel);
+
+                                if (json.documents && json.documents.length > 0) {
+                                    const list = document.createElement('div');
+                                    list.className = 'list-group';
+                                    json.documents.forEach(d => {
+                                        const item = document.createElement('div');
+                                        item.className = 'list-group-item d-flex justify-content-between align-items-center';
+                                        item.innerHTML = `
+                                            <div>
+                                                <strong>${escapeHtml(d.title)}</strong>
+                                                <div class="text-muted small">ID: ${d.id}</div>
+                                            </div>
+                                            ${documentStatusBadge(d.status)}
+                                        `;
+                                        list.appendChild(item);
+                                    });
+                                    body.appendChild(list);
+                                } else {
+                                    const p = document.createElement('p');
+                                    p.className = 'text-muted mt-2';
+                                    p.textContent = 'Không có tài liệu liên quan.';
+                                    body.appendChild(p);
+                                }
+                            }
+
+                            // Show bootstrap modal if available, otherwise simple alert with content
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                                const bsModal = new bootstrap.Modal(modal);
+                                bsModal.show();
+                            } else {
+                                // fallback
+                                alert(json.content || 'Không có nội dung');
+                            }
+
+                        } catch (ex) {
+                            console.error(ex);
+                            alert('Lỗi khi tải nguồn');
+                        }
+                    }
+                });
+
+                // === SignalR: đồng bộ đa tab cùng session + cập nhật token quota real-time ===
+                const chatHubConnection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/chat")
+                    .withAutomaticReconnect()
+                    .build();
+
+                chatHubConnection.on("ReceiveMessage", (msg) => {
+                    if (msg.role === "assistant") {
+                        const bubble = appendMessage("assistant", msg.content);
+                        if (msg.citations && msg.citations.length > 0) {
+                            setTimeout(() => {
+                                const block = document.createElement("div");
+                                block.className = "citation-block";
+                                const label = document.createElement("div");
+                                label.className = "citation-block-label";
+                                label.textContent = "📎 Nguồn tham khảo";
+                                const chips = document.createElement("div");
+                                chips.className = "citation-chips";
+                                chips.innerHTML = msg.citations.map(c =>
+                                    `<a href="#" class="citation-link" data-chunkid="${c.chunkId}" title="${escapeHtml(c.documentTitle)}">` +
+                                    `<span class="chip-num">${c.number}</span>` +
+                                    `<span class="chip-title">${escapeHtml(c.documentTitle)}</span>` +
+                                    `</a>`
+                                ).join("");
+                                block.appendChild(label);
+                                block.appendChild(chips);
+                                bubble.appendChild(block);
+                                scrollBottom();
+                            }, 10);
+                        }
+                    } else {
+                        appendMessage(msg.role, msg.content);
+                    }
+                });
+
+                const chatHubReady = chatHubConnection.start()
+                    .then(() => chatHubConnection.invoke("JoinSession", sessionId))
+                    .catch(err => console.error("ChatHub connect failed:", err));
+
+                chatHubConnection.start()
+                    .then(() => chatHubConnection.invoke("JoinSession", sessionId))
+                    .catch(err => console.error("ChatHub connect failed:", err));
+
+                const notifyHubConnection = new signalR.HubConnectionBuilder()
+                    .withUrl("/hubs/notifications")
+                    .withAutomaticReconnect()
+                    .build();
+
+                notifyHubConnection.on("TokenQuotaUpdated", (data) => {
+                    const tokenSpan = document.getElementById("remainingTokens");
+                    if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+                });
+
+                notifyHubConnection.on("PaymentCompleted", (data) => {
+                    // Nếu người dùng đang mở Chat RAG lúc thanh toán gói mới thành công,
+                    // cập nhật ngay badge token còn lại mà không cần F5.
+                    const tokenSpan = document.getElementById("remainingTokens");
+                    if (tokenSpan && data.remainingTokenQuota !== undefined) {
+                        tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+                    }
+                });
+
+                // Helper: build session card HTML
+                    function buildSessionCardHtml(s) {
+                        const isActive = s.sessionId === sessionId;
+                        return `
+                        <div class="card mb-2 shadow-sm ${isActive ? 'border-primary' : ''}" data-session-card="${s.sessionId}">
+                            <div class="card-body p-2">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/Chat?sessionId=${encodeURIComponent(s.sessionId)}"
+                                       class="text-decoration-none text-dark fw-bold small text-truncate"
+                                       style="max-width:150px">
+                                        ${escapeHtml(s.title || 'Phiên mới')}
+                                    </a>
+                                    <form action="/Chat/DeleteSession" method="post" class="d-inline">
+                                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+                                        <input type="hidden" name="sessionId" value="${s.sessionId}" />
+                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Xóa phiên này?')">🗑️</button>
+                                    </form>
+                                </div>
+                                <small class="text-muted">📚 ${escapeHtml(s.subjectName || '')} | 💬 ${s.messageCount} tin</small>
+                            </div>
+                        </div>`;
+                    }
+
+                    function getAntiForgeryToken() {
+                        const el = document.querySelector('input[name="__RequestVerificationToken"]');
+                        return el ? el.value : '';
+                    }
+
+                    const sidebarList = document.querySelector('.sidebar-list');
+
+                    function upsertSessionCard(s) {
+                        if (!sidebarList) return;
+                        const existing = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
+                        const html = buildSessionCardHtml(s);
+
+                        if (existing) {
+                            existing.outerHTML = html;
+                            const updated = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
+                            if (updated) sidebarList.prepend(updated);
+                        } else {
+                            sidebarList.insertAdjacentHTML('afterbegin', html);
+                        }
+                    }
+
+                    function removeSessionCard(sid) {
+                        if (!sidebarList) return;
+                        const el = sidebarList.querySelector(`[data-session-card="${sid}"]`);
+                        if (el) el.remove();
+
+                        // Nếu đang xóa đúng session hiện tại, điều hướng về trang Chat mới
+                        if (sid === sessionId) {
+                            window.location.href = '/Chat';
+                        }
+                    }
+
+                    notifyHubConnection.on("SessionUpsert", (s) => {
+                        upsertSessionCard(s);
+                    });
+
+                    notifyHubConnection.on("SessionDeleted", (data) => {
+                        removeSessionCard(data.sessionId);
+                    });
+
+                notifyHubConnection.start().catch(err => console.error("NotificationHub connect failed:", err));
     </script>
 }

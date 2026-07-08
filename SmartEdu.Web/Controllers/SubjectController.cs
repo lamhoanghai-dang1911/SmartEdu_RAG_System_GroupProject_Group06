@@ -21,14 +21,22 @@ namespace SmartEdu.Web.Controllers
 
         public async Task<IActionResult> Index()
         {
-            if (User.IsInRole("Admin") || User.IsInRole("Lecturer"))
+            if (User.IsInRole("Admin"))
             {
                 return View(await _subjectService.GetAllAsync());
             }
 
             int userId = User.GetUserId();
-            var mySubjects = await _subjectService.GetSubjectsByUserIdAsync(userId);
-            return View(mySubjects);
+
+            if (User.IsInRole("Lecturer"))
+            {
+                var mySubjects = await _subjectService.GetSubjectsByLecturerIdAsync(userId);
+                return View(mySubjects);
+            }
+
+            // Student (hoặc role khác)
+            var enrolledSubjects = await _subjectService.GetSubjectsByUserIdAsync(userId);
+            return View(enrolledSubjects);
         }
 
         [HttpGet]
@@ -131,6 +139,18 @@ namespace SmartEdu.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ImportStudents(int id, IFormFile file)
         {
+            if (User.IsInRole("Lecturer"))
+            {
+                int lecturerId = User.GetUserId();
+                bool isAssigned = await _subjectService.IsLecturerAssignedToSubject(lecturerId, id);
+                if (!isAssigned)
+                {
+                    TempData["Error"] = "Bạn không có quyền import sinh viên vào môn học này.";
+                    return RedirectToAction(nameof(Index));
+                }
+            }
+
+
             if (file == null || file.Length == 0)
                 return BadRequest("Vui lòng chọn một file hợp lệ.");
 

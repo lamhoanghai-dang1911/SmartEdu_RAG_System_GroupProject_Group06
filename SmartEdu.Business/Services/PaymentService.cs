@@ -3,13 +3,6 @@ using SmartEdu.Business.Interfaces;
 using SmartEdu.Data.Repositories;
 using SmartEdu.Shared.Entities;
 using SmartEdu.Shared.Enums;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace SmartEdu.Business.Services
 {
@@ -21,6 +14,7 @@ namespace SmartEdu.Business.Services
         private readonly IRepository<User> _userRepo;
         private readonly IConfiguration _configuration;
         private readonly HttpClient _httpClient;
+        private readonly IRealtimeNotifier _realtime;
 
         public PaymentService(
             IRepository<Order> orderRepo,
@@ -28,7 +22,8 @@ namespace SmartEdu.Business.Services
             IRepository<Package> packageRepo,
             IRepository<User> userRepo,
             IConfiguration configuration,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            IRealtimeNotifier realtime)
         {
             _orderRepo = orderRepo;
             _subscriptionRepo = subscriptionRepo;
@@ -36,6 +31,7 @@ namespace SmartEdu.Business.Services
             _userRepo = userRepo;
             _configuration = configuration;
             _httpClient = httpClient;
+            _realtime = realtime;
         }
 
         public async Task<(string PaymentUrl, int OrderId)> CreatePaymentAsync(int userId, int packageId)
@@ -48,7 +44,6 @@ namespace SmartEdu.Business.Services
             if (user == null)
                 throw new InvalidOperationException("User không tồn tại.");
 
-            // Tạo Order mới
             var order = new Order
             {
                 UserId = userId,
@@ -62,7 +57,6 @@ namespace SmartEdu.Business.Services
             await _orderRepo.AddAsync(order);
             await _orderRepo.SaveChangesAsync();
 
-            // Gọi PayOS API để tạo payment link
             string paymentUrl = await CreatePaymentLinkAsync(order, package, user);
 
             return (paymentUrl, order.Id);
@@ -77,12 +71,10 @@ namespace SmartEdu.Business.Services
             var returnUrl = _configuration["PayOS:ReturnUrl"];
             var cancelUrl = _configuration["PayOS:CancelUrl"];
 
-            // === orderCode phải là số (long), không phải string ===
             long orderCode = order.Id * 1000000 + (DateTime.UtcNow.Ticks % 1000000);
             int amountInVND = (int)order.Amount;
             string description = $"Mua gói {package.Name}";
 
-            // === Tính signature (orderCode là số) ===
             string signatureData = $"amount={amountInVND}&cancelUrl={cancelUrl}&description={description}&orderCode={orderCode}&returnUrl={returnUrl}";
             string signature = GenerateSignature(signatureData, checksumKey);
 
@@ -90,10 +82,9 @@ namespace SmartEdu.Business.Services
             Console.WriteLine($"[PayOS Debug] Signature data: {signatureData}");
             Console.WriteLine($"[PayOS Debug] Signature: {signature}");
 
-            // === Payload (orderCode là số, không phải string) ===
             var paymentPayload = new
             {
-                orderCode = orderCode,  // ← Là số, không phải string
+                orderCode = orderCode,
                 amount = amountInVND,
                 description = description,
                 returnUrl = returnUrl,
@@ -139,7 +130,6 @@ namespace SmartEdu.Business.Services
 
             throw new InvalidOperationException("PayOS trả về response không hợp lệ.");
         }
-
 
         public async Task HandlePaymentCallbackAsync(string transactionCode, int status)
         {
@@ -196,6 +186,20 @@ namespace SmartEdu.Business.Services
             await _subscriptionRepo.SaveChangesAsync();
 
             Console.WriteLine($"[HandleCallback] UserSubscription created successfully");
+
+            try
+            {
+                await _realtime.SendPaymentCompletedAsync(
+                    order.UserId,
+                    order.Id,
+                    package.Name,
+                    subscription.RemainingTokenQuota,
+                    subscription.EndDate);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast payment completed: {ex}");
+            }
         }
 
         private string GenerateSignature(string data, string checksumKey)

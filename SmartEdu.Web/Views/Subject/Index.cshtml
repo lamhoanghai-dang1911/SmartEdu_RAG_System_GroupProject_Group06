@@ -14,40 +14,155 @@
 
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success">@TempData["Success"]</div>
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     }
 
-    <table class="table table-bordered table-hover">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Tên môn học</th>
-                <th>Mô tả</th>
-                <th>Ngày tạo</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var s in Model)
-            {
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* Form ẩn chỉ để cung cấp AntiForgeryToken cho JS đọc khi tạo dòng mới qua realtime *@
+    <form id="antiForgeryHolder" style="display:none">
+        @Html.AntiForgeryToken()
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-dark">
                 <tr>
-                    <td>@s.Id</td>
-                    <td>@s.Name</td>
-                    <td>@s.Description</td>
-                    <td>@s.CreatedAt.ToString("dd/MM/yyyy")</td>
-                    <td>
-                        @if (isAdmin)
-                        {
-                            <a asp-action="ManageStudents" asp-route-id="@s.Id" class="btn btn-sm btn-info text-white">👥 Lớp học</a>
-                            <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-warning">✏️ Sửa</a>
-                            <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa môn học này?')">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger">🗑️ Xóa</button>
-                            </form>
-                        }
-                    </td>
+                    <th>#</th>
+                    <th>Tên môn học</th>
+                    <th>Mô tả</th>
+                    <th>Ngày tạo</th>
+                    <th>Thao tác</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    <tr data-subject-id="@s.Id">
+                        <td>@s.Id</td>
+                        <td>@s.Name</td>
+                        <td>@s.Description</td>
+                        <td>@s.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td>
+                            @if (isAdmin)
+                            {
+                                <a asp-action="ManageStudents" asp-route-id="@s.Id" class="btn btn-sm btn-info text-white">👥 Lớp học</a>
+                                <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-sm btn-warning">✏️ Sửa</a>
+                                <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa môn học này?')">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-danger">🗑️ Xóa</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        const isAdminView = @(isAdmin.ToString().ToLower());
+        const tbody = document.querySelector("table tbody");
+
+        function escapeHtmlSafe(s) {
+        if (!s) return '';
+        return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+        }
+
+        function getAntiForgeryToken() {
+        const el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+        }
+
+        function buildSubjectRowHtml(s) {
+        const createdAt = s.createdAt ? new Date(s.createdAt).toLocaleDateString("vi-VN") : "";
+        let actionsHtml = "";
+        if (isAdminView) {
+        actionsHtml = `
+        <a href="/Subject/ManageStudents/${s.id}" class="btn btn-sm btn-info text-white">👥 Lớp học</a>
+        <a href="/Subject/Edit/${s.id}" class="btn btn-sm btn-warning">✏️ Sửa</a>
+        <form action="/Subject/Delete/${s.id}" method="post" class="d-inline" onsubmit="return confirm('Xóa môn học này?')">
+        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+        <button type="submit" class="btn btn-sm btn-danger">🗑️ Xóa</button>
+        </form>`;
+        }
+        return `<tr data-subject-id="${s.id}">
+        <td>${s.id}</td>
+        <td>${escapeHtmlSafe(s.name)}</td>
+        <td>${escapeHtmlSafe(s.description)}</td>
+        <td>${createdAt}</td>
+        <td>${actionsHtml}</td>
+        </tr>`;
+        }
+
+        function upsertSubjectRow(s) {
+        if (!tbody) return;
+        const existing = tbody.querySelector(`tr[data-subject-id="${s.id}"]`);
+        const html = buildSubjectRowHtml(s);
+        if (existing) {
+        existing.outerHTML = html;
+        } else {
+        tbody.insertAdjacentHTML('beforeend', html);
+        }
+        }
+
+        function removeSubjectRow(subjectId) {
+        if (!tbody) return;
+        const row = tbody.querySelector(`tr[data-subject-id="${subjectId}"]`);
+        if (row) {
+        row.style.transition = "opacity 0.3s ease";
+        row.style.opacity = "0";
+        setTimeout(() => row.remove(), 300);
+        }
+        }
+
+        const notifyHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/notifications")
+        .withAutomaticReconnect()
+        .build();
+
+        // Admin: đồng bộ khi có Admin khác (hoặc tab khác) vừa tạo môn học mới
+        notifyHubConnection.on("SubjectCreated", (s) => {
+        if (isAdminView) upsertSubjectRow(s);
+        });
+
+        // Cập nhật tên/mô tả môn học khi Admin sửa (cho cả Admin, Lecturer, Student liên quan)
+        notifyHubConnection.on("SubjectUpdated", (s) => {
+        upsertSubjectRow(s);
+        });
+
+        // Môn học bị xóa
+        notifyHubConnection.on("SubjectDeleted", (data) => {
+        removeSubjectRow(data.subjectId);
+        });
+
+        // Lecturer: vừa được assign vào môn mới -> thêm dòng vào danh sách của họ
+        notifyHubConnection.on("SubjectAssigned", (s) => {
+        upsertSubjectRow(s);
+        });
+
+        // Lecturer: vừa bị gỡ khỏi môn -> xóa dòng khỏi danh sách của họ
+        notifyHubConnection.on("SubjectUnassigned", (data) => {
+        removeSubjectRow(data.subjectId);
+        });
+
+        notifyHubConnection.start().catch(err => console.error("NotificationHub connect failed:", err));
+    </script>
+}

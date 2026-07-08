@@ -20,35 +20,32 @@ namespace SmartEdu.Data
 
         private static void SeedUsers(AppDbContext context)
         {
-            if (context.Users.Any()) return;
-
+            // Danh sách các user muốn đảm bảo luôn có trong hệ thống
             var users = new List<User>
-            {
-                new User
-                {
-                    Username = "admin",
-                    FullName = "Quản trị viên",
-                    Role = UserRole.Admin,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123")
-                },
-                new User
-                {
-                    Username = "lecturer",
-                    FullName = "Giảng viên mẫu",
-                    Role = UserRole.Lecturer,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123")
-                },
-                new User
-                {
-                    Username = "student",
-                    FullName = "Sinh viên mẫu",
-                    Role = UserRole.Student,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("123")
-                }
-            };
+    {
+        new User { Username = "admin", FullName = "Quản trị viên", Role = UserRole.Admin, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
+        new User { Username = "lecturer", FullName = "Giảng viên mẫu", Role = UserRole.Lecturer, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
+        new User { Username = "lecturer2", FullName = "Giảng viên mẫu 2", Role = UserRole.Lecturer, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
+        new User { Username = "student", FullName = "Sinh viên mẫu 1", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
+        new User { Username = "student2", FullName = "Sinh viên mẫu 2", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") }
+    };
 
-            context.Users.AddRange(users);
-            context.SaveChanges();
+            bool hasChanges = false;
+
+            foreach (var user in users)
+            {
+                // Kiểm tra xem user đã tồn tại trong DB chưa dựa trên Username
+                if (!context.Users.Any(u => u.Username == user.Username))
+                {
+                    context.Users.Add(user);
+                    hasChanges = true;
+                }
+            }
+
+            if (hasChanges)
+            {
+                context.SaveChanges();
+            }
         }
 
         private static void SeedChunkingConfig(AppDbContext context)

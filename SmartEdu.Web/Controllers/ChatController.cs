@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SmartEdu.Business.Interfaces;
+using SmartEdu.Data.Repositories;
 using SmartEdu.Shared.DTOs;
+using SmartEdu.Shared.Entities;
+using SmartEdu.Shared.Enums;
 using Microsoft.AspNetCore.Authorization;
 using SmartEdu.Web.Extensions;
 
@@ -14,7 +17,6 @@ namespace SmartEdu.Web.Controllers
         private readonly ISubjectService _subjectService;
         private readonly IPermissionService _permissionService;
         private readonly IDocumentService _documentService;
-
         public ChatController(
             IChatService chatService,
             ISubjectService subjectService,
@@ -50,22 +52,26 @@ namespace SmartEdu.Web.Controllers
                 history = await _chatService.GetHistoryAsync(sessionId, userId.ToString());
             }
 
+            var activeSub = await _chatService.GetActiveSubscriptionAsync(userId);
+            ViewBag.RemainingTokens = activeSub?.RemainingTokenQuota ?? 0;
+            ViewBag.HasActiveSubscription = activeSub != null;
+
             ViewBag.History = history;
             return View();
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Ask([FromBody] ChatRequestDto request)
         {
             int userId = User.GetUserId();
             if (userId == 0) return Unauthorized();
-
             request.UserId = userId;
 
+            // === Validate 1: câu hỏi không rỗng ===
             if (string.IsNullOrWhiteSpace(request.Question))
                 return BadRequest(new { error = "Câu hỏi không được để trống." });
 
+            // === Validate 2 + 3: quyền truy cập Subject + Subject đã có tài liệu Ready ===
             if (request.SubjectId.HasValue)
             {
                 bool hasAccess = await _permissionService.CanUserAccessSubject(userId, request.SubjectId.Value);
@@ -76,14 +82,18 @@ namespace SmartEdu.Web.Controllers
                 {
                     return Ok(new
                     {
-                        answer = "Môn học này hiện chưa có tài liệu nào được xử lý hoàn tất. Vui lòng đợi giảng viên tải lên và kích hoạt nhé! 📚"
+                        answer = "Môn học này hiện chưa có tài liệu nào được xử lý hoàn tất. Vui lòng đợi giảng viên tải lên và kích hoạt nhé! 📚",
+                        sources = new List<object>(),
+                        citations = new List<object>(),
+                        remainingTokenQuota = (await _chatService.GetActiveSubscriptionAsync(userId))?.RemainingTokenQuota ?? 0
                     });
                 }
             }
 
             try
             {
-                var response = await _chatService.AskAsync(request);
+                // === Validate 4 + billing: subscription check + trừ token nằm bên trong Service ===
+                var response = await _chatService.ProcessChatWithBillingAsync(request);
                 return Ok(response);
             }
             catch (UnauthorizedAccessException)
@@ -92,7 +102,7 @@ namespace SmartEdu.Web.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message });
+                return BadRequest(new { error = ex.Message });
             }
         }
 
@@ -117,7 +127,5 @@ namespace SmartEdu.Web.Controllers
             TempData["Success"] = "Đã xóa phiên chat!";
             return RedirectToAction(nameof(Index));
         }
-
-
     }
 }

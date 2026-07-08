@@ -15,17 +15,26 @@ namespace SmartEdu.Business.Services
         private readonly IRepository<User> _userRepo;
         private readonly IEmailService _emailService;
         private readonly IUnitOfWork _uow;
+        private readonly IRealtimeNotifier _realtime;
 
-        public SubjectService(IRepository<Subject> repo, IRepository<StudentSubject> studentSubjectRepo, IRepository<User> userRepo, IUnitOfWork uow, IEmailService emailService)
+
+        public SubjectService(
+    IRepository<Subject> repo,
+    IRepository<StudentSubject> studentSubjectRepo,
+    IRepository<User> userRepo,
+    IUnitOfWork uow,
+    IEmailService emailService,
+    IRealtimeNotifier realtime)
         {
             _repo = repo;
             _studentSubjectRepo = studentSubjectRepo;
             _userRepo = userRepo;
             _uow = uow;
             _emailService = emailService;
+            _realtime = realtime;
         }
 
-        public async Task AssignLecturerToSubject(Shared.DTOs.AssignLecturerDto dto)
+        public async Task AssignLecturerToSubject(AssignLecturerDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
 
@@ -36,7 +45,6 @@ namespace SmartEdu.Business.Services
             await _uow.BeginTransactionAsync();
             try
             {
-                // find existing relation if any
                 var existing = await _uow.LecturerSubjects.GetAllAsync();
                 var item = existing.FirstOrDefault(ls => ls.LecturerId == dto.LecturerId && ls.SubjectId == dto.SubjectId);
 
@@ -55,7 +63,6 @@ namespace SmartEdu.Business.Services
                     _uow.LecturerSubjects.Update(item);
                 }
 
-                // If marking as leader, demote other leaders of this subject
                 if (dto.IsLeader)
                 {
                     var leaders = existing.Where(ls => ls.SubjectId == dto.SubjectId && ls.IsLeader && ls.LecturerId != dto.LecturerId).ToList();
@@ -73,6 +80,23 @@ namespace SmartEdu.Business.Services
             {
                 await _uow.RollbackTransactionAsync();
                 throw;
+            }
+
+            // === Bắn realtime cho giảng viên vừa được assign ===
+            try
+            {
+                var subjectDto = new SubjectDto
+                {
+                    Id = subject.Id,
+                    Name = subject.Name,
+                    Description = subject.Description,
+                    CreatedAt = subject.CreatedAt
+                };
+                await _realtime.SendSubjectAssignedToLecturerAsync(dto.LecturerId, subjectDto);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast subject assigned: {ex}");
             }
         }
 
@@ -108,6 +132,15 @@ namespace SmartEdu.Business.Services
 
             _uow.LecturerSubjects.Delete(item);
             await _uow.SaveChangesAsync();
+
+            try
+            {
+                await _realtime.SendSubjectUnassignedFromLecturerAsync(lecturerId, subjectId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast subject unassigned: {ex}");
+            }
         }
 
         public async Task<IEnumerable<SubjectDto>> GetAllAsync()
@@ -136,7 +169,7 @@ namespace SmartEdu.Business.Services
             };
         }
 
-        public async Task CreateAsync(SubjectCreateDto dto)
+        public async Task<SubjectDto> CreateAsync(SubjectCreateDto dto)
         {
             var subject = new Subject
             {
@@ -148,6 +181,25 @@ namespace SmartEdu.Business.Services
 
             await _repo.AddAsync(subject);
             await _repo.SaveChangesAsync();
+
+            var result = new SubjectDto
+            {
+                Id = subject.Id,
+                Name = subject.Name,
+                Description = subject.Description,
+                CreatedAt = subject.CreatedAt
+            };
+
+            try
+            {
+                await _realtime.SendSubjectCreatedAsync(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast subject created: {ex}");
+            }
+
+            return result;
         }
 
         public async Task UpdateAsync(SubjectUpdateDto dto)
@@ -162,6 +214,30 @@ namespace SmartEdu.Business.Services
 
             _repo.Update(existingSubject);
             await _repo.SaveChangesAsync();
+
+            var subjectDto = new SubjectDto
+            {
+                Id = existingSubject.Id,
+                Name = existingSubject.Name,
+                Description = existingSubject.Description,
+                CreatedAt = existingSubject.CreatedAt
+            };
+
+            try
+            {
+                var lecturerRels = await _uow.LecturerSubjects.GetAllAsync(ls => ls.SubjectId == dto.Id);
+                var studentRels = await _studentSubjectRepo.GetAllAsync(ss => ss.SubjectId == dto.Id && !ss.IsDeleted);
+
+                var affectedUserIds = lecturerRels.Select(ls => ls.LecturerId)
+                    .Concat(studentRels.Select(ss => ss.StudentId))
+                    .Distinct();
+
+                await _realtime.SendSubjectUpdatedAsync(subjectDto, affectedUserIds);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast subject updated: {ex}");
+            }
         }
 
         public async Task DeleteAsync(int id)
@@ -171,9 +247,32 @@ namespace SmartEdu.Business.Services
 
             subject.IsDeleted = true;
             subject.UpdatedAt = DateTime.UtcNow;
-
             _repo.Update(subject);
-            await _repo.SaveChangesAsync();
+
+            try
+            {
+                var lecturerRels = await _uow.LecturerSubjects.GetAllAsync(ls => ls.SubjectId == id);
+                var studentRels = await _studentSubjectRepo.GetAllAsync(ss => ss.SubjectId == id && !ss.IsDeleted);
+
+                var affectedUserIds = lecturerRels.Select(ls => ls.LecturerId)
+                    .Concat(studentRels.Select(ss => ss.StudentId))
+                    .Distinct()
+                    .ToList();
+
+                // Dọn luôn các bản ghi phân công giảng viên trỏ tới môn đã xóa
+                foreach (var rel in lecturerRels)
+                {
+                    _uow.LecturerSubjects.Delete(rel);
+                }
+
+                await _repo.SaveChangesAsync();
+
+                await _realtime.SendSubjectDeletedAsync(id, affectedUserIds);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast subject deleted: {ex}");
+            }
         }
 
         public async Task<IEnumerable<SubjectDto>> GetSubjectsByUserIdAsync(int userId)
@@ -366,6 +465,13 @@ namespace SmartEdu.Business.Services
                 await _uow.RollbackTransactionAsync();
                 throw;
             }
+        }
+
+        public async Task<bool> IsLecturerAssignedToSubject(int lecturerId, int subjectId)
+        {
+            var rels = await _uow.LecturerSubjects.GetAllAsync(
+                ls => ls.LecturerId == lecturerId && ls.SubjectId == subjectId);
+            return rels.Any();
         }
     }
 }

@@ -3,8 +3,515 @@
     ViewData["Title"] = "Tài liệu";
 }
 
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --success: #1fae63;
+        --danger: #e5484d;
+        --warning: #f5a623;
+    }
+
+    /* ===== Page head ===== */
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .page-head .btn-primary {
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.55rem 1.2rem;
+        box-shadow: 0 8px 20px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .page-head .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+    .alert {
+        border: none;
+        border-radius: 12px;
+        animation: fadeUp 0.35s ease forwards;
+    }
+
+    .alert-success {
+        background: rgba(31, 174, 99, 0.09);
+        color: var(--success);
+        border-left: 3px solid var(--success);
+    }
+
+    .alert-danger {
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        border-left: 3px solid var(--danger);
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* ===== Filter ===== */
+    .filter-bar {
+        background: #fff;
+        border-radius: 14px;
+        padding: 0.9rem 1.1rem;
+        box-shadow: 0 6px 20px -12px rgba(11, 17, 32, 0.12);
+        margin-bottom: 1rem;
+    }
+
+        .filter-bar .form-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--slate);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .filter-bar .form-select {
+            border: 1.5px solid #e3e5ef;
+            border-radius: 10px;
+        }
+
+            .filter-bar .form-select:focus {
+                border-color: var(--brand-blue);
+                box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+            }
+
+    /* ===== Table card ===== */
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+        .table thead tr {
+            background: linear-gradient(120deg, var(--ink-navy), #171d3d) !important;
+        }
+
+        .table thead th {
+            border: none !important;
+            color: #fff !important;
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            padding: 0.9rem 1rem !important;
+            vertical-align: middle;
+        }
+
+        .table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+            .table tbody tr:hover {
+                background: rgba(13, 110, 253, 0.045) !important;
+            }
+
+        .table tbody td {
+            border-color: #eef0f6 !important;
+            padding: 0.8rem 1rem !important;
+            font-size: 0.9rem;
+            color: #33384f;
+            vertical-align: middle;
+        }
+
+    .badge {
+        font-weight: 600;
+        font-size: 0.74rem;
+        padding: 0.4rem 0.65rem;
+        border-radius: 999px;
+    }
+
+        .badge.bg-warning {
+            background: rgba(245, 166, 35, 0.14) !important;
+            color: #b8790a !important;
+        }
+
+        .badge.bg-info {
+            background: rgba(13, 110, 253, 0.1) !important;
+            color: var(--brand-blue) !important;
+        }
+
+        .badge.bg-success {
+            background: rgba(31, 174, 99, 0.12) !important;
+            color: var(--success) !important;
+        }
+
+        .badge.bg-danger {
+            background: rgba(229, 72, 77, 0.1) !important;
+            color: var(--danger) !important;
+        }
+
+        .badge.bg-secondary {
+            background: #eef0f6 !important;
+            color: var(--slate) !important;
+        }
+
+    .table .btn-sm {
+        border-radius: 8px;
+        border: none;
+        font-size: 0.82rem;
+        transition: transform 0.12s ease, filter 0.15s ease;
+    }
+
+        .table .btn-sm:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+    .table .btn-info {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--brand-blue);
+    }
+
+    .table .btn-primary {
+        background: rgba(13, 110, 253, 0.1);
+        color: var(--brand-blue);
+    }
+
+    .table .btn-secondary {
+        background: #eef0f6;
+        color: var(--slate);
+    }
+
+    .table .btn-warning {
+        background: rgba(245, 166, 35, 0.14);
+        color: #b8790a;
+    }
+
+    .table .btn-success {
+        background: rgba(31, 174, 99, 0.12);
+        color: var(--success);
+    }
+
+    .table .btn-danger {
+        background: rgba(229, 72, 77, 0.1);
+        color: var(--danger);
+    }
+
+    /* ===== Modals (shared header style) ===== */
+    .modal-content {
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        background: linear-gradient(120deg, var(--ink-navy), #171d3d);
+        color: #fff;
+        border: none;
+        padding: 1.1rem 1.4rem;
+    }
+
+    .modal-title {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+    }
+
+    .modal-header .btn-close {
+        filter: invert(1) brightness(2);
+    }
+
+    .modal-footer {
+        border: none;
+        padding: 1rem 1.4rem;
+    }
+
+        .modal-footer .btn-secondary {
+            border-radius: 999px;
+            border: none;
+            background: #eef0f6;
+            color: #33384f;
+            font-weight: 600;
+            padding: 0.5rem 1.3rem;
+            transition: background 0.15s ease;
+        }
+
+            .modal-footer .btn-secondary:not(:disabled):hover {
+                background: #e2e5f0;
+            }
+
+            .modal-footer .btn-secondary:disabled {
+                opacity: 0.5;
+            }
+
+    /* ===== Embedding progress ring ===== */
+    .embed-status-panel {
+        display: flex;
+        align-items: center;
+        gap: 1.4rem;
+        padding: 1.1rem 1.3rem;
+        background: var(--paper);
+        border-radius: 14px;
+        margin-bottom: 1rem;
+    }
+
+    .progress-ring {
+        position: relative;
+        width: 84px;
+        height: 84px;
+        flex: 0 0 auto;
+    }
+
+        .progress-ring .ring-track {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid #e3e5ef;
+        }
+
+        .progress-ring .ring-spin {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 5px solid transparent;
+            border-top-color: var(--brand-blue);
+            border-right-color: var(--brand-purple);
+            animation: ringSpin 1s linear infinite;
+        }
+
+        .progress-ring.done .ring-spin {
+            animation: none;
+            border-color: var(--success) !important;
+        }
+
+        .progress-ring.failed .ring-spin {
+            animation: none;
+            border-color: var(--danger) !important;
+        }
+
+    @@keyframes ringSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .progress-ring .ring-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    .progress-ring .ring-count {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: #12162b;
+        line-height: 1;
+    }
+
+    .progress-ring .ring-icon {
+        font-size: 1.6rem;
+        line-height: 1;
+    }
+
+    .embed-status-text .status-label {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.02rem;
+        color: #12162b;
+        margin-bottom: 0.15rem;
+    }
+
+    .embed-status-text .status-sub {
+        font-size: 0.85rem;
+        color: var(--slate);
+    }
+
+    .config-chip {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.5rem;
+    }
+
+        .config-chip span {
+            background: #fff;
+            border: 1px solid #e3e5ef;
+            border-radius: 999px;
+            padding: 0.2rem 0.65rem;
+            font-size: 0.74rem;
+            color: var(--slate);
+            font-weight: 600;
+        }
+
+            .config-chip span strong {
+                color: #12162b;
+            }
+
+    /* ===== Log stream ===== */
+    .log-stream {
+        max-height: 46vh;
+        overflow-y: auto;
+        background: var(--ink-navy);
+        border-radius: 14px;
+        padding: 0.9rem;
+        font-family: 'SFMono-Regular', Consolas, monospace;
+        font-size: 0.82rem;
+    }
+
+        .log-stream::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-stream::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 8px;
+        }
+
+    .log-line {
+        display: flex;
+        gap: 0.55rem;
+        padding: 0.3rem 0.2rem;
+        border-radius: 6px;
+        animation: fadeUp 0.25s ease;
+        align-items: flex-start;
+    }
+
+        .log-line:hover {
+            background: rgba(255,255,255,0.04);
+        }
+
+    .log-dot {
+        flex: 0 0 auto;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        margin-top: 6px;
+    }
+
+        .log-dot.info {
+            background: #6ea8fe;
+        }
+
+        .log-dot.processing {
+            background: var(--amber);
+        }
+
+        .log-dot.error {
+            background: #ff7a7a;
+        }
+
+        .log-dot.default {
+            background: #7c8296;
+        }
+
+    .log-time {
+        color: #7c8296;
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+
+    .log-text {
+        color: #e6eef8;
+        word-break: break-word;
+    }
+
+        .log-text strong {
+            color: #a9c6ff;
+        }
+
+    .log-chunk-block {
+        margin-top: 4px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 8px;
+        padding: 8px 10px;
+        white-space: pre-wrap;
+        color: #cfd8ea;
+        max-height: 160px;
+        overflow-y: auto;
+    }
+
+    /* ===== Chunk list modal ===== */
+    #chunkList .list-group-item {
+        border-radius: 12px !important;
+        border: 1px solid #edeef5 !important;
+        margin-bottom: 0.5rem;
+    }
+
+        #chunkList .list-group-item strong {
+            font-family: 'Sora', sans-serif;
+            color: var(--brand-blue);
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+
+    .table-card {
+        overflow: visible; /* để .table-responsive tự xử lý scroll, tránh xung đột overflow lồng nhau */
+    }
+
+    .table-responsive {
+        border-radius: 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+        .table-responsive::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: #d7dbe8;
+            border-radius: 8px;
+        }
+
+    /* Đảm bảo bảng không bị bóp quá nhỏ, ưu tiên cho cuộn ngang thay vì vỡ chữ */
+    .table {
+        min-width: 900px;
+    }
+
+    @@media (max-width: 575.98px) {
+        .page-head {
+            flex-wrap: wrap;
+            row-gap: 0.6rem;
+        }
+
+        .filter-bar .row.g-2 {
+            row-gap: 0.5rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="page-head d-flex justify-content-between align-items-center mb-3">
         <h2>📄 Danh sách tài liệu</h2>
         @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
         {
@@ -12,15 +519,30 @@
         }
     </div>
 
+    <!-- Embedding Log Modal -->
     <div class="modal fade" id="documentLogModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Log Embedding</h5>
+                    <h5 class="modal-title">⚡ Đang xử lý Embedding</h5>
                     <button type="button" class="btn-close" id="modalCloseBtn" aria-label="Close" disabled></button>
                 </div>
                 <div class="modal-body">
-                    <div id="logContainer" style="max-height:60vh; overflow:auto; font-family: monospace; background: #212529; color: #f8f9fa; padding: 10px;"></div>
+                    <div class="embed-status-panel">
+                        <div class="progress-ring" id="progressRing">
+                            <div class="ring-track"></div>
+                            <div class="ring-spin"></div>
+                            <div class="ring-center">
+                                <span class="ring-count" id="ringCount">0</span>
+                            </div>
+                        </div>
+                        <div class="embed-status-text">
+                            <div class="status-label" id="statusLabel">Đang khởi động...</div>
+                            <div class="status-sub" id="statusSub">Đang kết nối tới server để bắt đầu xử lý.</div>
+                            <div class="config-chip" id="chunkingConfigInfo"></div>
+                        </div>
+                    </div>
+                    <div id="logContainer" class="log-stream"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="modalFooterCloseBtn" data-bs-dismiss="modal" disabled>Đóng</button>
@@ -45,84 +567,89 @@
         </div>
     }
 
-    <form method="get" class="row g-2 mb-3 align-items-center">
-        <div class="col-auto">
-            <label class="form-label small mb-0">Lọc theo môn</label>
-            <select name="subjectId" asp-items="ViewBag.Subjects" class="form-select" onchange="this.form.submit()">
-                <option value="">-- Tất cả môn học --</option>
-            </select>
-        </div>
-    </form>
+    <div class="filter-bar">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-auto">
+                <label class="form-label mb-1 d-block">Lọc theo môn</label>
+                <select name="subjectId" asp-items="ViewBag.Subjects" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Tất cả môn học --</option>
+                </select>
+            </div>
+        </form>
+    </div>
 
-    <table class="table table-bordered table-hover align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Tiêu đề</th>
-                <th>File gốc</th>
-                <th>Loại</th>
-                <th>Kích thước</th>
-                <th>Môn học</th>
-                <th>Trạng thái</th>
-                <th>Ngày upload</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in Model)
-            {
+    <div class="table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
-                    <td>@d.Id</td>
-                    <td>@d.Title</td>
-                    <td><small>@d.FileName</small></td>
-                    <td><span class="badge bg-secondary">@d.FileType.ToUpper()</span></td>
-                    <td>@($"{d.FileSize / 1024.0:F1}") KB</td>
-                    <td>@d.SubjectName</td>
-                    <td>
-                        @{
-                            var (badge, label) = d.Status.ToString() switch
+                    <th>#</th>
+                    <th>Tiêu đề</th>
+                    <th>File gốc</th>
+                    <th>Loại</th>
+                    <th>Kích thước</th>
+                    <th>Môn học</th>
+                    <th>Trạng thái</th>
+                    <th>Ngày upload</th>
+                    <th>Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model)
+                {
+                    <tr data-doc-id="@d.Id">
+                        <td>@d.Id</td>
+                        <td>@d.Title</td>
+                        <td><small>@d.FileName</small></td>
+                        <td><span class="badge bg-secondary">@d.FileType.ToUpper()</span></td>
+                        <td>@($"{d.FileSize / 1024.0:F1}") KB</td>
+                        <td>@d.SubjectName</td>
+                        <td>
+                            @{
+                                var (badge, label) = d.Status.ToString() switch
+                                {
+                                    "Pending" => ("warning", "⏳ Chờ xử lý"),
+                                    "Processing" => ("info", "⚙️ Đang xử lý"),
+                                    "Ready" => ("success", "✅ Sẵn sàng"),
+                                    "Failed" => ("danger", "❌ Lỗi"),
+                                    _ => ("secondary", d.Status.ToString())
+                                };
+                            }
+                            <span class="badge bg-@badge">@label</span>
+                        </td>
+                        <td>@d.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@d.Id" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
+                            <a asp-action="Download" asp-route-id="@d.Id" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>
+                            <button type="button" class="btn btn-sm btn-secondary me-1" title="Xem các mảnh nội dung (Chunks)" onclick="showChunks(@(d.Id))">🧩</button>
+                            @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
                             {
-                                "Pending" => ("warning", "⏳ Chờ xử lý"),
-                                "Processing" => ("info", "⚙️ Đang xử lý"),
-                                "Ready" => ("success", "✅ Sẵn sàng"),
-                                "Failed" => ("danger", "❌ Lỗi"),
-                                _ => ("secondary", d.Status.ToString())
-                            };
-                        }
-                        <span class="badge bg-@badge">@label</span>
-                    </td>
-                    <td>@d.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@d.Id" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
-                        <a asp-action="Download" asp-route-id="@d.Id" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>
-                        <button type="button" class="btn btn-sm btn-secondary me-1" title="Xem các mảnh nội dung (Chunks)" onclick="showChunks(@(d.Id))">🧩</button>
-                        @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
-                        {
-                            <a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-warning" title="Sửa tiêu đề">✏️</a>
-                            @if (d.Status != SmartEdu.Shared.Enums.DocumentStatus.Ready)
-                            {
-                                <form asp-action="TriggerEmbedding" asp-route-id="@d.Id" method="post" class="d-inline trigger-form" data-document-id="@d.Id">
+                                <a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-warning" title="Sửa tiêu đề">✏️</a>
+                                @if (d.Status != SmartEdu.Shared.Enums.DocumentStatus.Ready)
+                                {
+                                    <form asp-action="TriggerEmbedding" asp-route-id="@d.Id" method="post" class="d-inline trigger-form" data-document-id="@d.Id">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
+                                    </form>
+                                }
+                                <form asp-action="Delete" asp-route-id="@d.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa tài liệu này?');">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Xóa">🗑️</button>
                                 </form>
                             }
-                            <form asp-action="Delete" asp-route-id="@d.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa tài liệu này?');">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-danger" title="Xóa">🗑️</button>
-                            </form>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    </div>
     <!-- Chunks Modal -->
     <div class="modal fade" id="chunkDetailsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Chi tiết nội dung tài liệu (Chunks)</h5>
+                    <h5 class="modal-title">🧩 Chi tiết nội dung tài liệu (Chunks)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -137,163 +664,473 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const modalEl = document.getElementById('documentLogModal');
-            // prevent closing by backdrop or ESC while embedding runs
-            const myModal = new window.bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
-            let intervalId = null;
+        const modalEl = document.getElementById('documentLogModal');
+        const myModal = new window.bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+        let intervalId = null;
+        let docHubConnection = null;
 
-            function stopInterval() {
-                if (intervalId) { clearInterval(intervalId); intervalId = null; }
-            }
+        const ringEl = document.getElementById('progressRing');
+        const ringCount = document.getElementById('ringCount');
+        const statusLabel = document.getElementById('statusLabel');
+        const statusSub = document.getElementById('statusSub');
 
-            function enableClose() {
-                const btn = document.getElementById('modalCloseBtn');
-                const footerBtn = document.getElementById('modalFooterCloseBtn');
-                if (btn) btn.removeAttribute('disabled');
-                if (footerBtn) footerBtn.removeAttribute('disabled');
-                // ensure buttons will dismiss the modal
-                if (btn) btn.setAttribute('data-bs-dismiss', 'modal');
-                if (footerBtn) footerBtn.setAttribute('data-bs-dismiss', 'modal');
-                // also ensure clicking will call hide if needed
-                [btn, footerBtn].forEach(b => {
-                    if (!b) return;
-                    b.addEventListener('click', function (e) {
-                        if (this.hasAttribute('disabled')) {
-                            e.preventDefault();
-                            e.stopImmediatePropagation();
-                            return false;
-                        }
-                        try { myModal.hide(); } catch (_) { }
-                    });
-                });
-            }
+        function stopInterval() {
+        if (intervalId) { clearInterval(intervalId); intervalId = null; }
+        }
 
-            async function fetchAndRender(documentId) {
-                try {
-                    const resp = await fetch(`/Document/GetLogs?documentId=${documentId}`);
-                    if (!resp.ok) return;
+        function enableClose() {
+        const btn = document.getElementById('modalCloseBtn');
+        const footerBtn = document.getElementById('modalFooterCloseBtn');
+        if (btn) btn.removeAttribute('disabled');
+        if (footerBtn) footerBtn.removeAttribute('disabled');
+        if (btn) btn.setAttribute('data-bs-dismiss', 'modal');
+        if (footerBtn) footerBtn.setAttribute('data-bs-dismiss', 'modal');
+        [btn, footerBtn].forEach(b => {
+        if (!b) return;
+        b.addEventListener('click', function (e) {
+        if (this.hasAttribute('disabled')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+        }
+        try { myModal.hide(); } catch (_) { }
+        });
+        });
+        }
 
-                    const logs = await resp.json();
-                    const container = document.getElementById('logContainer');
+        function setRingState(state, count) {
+        ringEl.classList.remove('done', 'failed');
+        ringCount.style.display = 'block';
+        ringCount.innerHTML = count;
 
-                    function parseIsoToDate(s) {
-                        if (!s) return null;
-                        let str = String(s).trim();
-                        // truncate fractional seconds to milliseconds to avoid Invalid Date in some browsers
-                        str = str.replace(/(\.\d{3})\d+/, '$1');
-                        // If timestamp has no timezone (no Z or +/-HH:mm), assume server sent UTC and append Z
-                        if (/^\d{4}-\d{2}-\d{2}T/.test(str) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(str)) {
-                            str = str + 'Z';
-                        }
-                        const d = new Date(str);
-                        return isNaN(d) ? null : d;
-                    }
+        if (state === 'done') {
+        ringEl.classList.add('done');
+        ringCount.innerHTML = '<span class="ring-icon">✅</span>';
+        statusLabel.textContent = 'Hoàn tất!';
+        statusSub.textContent = 'Tài liệu đã sẵn sàng để sử dụng trong Chat RAG.';
+        } else if (state === 'failed') {
+        ringEl.classList.add('failed');
+        ringCount.innerHTML = '<span class="ring-icon">❌</span>';
+        statusLabel.textContent = 'Xử lý thất bại';
+        statusSub.textContent = 'Đã xảy ra lỗi trong quá trình embedding, vui lòng thử lại.';
+        } else if (state === 'reused') {
+        ringEl.classList.add('done');
+        ringCount.innerHTML = '<span class="ring-icon">♻️</span>';
+        statusLabel.textContent = 'Tái sử dụng dữ liệu có sẵn';
+        statusSub.textContent = 'Nội dung trùng khớp, không cần embedding lại.';
+        } else {
+        statusLabel.textContent = 'Đang xử lý embedding...';
+        statusSub.textContent = `Đã xử lý ${count} chunk`;
+        }
+        }
 
-                    container.innerHTML = logs.map(l => {
-                        const date = parseIsoToDate(l.timestamp || l.Timestamp);
-                        const ts = date ? date.toLocaleTimeString() : 'Invalid Date';
-                        const status = l.status || l.Status || 'Unknown';
-                        const msg = l.logMessage || l.LogMessage || '';
-                        return `<div>[${ts}] <strong>${status}</strong>: ${msg}</div>`;
-                    }).join('');
+        function escapeHtml(unsafe) {
+        if (unsafe === null || unsafe === undefined) return '';
+        return String(unsafe)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+        }
 
-                    container.scrollTop = container.scrollHeight;
+        function dotClass(status, msg) {
+        const s = (status || '').toLowerCase();
+        if (s === 'error' || /failed/i.test(msg)) return 'error';
+        if (s === 'processing') return 'processing';
+        if (s === 'info') return 'info';
+        return 'default';
+        }
 
-                    // determine if embedding finished by checking statuses or messages
-                    const finished = logs.some(l => {
-                        const st = (l.status || l.Status || '').toString();
-                        const msg = (l.logMessage || l.LogMessage || '').toString();
-                        if (st === 'Ready' || st === 'Failed' || st === 'Error') return true;
-                        if (/status set to\s*Ready/i.test(msg)) return true;
-                        if (/status set to\s*Failed/i.test(msg)) return true;
-                        if (/status set to\s*Error/i.test(msg)) return true;
-                        return false;
-                    });
-                    if (finished) {
-                        stopInterval();
-                        enableClose();
-                    }
-                } catch (e) { console.error(e); }
-            }
+        function appendLogLine(status, msg, timestamp) {
+        const container = document.getElementById('logContainer');
+        const ts = timestamp ? new Date(timestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
+        const dc = dotClass(status, msg);
+        const line = document.createElement('div');
+        line.className = 'log-line';
 
-            document.querySelectorAll('.trigger-form').forEach(form => {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    const docId = this.getAttribute('data-document-id');
-                    const url = this.getAttribute('action');
+        if ((msg || '').startsWith('ChunkContent:')) {
+        const parts = msg.split(':');
+        const idx = parts[1] || '?';
+        const content = parts.slice(2).join(':');
+        line.innerHTML = `<span class="log-dot ${dc}"></span>
+        <div style="flex:1">
+        <span class="log-time">[${ts}]</span> <span class="log-text"><strong>Chunk ${idx}</strong></span>
+        <div class="log-chunk-block">${escapeHtml(content)}</div>
+        </div>`;
+        } else {
+        line.innerHTML = `<span class="log-dot ${dc}"></span>
+        <span class="log-time">[${ts}]</span>
+        <span class="log-text"><strong>${escapeHtml(status)}</strong>: ${escapeHtml(msg)}</span>`;
+        }
 
-                    myModal.show();
-                    document.getElementById('logContainer').innerHTML = "<em>Đang kết nối tới server...</em>";
+        container.appendChild(line);
+        container.scrollTop = container.scrollHeight;
 
-                    stopInterval();
-                    // disable close buttons while starting
-                    document.getElementById('modalCloseBtn').setAttribute('disabled', 'disabled');
-                    document.getElementById('modalFooterCloseBtn').setAttribute('disabled', 'disabled');
-                    intervalId = setInterval(() => fetchAndRender(docId), 2000);
-                    fetchAndRender(docId);
+        if (/embedded successfully/i.test(msg || '')) {
+        const current = parseInt(ringCount.textContent, 10) || 0;
+        ringCount.textContent = current + 1;
+        statusLabel.textContent = 'Đang xử lý embedding...';
+        statusSub.textContent = `Đã xử lý ${current + 1} chunk`;
+        }
+        }
 
-                    fetch(url, {
-                        method: 'POST',
-                        headers: { 'RequestVerificationToken': this.querySelector('input[name="__RequestVerificationToken"]').value }
-                    }).catch(err => console.error(err));
-                });
-            });
+        async function connectDocumentHub(documentId) {
+        if (docHubConnection) {
+        try { await docHubConnection.stop(); } catch (_) { }
+        }
 
-            modalEl.addEventListener('hidden.bs.modal', function () {
-                stopInterval();
-                // when user closes modal after embedding finished, reload documents page
-                location.href = '/Document';
-            });
+        docHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/document-processing")
+        .withAutomaticReconnect()
+        .build();
 
-            // ensure close buttons trigger hide only when enabled; reload handled on hidden event
-            const footerClose = document.getElementById('modalFooterCloseBtn');
-            const headerClose = document.getElementById('modalCloseBtn');
-            [footerClose, headerClose].forEach(b => {
-                if (b) b.addEventListener('click', function (e) {
-                    if (this.hasAttribute('disabled')) {
-                        e.preventDefault();
-                        e.stopImmediatePropagation();
-                        return false;
-                    }
-                    // allow normal dismissal; page reload is handled on hidden event
-                });
-            });
+        docHubConnection.on("ReceiveLog", (log) => {
+        appendLogLine(log.status, log.message, log.timestamp);
+        });
 
-            // ----- Chunks UI -----
-            window.showChunks = async function (documentId) {
-                try {
-                    const resp = await fetch(`/Document/GetDocumentChunks?documentId=${documentId}`);
-                    if (!resp.ok) {
-                        console.error('Failed to load chunks', resp.status);
-                        return;
-                    }
-                    const chunks = await resp.json();
-                    const list = document.getElementById('chunkList');
-                    list.innerHTML = '';
-                    if (!chunks || chunks.length === 0) {
-                        list.innerHTML = '<div class="list-group-item">No chunks found.</div>';
-                    } else {
-                        chunks.sort((a,b)=>a.chunkIndex - b.chunkIndex);
-                        for (const c of chunks) {
-                            const item = document.createElement('div');
-                            item.className = 'list-group-item';
-                            const idx = document.createElement('div');
-                            idx.innerHTML = `<strong>Chunk ${c.chunkIndex}</strong>`;
-                            const content = document.createElement('div');
-                            content.style.whiteSpace = 'pre-wrap';
-                            content.style.marginTop = '6px';
-                            content.textContent = c.content;
-                            item.appendChild(idx);
-                            item.appendChild(content);
-                            list.appendChild(item);
-                        }
-                    }
-                    const modal = new bootstrap.Modal(document.getElementById('chunkDetailsModal'));
-                    modal.show();
-                } catch (e) { console.error(e); }
-            };
+        docHubConnection.on("ProcessingFinished", (data) => {
+        const st = (data.status || '').toLowerCase();
+        const count = parseInt(ringCount.textContent, 10) || 0;
+        if (st === 'ready') setRingState('done', count);
+        else if (st === 'reused') setRingState('reused', count);
+        else if (st === 'failed') setRingState('failed', count);
+        stopInterval();
+        enableClose();
+        });
+
+        try {
+        await docHubConnection.start();
+        await docHubConnection.invoke("JoinDocumentGroup", documentId);
+        } catch (err) {
+        console.error("SignalR connect failed, tiếp tục dùng REST polling:", err);
+        }
+        }
+
+        async function fetchAndRender(documentId) {
+        try {
+        const resp = await fetch(`/Document/GetLogs?documentId=${documentId}`);
+        if (!resp.ok) return;
+
+        const data = await resp.json();
+        const logs = data.logs || [];
+        const cfg = data.chunkingConfig || null;
+        const container = document.getElementById('logContainer');
+        const cfgEl = document.getElementById('chunkingConfigInfo');
+
+        // render config chips
+        if (cfg) {
+        const scopeLabel = cfg.scope === 'Global' ? 'Toàn hệ thống' : `Môn học #${cfg.subjectId}`;
+        cfgEl.innerHTML = `
+        <span><strong>Size</strong> ${cfg.chunkSize}</span>
+        <span><strong>Overlap</strong> ${cfg.chunkOverlap}</span>
+        <span><strong>Phạm vi</strong> ${scopeLabel}</span>
+        `;
+        } else {
+        cfgEl.innerHTML = `<span>Không tìm thấy cấu hình chunking đang áp dụng.</span>`;
+        }
+
+        function parseIsoToDate(s) {
+        if (!s) return null;
+        let str = String(s).trim();
+        str = str.replace(/(\.\d{3})\d+/, '$1');
+        if (/^\d{4}-\d{2}-\d{2}T/.test(str) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(str)) {
+        str = str + 'Z';
+        }
+        const d = new Date(str);
+        return isNaN(d) ? null : d;
+        }
+
+        container.innerHTML = logs.map(l => {
+        const date = parseIsoToDate(l.timestamp || l.Timestamp);
+        const ts = date ? date.toLocaleTimeString() : '--:--:--';
+        const status = l.status || l.Status || 'Unknown';
+        const msg = l.logMessage || l.LogMessage || '';
+        const dc = dotClass(status, msg);
+
+        if ((msg || '').startsWith('ChunkContent:')) {
+        const parts = msg.split(':');
+        const idx = parts[1] || '?';
+        const content = parts.slice(2).join(':');
+        return `<div class="log-line">
+        <span class="log-dot ${dc}"></span>
+        <div style="flex:1">
+        <span class="log-time">[${ts}]</span> <span class="log-text"><strong>Chunk ${idx}</strong></span>
+        <div class="log-chunk-block">${escapeHtml(content)}</div>
+        </div>
+        </div>`;
+        }
+
+        return `<div class="log-line">
+        <span class="log-dot ${dc}"></span>
+        <span class="log-time">[${ts}]</span>
+        <span class="log-text"><strong>${escapeHtml(status)}</strong>: ${escapeHtml(msg)}</span>
+        </div>`;
+        }).join('');
+
+        container.scrollTop = container.scrollHeight;
+
+        // Đếm số chunk đã embed thành công (dữ liệu thật từ log, không suy diễn %)
+        const embeddedCount = logs.filter(l => {
+        const msg = (l.logMessage || l.LogMessage || '').toString();
+        return /embedded successfully/i.test(msg);
+        }).length;
+
+        const reused = logs.some(l => /Tái sử dụng EmbeddingSet có sẵn/i.test((l.logMessage || l.LogMessage || '').toString()));
+        const failed = logs.some(l => {
+        const st = (l.status || l.Status || '').toString();
+        const msg = (l.logMessage || l.LogMessage || '').toString();
+        return st === 'Failed' || st === 'Error' || /status set to\s*Failed/i.test(msg) || /status set to\s*Error/i.test(msg);
+        });
+        const readyDone = logs.some(l => /status set to\s*Ready/i.test((l.logMessage || l.LogMessage || '').toString()));
+
+        const finished = failed || readyDone || reused;
+
+        if (failed) {
+        setRingState('failed', embeddedCount);
+        } else if (reused) {
+        setRingState('reused', embeddedCount);
+        } else if (readyDone) {
+        setRingState('done', embeddedCount);
+        } else {
+        setRingState('processing', embeddedCount);
+        }
+
+        if (finished) {
+        stopInterval();
+        enableClose();
+        }
+        } catch (e) { console.error(e); }
+        }
+
+        function attachTriggerFormHandler(form) {
+        form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const docId = this.getAttribute('data-document-id');
+        const url = this.getAttribute('action');
+
+        ringEl.classList.remove('done', 'failed');
+        ringCount.textContent = '0';
+        statusLabel.textContent = 'Đang khởi động...';
+        statusSub.textContent = 'Đang kết nối tới server để bắt đầu xử lý.';
+        document.getElementById('chunkingConfigInfo').innerHTML = '';
+
+        myModal.show();
+        document.getElementById('logContainer').innerHTML = '<div class="log-line"><span class="log-dot default"></span><span class="log-text">Đang kết nối tới server...</span></div>';
+
+        stopInterval();
+        document.getElementById('modalCloseBtn').setAttribute('disabled', 'disabled');
+        document.getElementById('modalFooterCloseBtn').setAttribute('disabled', 'disabled');
+
+        intervalId = setInterval(() => fetchAndRender(docId), 5000);
+        fetchAndRender(docId);
+
+        connectDocumentHub(parseInt(docId));
+
+        fetch(url, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': this.querySelector('input[name="__RequestVerificationToken"]').value }
+        }).catch(err => console.error(err));
+        });
+        }
+
+        document.querySelectorAll('.trigger-form').forEach(form => attachTriggerFormHandler(form));
+
+        modalEl.addEventListener('hidden.bs.modal', function () {
+        stopInterval();
+        if (docHubConnection) {
+        docHubConnection.stop().catch(() => {});
+        }
+        });
+
+        const footerClose = document.getElementById('modalFooterCloseBtn');
+        const headerClose = document.getElementById('modalCloseBtn');
+        [footerClose, headerClose].forEach(b => {
+        if (b) b.addEventListener('click', function (e) {
+        if (this.hasAttribute('disabled')) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        return false;
+        }
+        });
+        });
+
+        // ----- Chunks UI -----
+        window.showChunks = async function (documentId) {
+        try {
+        const resp = await fetch(`/Document/GetDocumentChunks?documentId=${documentId}`);
+        if (!resp.ok) {
+        console.error('Failed to load chunks', resp.status);
+        return;
+        }
+        const chunks = await resp.json();
+        const list = document.getElementById('chunkList');
+        list.innerHTML = '';
+        if (!chunks || chunks.length === 0) {
+        list.innerHTML = '<div class="list-group-item text-muted">Không tìm thấy chunk nào.</div>';
+        } else {
+        chunks.sort((a,b)=>a.chunkIndex - b.chunkIndex);
+        for (const c of chunks) {
+        const item = document.createElement('div');
+        item.className = 'list-group-item';
+        const idx = document.createElement('div');
+        idx.innerHTML = `<strong>Chunk ${c.chunkIndex}</strong>`;
+        const content = document.createElement('div');
+        content.style.whiteSpace = 'pre-wrap';
+        content.style.marginTop = '6px';
+        content.style.fontSize = '0.88rem';
+        content.style.color = '#5a6072';
+        content.textContent = c.content;
+        item.appendChild(idx);
+        item.appendChild(content);
+        list.appendChild(item);
+        }
+        }
+        const modal = new bootstrap.Modal(document.getElementById('chunkDetailsModal'));
+        modal.show();
+        } catch (e) { console.error(e); }
+        };
+        let listHubConnection = null;
+        const currentSubjectFilter = "@(ViewBag.SelectedSubjectId?.ToString() ?? "")";
+        const isStaffView = @((User.IsInRole("Lecturer") || User.IsInRole("Admin")).ToString().ToLower());
+
+        async function connectDocumentListHub() {
+        listHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/document-processing")
+        .withAutomaticReconnect()
+        .build();
+
+        listHubConnection.on("DocumentCreated", (doc) => {
+        if (currentSubjectFilter && doc.subjectId?.toString() !== currentSubjectFilter) return;
+        insertDocumentRow(doc);
+        });
+
+        listHubConnection.on("DocumentDeleted", (data) => {
+        const row = document.querySelector(`tr[data-doc-id="${data.documentId}"]`);
+        if (row) {
+        row.style.transition = "opacity 0.3s ease";
+        row.style.opacity = "0";
+        setTimeout(() => row.remove(), 300);
+        }
+        });
+
+        listHubConnection.on("DocumentStatusChanged", (data) => {
+        updateDocumentRowStatus(data.documentId, data.status);
+        });
+
+        try {
+        await listHubConnection.start();
+        await listHubConnection.invoke("JoinDocumentListGroup");
+        } catch (err) {
+        console.error("Không thể kết nối realtime danh sách tài liệu:", err);
+        }
+        }
+
+        function statusBadgeHtml(status) {
+        const map = {
+        "Pending": ["warning", "⏳ Chờ xử lý"],
+        "Processing": ["info", "⚙️ Đang xử lý"],
+        "Ready": ["success", "✅ Sẵn sàng"],
+        "Failed": ["danger", "❌ Lỗi"]
+        };
+        const [cls, label] = map[status] || ["secondary", status];
+        return `<span class="badge bg-${cls}">${label}</span>`;
+        }
+
+        function insertDocumentRow(doc) {
+        const tbody = document.querySelector(".table tbody");
+        if (!tbody) return;
+        if (document.querySelector(`tr[data-doc-id="${doc.id}"]`)) return;
+
+        const tr = document.createElement("tr");
+        tr.setAttribute("data-doc-id", doc.id);
+        tr.style.opacity = "0";
+
+        const sizeKb = (doc.fileSize / 1024.0).toFixed(1);
+        const createdAt = new Date(doc.createdAt).toLocaleString("vi-VN");
+
+        let actionsHtml = `
+        <a href="/Document/Details/${doc.id}" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
+        <a href="/Document/Download/${doc.id}" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>
+        <button type="button" class="btn btn-sm btn-secondary me-1" title="Xem chunks" onclick="showChunks(${doc.id})">🧩</button>
+        `;
+
+        if (isStaffView) {
+        actionsHtml += `<a href="/Document/Edit/${doc.id}" class="btn btn-sm btn-warning" title="Sửa tiêu đề">✏️</a>`;
+        if (doc.status !== "Ready") {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        actionsHtml += `
+        <form action="/Document/TriggerEmbedding/${doc.id}" method="post" class="d-inline trigger-form" data-document-id="${doc.id}">
+        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+        <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
+        </form>
+        `;
+        }
+        }
+
+        tr.innerHTML = `
+        <td>${doc.id}</td>
+        <td>${doc.title}</td>
+        <td><small>${doc.fileName}</small></td>
+        <td><span class="badge bg-secondary">${(doc.fileType || '').toUpperCase()}</span></td>
+        <td>${sizeKb} KB</td>
+        <td>${doc.subjectName ?? ''}</td>
+        <td>${statusBadgeHtml(doc.status)}</td>
+        <td>${createdAt}</td>
+        <td>${actionsHtml}</td>
+        `;
+
+        tbody.prepend(tr);
+        requestAnimationFrame(() => {
+        tr.style.transition = "opacity 0.3s ease";
+        tr.style.opacity = "1";
+        });
+        }
+
+        function updateDocumentRowStatus(documentId, status) {
+        const row = document.querySelector(`tr[data-doc-id="${documentId}"]`);
+        if (!row) return; // dòng này không có trong bảng hiện tại (VD đang lọc Subject khác) -> bỏ qua
+
+        // Cập nhật badge trạng thái (cột thứ 7, index 6)
+        const statusCell = row.children[6];
+        if (statusCell) {
+        statusCell.innerHTML = statusBadgeHtml(status);
+        }
+
+        // Cập nhật nút thao tác: chỉ Lecturer/Admin mới có nút ⚡ Trigger và cần ẩn/hiện theo trạng thái
+        if (!isStaffView) return;
+
+        const actionsCell = row.children[8]; // cột Thao tác
+        if (!actionsCell) return;
+
+        const triggerForm = actionsCell.querySelector('.trigger-form');
+
+        if (status === "Ready") {
+        // Đã sẵn sàng -> không cần nút Trigger nữa
+        if (triggerForm) triggerForm.remove();
+        } else if ((status === "Failed" || status === "Pending") && !triggerForm) {
+        // Failed/Pending mà chưa có nút Trigger -> thêm lại để user có thể bấm chạy lại
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        const editBtn = actionsCell.querySelector('a[href^="/Document/Edit/"]');
+        const newForm = document.createElement('form');
+        newForm.action = `/Document/TriggerEmbedding/${documentId}`;
+        newForm.method = 'post';
+        newForm.className = 'd-inline trigger-form';
+        newForm.setAttribute('data-document-id', documentId);
+        newForm.innerHTML = `
+        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+        <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
+        `;
+        if (editBtn) editBtn.after(newForm); else actionsCell.appendChild(newForm);
+        attachTriggerFormHandler(newForm); // gắn lại sự kiện submit cho nút vừa thêm động
+        }
+        // status === "Processing" -> giữ nguyên, không đổi nút (đang chạy, nút Trigger cũ nếu còn cũng vô hại)
+        }
+
+        connectDocumentListHub();
         });
     </script>
 }

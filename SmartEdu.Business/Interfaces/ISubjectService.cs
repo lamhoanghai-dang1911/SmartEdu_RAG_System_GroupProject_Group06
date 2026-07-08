@@ -7,7 +7,7 @@ namespace SmartEdu.Business.Interfaces
     {
         Task<IEnumerable<SubjectDto>> GetAllAsync();
         Task<SubjectDto?> GetByIdAsync(int id);
-        Task CreateAsync(SubjectCreateDto dto);
+        Task<SubjectDto> CreateAsync(SubjectCreateDto dto);
         Task UpdateAsync(SubjectUpdateDto dto);
         Task<IEnumerable<SubjectDto>> GetSubjectsByUserIdAsync(int userId);
         Task DeleteAsync(int id);
@@ -19,5 +19,6 @@ namespace SmartEdu.Business.Interfaces
         Task<IEnumerable<SubjectDto>> GetSubjectsByLecturerIdAsync(int lecturerId);
         Task<bool> CanUploadDocument(int lecturerId, int subjectId);
         Task RemoveLecturerFromSubject(int lecturerId, int subjectId);
+        Task<bool> IsLecturerAssignedToSubject(int lecturerId, int subjectId);
     }
 }

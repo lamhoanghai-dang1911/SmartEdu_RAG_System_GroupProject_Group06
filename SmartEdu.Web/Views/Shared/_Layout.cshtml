@@ -4,102 +4,317 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SmartEdu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SmartEdu.Web.styles.css" asp-append-version="true" />
     <style>
-        /* Layout: make body full-height flex column */
-        body.d-flex-root {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+            :root {
+                --brand-blue: #0d6efd;
+                --brand-purple: #6610f2;
+                --ink-navy: #0b1120;
+                --amber: #ffb648;
+                --paper: #f7f8fc;
+                --slate: #5a6072;
+                --slate-light: #9aa0b4;
+            }
 
-        /* Global font-size tweak (slightly larger for readability) */
-        body {
-            font-size: 1.1rem;
-        }
+            /* Layout: make body full-height flex column */
+            body.d-flex-root {
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
 
-        /* Header subtle shadow (if not provided by bootstrap) */
-        header .box-shadow {
-            box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-        }
+            body {
+                font-family: 'Inter', sans-serif;
+                font-size: 1.05rem;
+                background: var(--paper);
+                color: #1c2033;
+            }
 
-        /* Main area should grow and not cause page scroll (inner regions can scroll) */
-        main.flex-fill {
-            flex: 1 1 auto;
-            overflow: hidden; /* important: prevent footer overlap */
-        }
+            h1, h2, h3, h4, h5, h6 {
+                font-family: 'Sora', sans-serif;
+                font-weight: 700;
+            }
 
-        /* Option A: use mt-auto on footer to keep it at page bottom when content is short */
-        .footer.mt-auto {
-            /* no extra styles needed; mt-auto on a flex column pushes footer down */
-        }
+            /* Header subtle shadow */
+            header .box-shadow {
+                box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+            }
 
-        /* Option B: hide footer entirely on chat pages to maximize space */
-        body.chat-page .footer {
-            display: none !important;
-        }
-        /* -----------------
-           Header & Footer custom styles
-           ----------------- */
-        .site-header {
-            background: linear-gradient(90deg, #0d6efd 0%, #6610f2 100%);
-            color: #fff;
-        }
+            /* Main area should grow and not cause page scroll (inner regions can scroll) */
+            main.flex-fill {
+                flex: 1 1 auto;
+                overflow: hidden;
+            }
 
-        .site-header .navbar-brand,
-        .site-header .nav-link {
-            color: rgba(255,255,255,0.95) !important;
-        }
+                main.flex-fill > .container {
+                    animation: pageFadeIn 0.35s ease;
+                }
 
-        .site-header .navbar-brand {
-            font-size: 1.25rem; /* slightly larger */
-            font-weight: 700;
-            letter-spacing: 0.2px;
-        }
+            @@keyframes pageFadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(6px);
+                }
 
-        .site-header .nav-link {
-            transition: color 0.15s ease, opacity 0.15s ease;
-            opacity: 0.95;
-        }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
 
-        .site-header .nav-link:hover {
-            color: rgba(255,255,255,1) !important;
-            opacity: 1;
-        }
+            body.chat-page .footer {
+                display: none !important;
+            }
 
-        /* make header taller */
-        .site-header .navbar {
-            padding-top: 0.8rem;
-            padding-bottom: 0.8rem;
-        }
+            /* -----------------
+                                   Header
+                                   ----------------- */
+            .site-header {
+                background: linear-gradient(100deg, var(--ink-navy) 0%, #171d3d 42%, var(--brand-blue) 100%);
+                box-shadow: 0 4px 18px -6px rgba(11, 17, 32, 0.45);
+                position: relative;
+                z-index: 10;
+            }
 
-        /* Footer styles */
-        .site-footer {
-            padding: 1.25rem 0;
-            background-color: #0d1117; /* dark shade */
-            color: rgba(255,255,255,0.85);
-        }
+                .site-header .navbar {
+                    padding-top: 0.75rem;
+                    padding-bottom: 0.75rem;
+                }
 
-        .site-footer a { color: rgba(255,255,255,0.9); }
-        .site-footer a:hover { color: #ffffff; text-decoration: underline; }
-        /* Markdown chat content styling: preserve newlines and spacing */
-        .chat-message-content {
-            white-space: pre-wrap; /* preserve newlines and collapse sequences of whitespace */
-            word-break: break-word;
-            line-height: 1.6;
-            color: inherit;
-            font-size: 1rem;
-            font-family: inherit;
-        }
+                .site-header .navbar-brand {
+                    font-family: 'Sora', sans-serif;
+                    font-size: 1.3rem;
+                    font-weight: 700;
+                    letter-spacing: 0.2px;
+                    color: #fff !important;
+                    transition: transform 0.2s ease;
+                }
 
-        .chat-message-content p { margin: 0 0 0.75rem; }
-        .chat-message-content ul,
-        .chat-message-content ol { margin: 0 0 0.75rem 1.25rem; }
-        .chat-message-content li { margin: 0.25rem 0; }
-        .chat-message-content code { background:#f5f5f5; padding:0.12rem 0.4rem; border-radius:4px; }
-        .chat-message-content pre { background:#0f1720; color:#e6eef8; padding:0.75rem; border-radius:6px; overflow:auto; }
+                    .site-header .navbar-brand:hover {
+                        transform: translateY(-1px);
+                    }
+
+                    .site-header .navbar-brand span:first-child {
+                        filter: drop-shadow(0 0 10px rgba(255, 182, 72, 0.5));
+                    }
+
+                .site-header .nav-link {
+                    color: rgba(255,255,255,0.82) !important;
+                    font-weight: 500;
+                    font-size: 0.98rem !important;
+                    position: relative;
+                    transition: color 0.18s ease;
+                    padding-top: 0.5rem !important;
+                    padding-bottom: 0.5rem !important;
+                }
+
+                    .site-header .nav-link::after {
+                        content: "";
+                        position: absolute;
+                        left: 0.9rem;
+                        right: 0.9rem;
+                        bottom: 0.1rem;
+                        height: 2px;
+                        background: linear-gradient(90deg, var(--amber), var(--brand-purple));
+                        border-radius: 2px;
+                        transform: scaleX(0);
+                        transform-origin: left;
+                        transition: transform 0.22s ease;
+                    }
+
+                    .site-header .nav-link:hover {
+                        color: #fff !important;
+                    }
+
+                        .site-header .nav-link:hover::after {
+                            transform: scaleX(1);
+                        }
+
+                    .site-header .nav-link.active::after {
+                        transform: scaleX(1);
+                    }
+
+                    .site-header .nav-link .fs-4,
+                    .site-header .navbar-brand .fs-3 {
+                        filter: drop-shadow(0 0 4px rgba(0,0,0,0.15));
+                    }
+
+            .navbar-toggler {
+                border-color: rgba(255,255,255,0.35) !important;
+            }
+
+            /* Account dropdown */
+            .site-header .dropdown-toggle {
+                background: rgba(255,255,255,0.08);
+                border-radius: 999px;
+                padding: 0.4rem 0.9rem !important;
+                transition: background 0.2s ease;
+            }
+
+                .site-header .dropdown-toggle:hover {
+                    background: rgba(255,255,255,0.16);
+                }
+
+                .site-header .dropdown-toggle::after {
+                    margin-left: 0.5rem;
+                    vertical-align: 0.15em;
+                }
+
+            .dropdown-menu {
+                border: none;
+                border-radius: 12px;
+                box-shadow: 0 12px 32px -8px rgba(11, 17, 32, 0.25);
+                padding: 0.4rem;
+                margin-top: 0.5rem !important;
+            }
+
+            .dropdown-item {
+                border-radius: 8px;
+                font-size: 0.92rem;
+                padding: 0.55rem 0.9rem;
+                transition: background 0.15s ease;
+            }
+
+                .dropdown-item:hover {
+                    background: rgba(13, 110, 253, 0.08);
+                    color: var(--brand-blue);
+                }
+
+            .site-header .btn-outline-light {
+                border-radius: 999px;
+                font-weight: 600;
+                border-width: 1.5px;
+                transition: transform 0.15s ease, background 0.2s ease;
+            }
+
+                .site-header .btn-outline-light:hover {
+                    transform: translateY(-1px);
+                }
+
+            /* -----------------
+                           "Quản lý" dropdown mở khi hover (chỉ áp dụng riêng cho mục này)
+                           ----------------- */
+            .nav-dropdown-hover .dropdown-menu {
+                margin-top: 0 !important;
+                padding-top: 0.6rem;
+                min-width: 220px;
+            }
+
+            @@media (min-width: 576px) {
+                .nav-dropdown-hover:hover > .dropdown-menu {
+                    display: block;
+                    animation: fadeUp 0.18s ease;
+                }
+            }
+
+            @@keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(4px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* -----------------
+                                   Footer
+                                   ----------------- */
+            .site-footer {
+                padding: 1.5rem 0;
+                background: var(--ink-navy);
+                color: rgba(255,255,255,0.7);
+                font-family: 'Inter', sans-serif;
+            }
+
+                .site-footer .fw-bold {
+                    font-family: 'Sora', sans-serif;
+                    color: #fff;
+                    letter-spacing: 0.3px;
+                }
+
+                .site-footer a {
+                    color: rgba(255,255,255,0.75);
+                    transition: color 0.15s ease;
+                }
+
+                    .site-footer a:hover {
+                        color: var(--amber);
+                        text-decoration: underline;
+                    }
+
+            /* -----------------
+                                   Chat markdown content
+                                   ----------------- */
+            .chat-message-content {
+                white-space: pre-wrap;
+                word-break: break-word;
+                line-height: 1.6;
+                color: inherit;
+                font-size: 1rem;
+                font-family: 'Inter', sans-serif;
+            }
+
+                .chat-message-content p {
+                    margin: 0 0 0.75rem;
+                }
+
+                .chat-message-content ul,
+                .chat-message-content ol {
+                    margin: 0 0 0.75rem 1.25rem;
+                }
+
+                .chat-message-content li {
+                    margin: 0.25rem 0;
+                }
+
+                .chat-message-content code {
+                    background: #f5f5f5;
+                    padding: 0.12rem 0.4rem;
+                    border-radius: 4px;
+                }
+
+                .chat-message-content pre {
+                    background: #0f1720;
+                    color: #e6eef8;
+                    padding: 0.75rem;
+                    border-radius: 6px;
+                    overflow: auto;
+                }
+
+            /* -----------------
+                                   Generic component polish (buttons/cards used across pages)
+                                   ----------------- */
+            .btn-primary {
+                background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+                border: none;
+                font-weight: 600;
+                transition: filter 0.18s ease, transform 0.12s ease;
+            }
+
+                .btn-primary:hover {
+                    filter: brightness(1.08);
+                    transform: translateY(-1px);
+                }
+
+            .card {
+                border-radius: 14px;
+            }
+
+            @@media (prefers-reduced-motion: reduce) {
+                *, *::before, *::after {
+                    animation-duration: 0.01ms !important;
+                    animation-iteration-count: 1 !important;
+                    transition-duration: 0.01ms !important;
+                }
+            }
     </style>
 </head>
 <body class="d-flex flex-column min-vh-100 @(ViewBag.BodyClass ?? String.Empty)">
@@ -116,93 +331,108 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex">
                     <ul class="navbar-nav me-auto gap-3 align-items-center">
-    <li class="nav-item">
-        <a class="nav-link fs-5 px-3" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-    </li>
-    @if (User.IsInRole("Admin"))
-    {
-        <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Account" asp-action="ManageUsers">
-                <span class="fs-4 me-2" aria-hidden="true">👥</span> Quản lý tài khoản
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="LecturerManagement" asp-action="Index">
-                <span class="fs-4 me-2" aria-hidden="true">🧑‍🏫</span> Quản lý giảng viên
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="ChunkingConfig" asp-action="Index">
-                <span class="fs-4 me-2" aria-hidden="true">⚙️</span> Cấu hình Chunking
-            </a>
-        </li>
-    }
+                        <li class="nav-item">
+                            <a class="nav-link fs-5 px-3" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item dropdown nav-dropdown-hover">
+                                <a class="nav-link dropdown-toggle fs-5 px-3 d-flex align-items-center" href="#" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fs-4 me-2" aria-hidden="true">🛠️</span> Quản lý
+                                </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="ManageUsers">
+                                            👥 Quản lý tài khoản
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="LecturerManagement" asp-action="Index">
+                                            🧑‍🏫 Quản lý giảng viên
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Subject" asp-action="Index">
+                                            📚 Quản lý môn học
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="ChunkingConfig" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">⚙️</span> Cấu hình Chunking
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Reports" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">📈</span> Báo cáo
+                                </a>
+                            </li>
+                        }
 
+                        @if (User.IsInRole("Lecturer") && !User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Subject" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">📚</span> Quản lý môn học
+                                </a>
+                            </li>
+                        }
 
+                        @if (User.IsInRole("Lecturer") || User.IsInRole("Admin") || User.IsInRole("Student"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Document" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">📄</span> Tài liệu
+                                </a>
+                            </li>
+                        }
 
-
-
-
-
-
-
-    @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
-    {
-        <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Subject" asp-action="Index">
-                <span class="fs-4 me-2" aria-hidden="true">📚</span> Quản lý môn học
-            </a>
-        </li>
-    }
-
-    @if (User.IsInRole("Lecturer") || User.IsInRole("Admin") || User.IsInRole("Student"))
-    {
-     <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Document" asp-action="Index">
-                <span class="fs-4 me-2" aria-hidden="true">📄</span> Tài liệu
-            </a>
-    </li>                           
-     }
-
-    @if (User.IsInRole("Student"))
-    {
-        <li class="nav-item">
-            <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Chat" asp-action="Index">
-                <span class="fs-4 me-2" aria-hidden="true">🤖</span> Chat RAG
-            </a>
-        </li>
-        <li class="nav-item">
-             <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Package" asp-action="List">
-                <span class="fs-4 me-2" aria-hidden="true">💳</span> Gói dịch vụ
-             </a>
-             </li>
+                        @if (User.IsInRole("Student"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Chat" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">🤖</span> Chat RAG
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="StudentReports" asp-action="Index">
+                                    <span class="fs-4 me-2" aria-hidden="true">📊</span> Báo cáo của tôi
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Package" asp-action="List">
+                                    <span class="fs-4 me-2" aria-hidden="true">💳</span> Gói dịch vụ
+                                </a>
+                            </li>
                             <li class="nav-item">
                                 <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Package" asp-action="MySubscription">
                                     <span class="fs-4 me-2" aria-hidden="true">📊</span> Gói của tôi
                                 </a>
                             </li>
-    }
+                        }
                     </ul>
 
-<ul class="navbar-nav ms-auto align-items-center">
-    @if (User.Identity.IsAuthenticated)
-    {
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                @User.Identity.Name (@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Đăng xuất</a></li>
-            </ul>
-        </li>
-    }
-    else
-    {
-        <li class="nav-item">
-            <a class="nav-link btn btn-outline-light px-3" asp-controller="Account" asp-action="Login">Đăng nhập</a>
-        </li>
-    }
-</ul>
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        @if (User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @User.Identity.Name (@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value)
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <li><a class="dropdown-item" asp-controller="Account" asp-action="Logout">Đăng xuất</a></li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-outline-light px-3" asp-controller="Account" asp-action="Login">Đăng nhập</a>
+                            </li>
+                        }
+                    </ul>
                 </div>
             </div>
         </nav>
@@ -213,11 +443,11 @@
         </div>
     </main>
 
-    <!-- Footer: Option A (sticky at bottom via mt-auto) or Option B (hidden on chat pages). 
+    <!-- Footer: Option A (sticky at bottom via mt-auto) or Option B (hidden on chat pages).
          To hide footer on chat page, set ViewBag.BodyClass = "chat-page" in controller or layout. -->
     <footer class="site-footer text-center mt-auto py-4">
         <div class="container">
-                <div class="d-flex flex-column align-items-center">
+            <div class="d-flex flex-column align-items-center">
                 <div class="mb-1 fs-6 fw-bold">SmartEdu</div>
                 <div class="fs-6">&copy; 2026 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a></div>
             </div>
@@ -235,20 +465,20 @@
 
         const _mdRenderer = new marked.Renderer();
         _mdRenderer.link = function(href, title, text) {
-            const titleAttr = title ? ` title="${title}"` : '';
-            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+        const titleAttr = title ? ` title="${title}"` : '';
+        return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
         };
 
         // Render markdown string into a container and ensure the container has chat-message-content class
         function renderChatMarkdown(containerOrSelector, markdownText) {
-            const container = (typeof containerOrSelector === 'string')
-                ? document.querySelector(containerOrSelector)
-                : containerOrSelector;
-            if (!container) return;
-            container.classList.add('chat-message-content');
-            const rawHtml = marked.parse(markdownText || '', { renderer: _mdRenderer });
-            const safe = DOMPurify.sanitize(rawHtml);
-            container.innerHTML = safe;
+        const container = (typeof containerOrSelector === 'string')
+        ? document.querySelector(containerOrSelector)
+        : containerOrSelector;
+        if (!container) return;
+        container.classList.add('chat-message-content');
+        const rawHtml = marked.parse(markdownText || '', { renderer: _mdRenderer });
+        const safe = DOMPurify.sanitize(rawHtml);
+        container.innerHTML = safe;
         }
         // Expose to window for convenience
         window.renderChatMarkdown = renderChatMarkdown;

@@ -2,113 +2,470 @@
     ViewData["Title"] = "Upload tài liệu";
 }
 
-<div class="container mt-4" style="max-width:600px">
-    <h2>⬆️ Upload tài liệu</h2>
-    <hr />
-
-    @if (!ViewData.ModelState.IsValid)
-    {
-        <div class="alert alert-danger">
-            @foreach (var error in ViewData.ModelState.Values
-                .SelectMany(v => v.Errors))
-            {
-                <div>@error.ErrorMessage</div>
-            }
-        </div>
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --success: #1fae63;
+        --danger: #e5484d;
     }
 
-    <form asp-action="Upload" method="post" enctype="multipart/form-data">
-        @Html.AntiForgeryToken()
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
 
-        <div class="mb-3">
-            <label class="form-label">Tiêu đề tài liệu</label>
-            <input name="title" class="form-control"
-                   placeholder="VD: Bài giảng Chương 1" required />
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #12162b;
+        margin-bottom: 1.5rem;
+    }
+
+    .upload-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        padding: 1.85rem;
+        opacity: 0;
+        animation: fadeUp 0.45s ease forwards;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #33384f;
+        margin-bottom: 0.4rem;
+    }
+
+    .form-control,
+    .form-select {
+        border: 1.5px solid #e3e5ef;
+        border-radius: 10px;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.95rem;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+        }
+
+        .form-control[type="file"] {
+            padding: 0.5rem 0.85rem;
+        }
+
+    .alert-danger {
+        border: none;
+        border-radius: 10px;
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        border-left: 3px solid var(--danger);
+        font-size: 0.88rem;
+    }
+
+    .btn-upload {
+        border: none;
+        border-radius: 12px;
+        padding: 0.7rem 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        box-shadow: 0 10px 24px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease, opacity 0.15s ease;
+    }
+
+        .btn-upload:hover:not(:disabled) {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+        .btn-upload:disabled {
+            opacity: 0.5;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+    .btn-back {
+        border-radius: 12px;
+        border: none;
+        background: #eef0f6;
+        color: #33384f;
+        font-weight: 600;
+        padding: 0.7rem 1.4rem;
+        transition: background 0.15s ease, transform 0.15s ease;
+    }
+
+        .btn-back:hover {
+            background: #e2e5f0;
+            color: #12162b;
+            transform: translateY(-1px);
+        }
+
+    /* ===== Duplicate modal ===== */
+    #duplicateModal .modal-content {
+        border: none;
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    #duplicateModal .modal-header {
+        background: linear-gradient(120deg, var(--ink-navy), #171d3d);
+        color: #fff;
+        border: none;
+        padding: 1.1rem 1.4rem;
+    }
+
+    #duplicateModal .modal-title {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.05rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    #dupMessage {
+        font-size: 0.92rem;
+        color: #33384f;
+    }
+
+    #dupOldStatus {
+        border: none;
+        border-radius: 10px;
+        font-size: 0.85rem;
+    }
+
+        #dupOldStatus.alert-success {
+            background: rgba(31, 174, 99, 0.09);
+            color: var(--success);
+            border-left: 3px solid var(--success);
+        }
+
+        #dupOldStatus.alert-warning {
+            background: rgba(255, 182, 72, 0.14);
+            color: #b8790a;
+            border-left: 3px solid var(--amber);
+        }
+
+        #dupOldStatus a {
+            color: inherit;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+    .action-choice-label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--slate);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        margin: 1.1rem 0 0.6rem;
+    }
+
+    .action-options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.7rem;
+    }
+
+    .action-option {
+        position: relative;
+        border: 1.5px solid #e3e5ef;
+        border-radius: 12px;
+        padding: 0.9rem 0.85rem;
+        cursor: pointer;
+        transition: border-color 0.18s ease, background 0.18s ease, transform 0.12s ease;
+        text-align: left;
+    }
+
+        .action-option:hover {
+            border-color: rgba(13, 110, 253, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .action-option .opt-icon {
+            font-size: 1.3rem;
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+
+        .action-option .opt-title {
+            font-family: 'Sora', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: #12162b;
+            margin-bottom: 0.2rem;
+        }
+
+        .action-option .opt-desc {
+            font-size: 0.78rem;
+            color: var(--slate-light);
+            line-height: 1.4;
+        }
+
+        .action-option .opt-check {
+            position: absolute;
+            top: 0.7rem;
+            right: 0.7rem;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 1.5px solid #d7dbe8;
+            transition: border-color 0.18s ease, background 0.18s ease;
+        }
+
+        .action-option.selected {
+            border-color: var(--brand-blue);
+            background: rgba(13, 110, 253, 0.05);
+        }
+
+            .action-option.selected .opt-check {
+                border-color: var(--brand-blue);
+                background: var(--brand-blue);
+            }
+
+                .action-option.selected .opt-check::after {
+                    content: "✓";
+                    display: block;
+                    color: #fff;
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    text-align: center;
+                    line-height: 18px;
+                }
+
+    #duplicateModal .modal-footer {
+        border: none;
+        padding: 1rem 1.4rem;
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6rem;
+    }
+
+    .btn-cancel-upload {
+        border: none;
+        border-radius: 999px;
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        font-weight: 600;
+        padding: 0.55rem 1.2rem;
+        font-size: 0.86rem;
+        transition: background 0.15s ease;
+    }
+
+        .btn-cancel-upload:hover {
+            background: rgba(229, 72, 77, 0.15);
+            color: var(--danger);
+        }
+
+    .btn-confirm-action {
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        color: #fff;
+        font-weight: 700;
+        padding: 0.55rem 1.4rem;
+        font-size: 0.86rem;
+        box-shadow: 0 8px 20px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .btn-confirm-action:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+            color: #fff;
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
+<div class="container mt-4" style="max-width:600px">
+    <div class="page-head">
+        <h2>⬆️ Upload tài liệu</h2>
+    </div>
+
+    <div class="upload-card">
+        <form id="uploadForm" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label">Tiêu đề tài liệu</label>
+                <input name="title" class="form-control" placeholder="VD: Bài giảng Chương 1" required />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Môn học</label>
+                <select name="subjectId" class="form-select" required>
+                    <option value="">-- Chọn môn học --</option>
+                </select>
+            </div>
+
+            <div id="uploadPermissionAlert" class="alert alert-danger" style="display:none;"></div>
+
+            <div class="mb-4">
+                <label class="form-label">File (PDF hoặc DOCX)</label>
+                <input name="file" type="file" class="form-control" accept=".pdf,.docx" required />
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" id="uploadBtn" class="btn btn-upload" disabled>💾 Upload</button>
+                <a asp-action="Index" class="btn btn-back">← Quay lại</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal xử lý trùng lặp -->
+<div class="modal fade" id="duplicateModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">⚠️ Phát hiện tài liệu trùng</h5>
+            </div>
+            <div class="modal-body">
+                <p id="dupMessage"></p>
+                <div id="dupOldStatus" class="alert" style="display:none;"></div>
+
+                <div class="action-choice-label">Chọn hành động</div>
+                <form id="dupForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="oldDocId" name="OldDocumentId" />
+                    <input type="hidden" id="dupAction" name="action" value="3" />
+
+                    <div class="action-options">
+                        <div class="action-option selected" data-value="3">
+                            <span class="opt-check"></span>
+                            <span class="opt-icon">📚</span>
+                            <div class="opt-title">Giữ cả hai</div>
+                            <div class="opt-desc">Lưu tài liệu mới như một phiên bản riêng, không xoá bản cũ.</div>
+                        </div>
+                        <div class="action-option" data-value="2">
+                            <span class="opt-check"></span>
+                            <span class="opt-icon">♻️</span>
+                            <div class="opt-title">Thay thế</div>
+                            <div class="opt-desc">Ghi đè tài liệu cũ bằng tài liệu vừa upload.</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel-upload" onclick="cancelDuplicateUpload()">Hủy bỏ upload</button>
+                <button type="button" class="btn-confirm-action" onclick="confirmDuplicate()">Xác nhận</button>
+            </div>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">Môn học</label>
-            <select name="subjectId" class="form-select" required>
-                <option value="">-- Chọn môn học --</option>
-            </select>
-        </div>
-
-    <div id="uploadPermissionAlert" class="alert alert-danger" style="display:none;"></div>
-
-        <div class="mb-3">
-            <label class="form-label">File (PDF hoặc DOCX)</label>
-            <input name="file" type="file" class="form-control"
-                   accept=".pdf,.docx" required />
-            <div class="form-text">Chỉ hỗ trợ .pdf và .docx</div>
-        </div>
-
-        <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
-            💾 Upload
-        </button>
-        <a asp-action="Index" class="btn btn-secondary">← Quay lại</a>
-    </form>
+    </div>
 </div>
 
 @section Scripts {
     <script>
         (function(){
+            const form = document.getElementById('uploadForm');
             const select = document.querySelector('select[name="subjectId"]');
             const uploadBtn = document.getElementById('uploadBtn');
             const alertEl = document.getElementById('uploadPermissionAlert');
 
-            // load assigned subjects for the current user
+            // Logic tải danh sách môn học
             async function loadSubjects() {
-                try {
-                    const resp = await fetch('/Document/GetAssignedSubjects', { credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } });
-                    if (!resp.ok) return;
-                    const items = await resp.json();
-                    // clear existing options except placeholder
-                    select.querySelectorAll('option:not([value=""])').forEach(o => o.remove());
-                    items.forEach(s => {
-                        const opt = document.createElement('option');
-                        opt.value = s.id;
-                        opt.textContent = s.name;
-                        select.appendChild(opt);
-                    });
-                    // if only one subject available, preselect it
-                    if (select.options.length === 2) select.selectedIndex = 1;
-                } catch (e) {
-                    console.error('Failed to load subjects', e);
-                }
+                const resp = await fetch('/Document/GetAssignedSubjects');
+                if (!resp.ok) return;
+                const items = await resp.json();
+                items.forEach(s => {
+                    const opt = new Option(s.name, s.id);
+                    select.add(opt);
+                });
             }
 
+            // Logic kiểm tra quyền upload
             async function check(subjectId) {
-                if (!subjectId) {
-                    uploadBtn.setAttribute('disabled','disabled');
-                    alertEl.style.display = 'none';
-                    return;
-                }
-                try {
-                    const resp = await fetch(`/Document/CanUpload?subjectId=${subjectId}`, { credentials: 'same-origin', cache: 'no-store', headers: { 'Accept': 'application/json' } });
-                    if (!resp.ok) {
-                        uploadBtn.setAttribute('disabled','disabled');
-                        alertEl.style.display = 'none';
-                        return;
-                    }
-                    const j = await resp.json();
-                    if (j.canUpload) {
-                        uploadBtn.removeAttribute('disabled');
-                        alertEl.style.display = 'none';
-                    } else {
-                        uploadBtn.setAttribute('disabled','disabled');
-                        alertEl.textContent = j.message || 'Bạn không có quyền upload tài liệu cho môn này. Chỉ trưởng môn được phép.';
-                        alertEl.style.display = 'block';
-                    }
-                } catch (e) {
-                    console.error(e);
-                }
+                if (!subjectId) { uploadBtn.disabled = true; return; }
+                const resp = await fetch(`/Document/CanUpload?subjectId=${subjectId}`);
+                const j = await resp.json();
+                uploadBtn.disabled = !j.canUpload;
+                alertEl.style.display = j.canUpload ? 'none' : 'block';
+                alertEl.textContent = j.message || '';
             }
 
-            select.addEventListener('change', function(){ check(this.value); });
-            // load subjects then run initial permission check
-            loadSubjects().then(()=>{
-                if (select.value) setTimeout(()=>check(select.value), 150);
+            select.addEventListener('change', () => check(select.value));
+
+            // Xử lý Submit form qua AJAX
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const formData = new FormData(form);
+                const resp = await fetch('/Document/Upload', { method: 'POST', body: formData });
+                const result = await resp.json();
+
+                if (result.isDuplicate) {
+                    document.getElementById('oldDocId').value = result.oldDocumentId;
+                    document.getElementById('dupMessage').textContent = result.message;
+                    // reset về lựa chọn mặc định "Giữ cả hai" mỗi lần mở modal
+                    setActionChoice('3');
+
+                    // show whether the existing document already has embeddings
+                    const statusEl = document.getElementById('dupOldStatus');
+                    if (result.isEmbeddingReady) {
+                        statusEl.className = 'alert alert-success';
+                        statusEl.textContent = 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể giữ cả hai hoặc thay thế.';
+                        statusEl.style.display = 'block';
+                    } else {
+                        statusEl.className = 'alert alert-warning';
+                        statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>), hoặc tiếp tục chấp nhận thay thế.';
+                        statusEl.style.display = 'block';
+                    }
+                    new bootstrap.Modal(document.getElementById('duplicateModal')).show();
+                } else {
+                    window.location.href = '@Url.Action("Index", "Document")';
+                }
             });
+
+            loadSubjects();
         })();
+
+        // Chọn hành động (Giữ cả hai / Thay thế) bằng cách click vào thẻ option
+        function setActionChoice(value) {
+            document.getElementById('dupAction').value = value;
+            document.querySelectorAll('.action-option').forEach(el => {
+                el.classList.toggle('selected', el.getAttribute('data-value') === value);
+            });
+        }
+
+        document.querySelectorAll('.action-option').forEach(el => {
+            el.addEventListener('click', () => setActionChoice(el.getAttribute('data-value')));
+        });
+
+        // Xác nhận hành động trùng lặp (Giữ cả hai / Thay thế)
+        async function confirmDuplicate() {
+            const formData = new FormData(document.getElementById('dupForm'));
+            await fetch('/Document/ConfirmDuplicate', { method: 'POST', body: formData, credentials: 'same-origin' });
+            window.location.href = '@Url.Action("Index", "Document")';
+        }
+
+        // Hủy bỏ upload: luôn gửi action=1 (Hủy bỏ upload) bất kể đang chọn option nào
+        async function cancelDuplicateUpload() {
+            const formData = new FormData(document.getElementById('dupForm'));
+            formData.set('action', '1');
+            await fetch('/Document/ConfirmDuplicate', { method: 'POST', body: formData, credentials: 'same-origin' });
+            window.location.href = '@Url.Action("Index", "Document")';
+        }
     </script>
 }

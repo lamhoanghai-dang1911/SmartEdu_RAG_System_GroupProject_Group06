@@ -3,19 +3,326 @@
     ViewData["Title"] = "Gói dịch vụ của tôi";
 }
 
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --success: #1fae63;
+        --danger: #e5484d;
+        --warning: #f5a623;
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(14px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.6rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .page-head .btn-primary {
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.6rem 1.3rem;
+        box-shadow: 0 8px 20px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .page-head .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+    /* ===== Empty state ===== */
+    .empty-state {
+        border: none;
+        border-radius: 18px;
+        background: var(--paper);
+        text-align: center;
+        padding: 3rem 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.45s ease forwards;
+    }
+
+        .empty-state .empty-icon {
+            font-size: 2.6rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+            animation: floatIcon 3s ease-in-out infinite;
+        }
+
+    @@keyframes floatIcon {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-6px);
+        }
+    }
+
+    .empty-state h5 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.15rem;
+        color: #12162b;
+        margin-bottom: 0.4rem;
+    }
+
+    .empty-state p {
+        color: var(--slate);
+        font-size: 0.92rem;
+        margin-bottom: 1.4rem;
+    }
+
+    .empty-state .btn-primary {
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        font-weight: 700;
+        padding: 0.65rem 1.5rem;
+        box-shadow: 0 10px 22px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .empty-state .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+    /* ===== Subscription cards ===== */
+    .sub-card {
+        position: relative;
+        background: #fff;
+        border: 1px solid #edeef5 !important;
+        border-radius: 18px !important;
+        box-shadow: 0 8px 26px -16px rgba(11, 17, 32, 0.16);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        opacity: 0;
+        animation: fadeUp 0.5s ease forwards;
+        overflow: hidden;
+    }
+
+    .col-md-6:nth-of-type(1) .sub-card {
+        animation-delay: 0.05s;
+    }
+
+    .col-md-6:nth-of-type(2) .sub-card {
+        animation-delay: 0.12s;
+    }
+
+    .col-md-6:nth-of-type(3) .sub-card {
+        animation-delay: 0.19s;
+    }
+
+    .col-md-6:nth-of-type(4) .sub-card {
+        animation-delay: 0.26s;
+    }
+
+    .sub-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 36px -18px rgba(11, 17, 32, 0.22);
+    }
+
+    .sub-card.is-active::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--success), #17c76f);
+    }
+
+    .sub-card .card-title {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .badge {
+        font-weight: 600;
+        font-size: 0.74rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+    }
+
+        .badge.bg-success {
+            background: rgba(31, 174, 99, 0.12) !important;
+            color: var(--success) !important;
+        }
+
+        .badge.bg-secondary {
+            background: #eef0f6 !important;
+            color: var(--slate) !important;
+        }
+
+        .badge.bg-danger {
+            background: rgba(229, 72, 77, 0.1) !important;
+            color: var(--danger) !important;
+        }
+
+    .sub-card hr {
+        border-color: #eef0f6;
+        margin: 1.1rem 0;
+    }
+
+    .sub-specs {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem;
+    }
+
+        .sub-specs li {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+            color: #33384f;
+            border-bottom: 1px dashed #eef0f6;
+        }
+
+            .sub-specs li:last-child {
+                border-bottom: none;
+            }
+
+        .sub-specs .spec-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(13, 110, 253, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            flex: 0 0 auto;
+        }
+
+        .sub-specs strong {
+            color: #12162b;
+            font-weight: 700;
+        }
+
+    .token-highlight {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        color: var(--brand-blue);
+    }
+
+    .days-remaining-good {
+        font-weight: 700;
+        color: var(--warning);
+    }
+
+    .days-remaining-bad {
+        font-weight: 700;
+        color: var(--danger);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .btn-renew {
+        width: 100%;
+        border: none;
+        border-radius: 999px;
+        padding: 0.6rem 1rem;
+        font-weight: 700;
+        font-size: 0.88rem;
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple), var(--brand-blue));
+        background-size: 220% 220%;
+        box-shadow: 0 8px 18px -10px rgba(13, 110, 253, 0.5);
+        transition: background-position 0.5s ease, transform 0.15s ease;
+    }
+
+        .btn-renew:hover {
+            background-position: 100% 50%;
+            transform: translateY(-1px);
+            color: #fff;
+        }
+
+    .btn-cancel-sub {
+        width: 100%;
+        border: 1.5px solid rgba(229, 72, 77, 0.35);
+        border-radius: 999px;
+        padding: 0.55rem 1rem;
+        font-weight: 700;
+        font-size: 0.86rem;
+        color: var(--danger);
+        background: rgba(229, 72, 77, 0.06);
+        transition: background 0.15s ease, transform 0.15s ease;
+        margin-top: 0.6rem;
+        cursor: pointer;
+    }
+
+        .btn-cancel-sub:hover {
+            background: rgba(229, 72, 77, 0.12);
+            color: var(--danger);
+            transform: translateY(-1px);
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-head d-flex justify-content-between align-items-center mb-4">
         <h2>📊 Gói dịch vụ của tôi</h2>
         <a asp-action="List" class="btn btn-primary">
             💳 Mua thêm gói
         </a>
     </div>
 
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     @if (!Model.Any())
     {
-        <div class="alert alert-info text-center py-4">
-            <h5>📭 Bạn chưa có gói nào</h5>
-            <p class="mb-3">Hãy mua một gói dịch vụ để bắt đầu sử dụng.</p>
+        <div class="empty-state">
+            <span class="empty-icon">📭</span>
+            <h5>Bạn chưa có gói nào</h5>
+            <p>Hãy mua một gói dịch vụ để bắt đầu sử dụng.</p>
             <a asp-action="List" class="btn btn-primary">🛒 Xem gói dịch vụ</a>
         </div>
     }
@@ -24,8 +331,9 @@
         <div class="row g-4">
             @foreach (var sub in Model)
             {
+                var isActive = sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Active;
                 <div class="col-md-6">
-                    <div class="card shadow-sm border-0 h-100">
+                    <div class="card sub-card h-100 shadow-none @(isActive ? "is-active" : "")">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <h5 class="card-title">@sub.PackageName</h5>
@@ -45,29 +353,54 @@
 
                             <hr />
 
-                            <div class="mb-3">
-                                <p class="mb-2"><strong>🎫 Token còn lại:</strong> <span class="text-info">@sub.RemainingTokenQuota.ToString("N0")</span></p>
-                                <p class="mb-2"><strong>📅 Ngày bắt đầu:</strong> @sub.StartDate.ToString("dd/MM/yyyy HH:mm")</p>
-                                <p class="mb-2"><strong>📅 Ngày kết thúc:</strong> @sub.EndDate.ToString("dd/MM/yyyy HH:mm")</p>
-
+                            <ul class="sub-specs">
+                                <li>
+                                    <span class="spec-icon">🎫</span>
+                                    <span>Token còn lại <strong class="token-highlight">@sub.RemainingTokenQuota.ToString("N0")</strong></span>
+                                </li>
+                                <li>
+                                    <span class="spec-icon">📅</span>
+                                    <span>Bắt đầu <strong>@sub.StartDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                                </li>
+                                <li>
+                                    <span class="spec-icon">📅</span>
+                                    <span>Kết thúc <strong>@sub.EndDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                                </li>
                                 @{
                                     var daysRemaining = (sub.EndDate - DateTime.UtcNow).Days;
-                                    if (daysRemaining > 0)
-                                    {
-                                        <p class="mb-0"><strong>⏳ Còn lại:</strong> <span class="text-warning">@daysRemaining ngày</span></p>
-                                    }
-                                    else
-                                    {
-                                        <p class="mb-0 text-danger"><strong>⚠️ Đã hết hạn</strong></p>
-                                    }
                                 }
-                            </div>
+                                @if (daysRemaining > 0)
+                                {
+                                    <li>
+                                        <span class="spec-icon">⏳</span>
+                                        <span>Còn lại <span class="days-remaining-good">@daysRemaining ngày</span></span>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <span class="spec-icon">⚠️</span>
+                                        <span class="days-remaining-bad">Đã hết hạn</span>
+                                    </li>
+                                }
+                            </ul>
 
                             @if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Expired && daysRemaining <= 0)
                             {
-                                <a asp-action="List" class="btn btn-sm btn-primary w-100">
+                                <a asp-action="List" class="btn-renew d-inline-block text-center">
                                     🛒 Gia hạn gói
                                 </a>
+                            }
+
+                            @if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Active)
+                            {
+                                <form asp-action="Cancel" asp-route-id="@sub.Id" method="post"
+                                      onsubmit="return confirm('Bạn chắc chắn muốn hủy gói này? Sau khi hủy, bạn sẽ không thể tiếp tục sử dụng gói này nữa.');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-cancel-sub">
+                                        🚫 Hủy gói
+                                    </button>
+                                </form>
                             }
                         </div>
                     </div>
@@ -85,6 +418,25 @@
                 // Bootstrap toast (nếu cần)
                 console.log("Payment successful!");
             }
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", async function () {
+        const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/notifications")
+        .withAutomaticReconnect()
+        .build();
+
+        connection.on("PaymentCompleted", () => {
+        location.reload();
+        });
+
+        try {
+        await connection.start();
+        } catch (err) {
+        console.error("Không thể kết nối realtime thông báo:", err);
+        }
         });
     </script>
 }

@@ -14,6 +14,7 @@ public class DocumentController : Controller
     private readonly IDocumentService _documentService;
     private readonly ISubjectService _subjectService;
     private readonly IPermissionService _permissionService;
+    private readonly IChunkingConfigService _chunkingConfigService;
     private readonly IWebHostEnvironment _env;
 
 
@@ -21,11 +22,13 @@ public class DocumentController : Controller
         IDocumentService documentService,
         ISubjectService subjectService,
         IPermissionService permissionService,
+        IChunkingConfigService chunkingConfigService,
         IWebHostEnvironment env)
     {
         _documentService = documentService;
         _subjectService = subjectService;
         _permissionService = permissionService;
+        _chunkingConfigService = chunkingConfigService;
         _env = env;
     }
 
@@ -36,16 +39,19 @@ public class DocumentController : Controller
         if (doc == null) return NotFound();
 
         int userId = User.GetUserId();
-        bool isStaff = User.IsInRole("Lecturer") || User.IsInRole("Admin");
-        if (!isStaff)
-        {
-            var canAccess = await _permissionService.CanUserAccessSubject(userId, doc.SubjectId);
-            if (!canAccess) return Forbid();
-        }
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
+        if (!hasAccess) return Forbid();
 
-        // use service to map to DTOs
         var chunks = await _documentService.GetChunksByDocumentIdAsync(documentId);
         return Json(chunks);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChunkDetail(int chunkId)
+    {
+        var dto = await _documentService.GetChunkDetailAsync(chunkId);
+        if (dto == null) return NotFound();
+        return Json(dto);
     }
 
     [HttpGet]
@@ -126,17 +132,12 @@ public class DocumentController : Controller
     [HttpGet]
     public async Task<IActionResult> GetLogs(int documentId)
     {
-        // Only allow users who can access the document to read logs
         var doc = await _documentService.GetByIdAsync(documentId);
         if (doc == null) return NotFound();
 
         int userId = User.GetUserId();
-        bool isStaff = User.IsInRole("Lecturer") || User.IsInRole("Admin");
-        if (!isStaff)
-        {
-            var canAccess = await _permissionService.CanUserAccessSubject(userId, doc.SubjectId);
-            if (!canAccess) return Forbid();
-        }
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
+        if (!hasAccess) return Forbid();
 
         // Use UnitOfWork repository to fetch logs
         var uow = HttpContext.RequestServices.GetService(typeof(IUnitOfWork)) as IUnitOfWork;
@@ -144,18 +145,45 @@ public class DocumentController : Controller
 
         var logs = await uow.DocumentLogs.GetAllWithIncludeAsync(l => l.DocumentId == documentId, l => l.Document);
         var ordered = logs.OrderBy(l => l.Timestamp).Select(l => new { l.Id, l.LogMessage, Timestamp = l.Timestamp, l.Status });
-        return Json(ordered);
+
+        // Resolve active chunking config for this document's subject (per-subject overrides global)
+        object configObj = null;
+        try
+        {
+            var cfg = await _chunkingConfigService.ResolveActiveConfigAsync(doc.SubjectId);
+            if (cfg != null)
+            {
+                configObj = new
+                {
+                    cfg.ChunkSize,
+                    cfg.ChunkOverlap,
+                    Strategy = cfg.Strategy.ToString(),
+                    Scope = cfg.Scope.ToString(),
+                    cfg.SubjectId
+                };
+            }
+        }
+        catch
+        {
+            configObj = null;
+        }
+
+        return Json(new { logs = ordered, chunkingConfig = configObj });
     }
 
     public async Task<IActionResult> Index(int? subjectId)
     {
         int userId = User.GetUserId();
-        bool isStaff = User.IsInRole("Lecturer") || User.IsInRole("Admin");
-        var subjects = isStaff
-            ? await _subjectService.GetAllAsync()
-            : await _subjectService.GetSubjectsByUserIdAsync(userId);
+        bool isAdmin = User.IsInRole("Admin");
+        bool isLecturer = User.IsInRole("Lecturer");
 
-        var docs = await _documentService.GetAllByUserIdAsync(userId, isStaff, subjectId);
+        var subjects = isAdmin
+            ? await _subjectService.GetAllAsync()
+            : isLecturer
+                ? await _subjectService.GetSubjectsByLecturerIdAsync(userId)
+                : await _subjectService.GetSubjectsByUserIdAsync(userId);
+
+        var docs = await _documentService.GetAllByUserIdAsync(userId, isAdmin, isLecturer, subjectId);
 
         ViewBag.Subjects = new SelectList(subjects, "Id", "Name", subjectId);
         ViewBag.SelectedSubjectId = subjectId;
@@ -169,7 +197,8 @@ public class DocumentController : Controller
         var doc = await _documentService.GetByIdAsync(id);
         if (doc is null) return NotFound();
 
-        bool hasAccess = await _permissionService.CanUserAccessSubject(User.GetUserId(), doc.SubjectId);
+        int userId = User.GetUserId();
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
         if (!hasAccess) return Forbid();
 
         return View(doc);
@@ -225,24 +254,49 @@ public class DocumentController : Controller
         {
             var webRootPath = _env.WebRootPath;
 
-            var dto = await _documentService.UploadAsync(file, title, subjectId, webRootPath);
-
-            // **Thêm: kiểm tra duplicate**
+            // Compute hash first and check duplicate BEFORE creating DB record
             string fileHash = await ComputeFileHashAsync(file);
             var dupCheck = await _documentService.CheckDuplicateAsync(fileHash, subjectId);
 
             if (dupCheck.HasDuplicate)
             {
-                // Lưu vào session để modal handle
-                HttpContext.Session.SetInt32("NewDocumentId", (int)dto.Id);
-                HttpContext.Session.SetInt32("OldDocumentId", dupCheck.DuplicateDocumentId.Value);
+                // Save uploaded file to temporary folder until user confirms action
+                if (string.IsNullOrWhiteSpace(webRootPath))
+                {
+                    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                }
+                var tempRoot = Path.Combine(webRootPath, "uploads", "temp");
+                Directory.CreateDirectory(tempRoot);
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                var tempName = $"{Guid.NewGuid()}{ext}";
+                var tempPath = Path.Combine(tempRoot, tempName);
+                await using (var stream = System.IO.File.Create(tempPath))
+                {
+                    await file.CopyToAsync(stream);
+                }
 
-                TempData["DuplicateWarning"] = $"Phát hiện tài liệu trùng: '{dupCheck.DuplicateTitle}' (upload lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy HH:mm}). Vui lòng chọn hành động.";
-                return RedirectToAction(nameof(HandleDuplicate));
+                // store temp info in session for later confirmation
+                HttpContext.Session.SetString("TempFilePath", tempPath);
+                HttpContext.Session.SetString("TempFileName", file.FileName);
+                HttpContext.Session.SetString("TempFileHash", fileHash);
+                HttpContext.Session.SetString("TempTitle", title ?? string.Empty);
+                HttpContext.Session.SetInt32("TempSubjectId", subjectId);
+                HttpContext.Session.SetString("TempFileSize", file.Length.ToString());
+                HttpContext.Session.SetInt32("OldDocumentId", dupCheck.DuplicateDocumentId ?? 0);
+
+                // Trả về JSON để JS xử lý hiển thị Modal, kèm flag cho biết tài liệu cũ đã có embeddings hay chưa
+                return Json(new
+                {
+                    isDuplicate = true,
+                    oldDocumentId = dupCheck.DuplicateDocumentId,
+                    isEmbeddingReady = dupCheck.IsEmbeddingReady,
+                    message = $"Tài liệu đã tồn tại: {dupCheck.DuplicateTitle}"
+                });
             }
 
-            TempData["Success"] = "Upload thành công! Nhấn nút ⚡ để bắt đầu embedding.";
-            return RedirectToAction(nameof(Index), new { subjectId });
+            // Not duplicate -> create DB record and persist as before
+            var dto = await _documentService.UploadAsync(file, title, subjectId, webRootPath);
+            return Json(new { success = true, message = "Upload thành công! Nhấn nút ⚡ để bắt đầu embedding." });
         }
         catch (Exception ex)
         {
@@ -275,10 +329,9 @@ public class DocumentController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ConfirmDuplicate(int action)
     {
-        var newDocId = HttpContext.Session.GetInt32("NewDocumentId");
         var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
 
-        if (!newDocId.HasValue || !oldDocId.HasValue)
+        if (!oldDocId.HasValue)
             return RedirectToAction(nameof(Index));
 
         var userIdClaim = User.FindFirst("UserId")?.Value;
@@ -287,16 +340,42 @@ public class DocumentController : Controller
 
         try
         {
+            // If a temp file exists in session, create the new document record now
+            var tempPath = HttpContext.Session.GetString("TempFilePath");
+            DocumentDto newDocDto = null;
+            if (!string.IsNullOrWhiteSpace(tempPath))
+            {
+                var tempFileName = HttpContext.Session.GetString("TempFileName") ?? string.Empty;
+                var tempFileHash = HttpContext.Session.GetString("TempFileHash") ?? string.Empty;
+                var tempTitle = HttpContext.Session.GetString("TempTitle") ?? string.Empty;
+                var tempSubjectId = HttpContext.Session.GetInt32("TempSubjectId") ?? 0;
+                var tempFileSizeStr = HttpContext.Session.GetString("TempFileSize") ?? "0";
+                long.TryParse(tempFileSizeStr, out var tempFileSize);
+
+                newDocDto = await _documentService.CreateFromTempAsync(tempPath, tempFileName, tempTitle, tempSubjectId, tempFileHash, tempFileSize, _env.WebRootPath);
+            }
+
+            if (newDocDto == null)
+            {
+                TempData["Error"] = "Không có tài liệu tạm để xử lý.";
+                return RedirectToAction(nameof(Index));
+            }
+
             var dto = new DuplicateHandleDto
             {
-                NewDocumentId = newDocId.Value,
+                NewDocumentId = newDocDto.Id,
                 OldDocumentId = oldDocId.Value,
                 Action = (DocumentDuplicateAction)action
             };
 
             await _documentService.HandleDuplicateAsync(dto, userId);
 
-            HttpContext.Session.Remove("NewDocumentId");
+            HttpContext.Session.Remove("TempFilePath");
+            HttpContext.Session.Remove("TempFileName");
+            HttpContext.Session.Remove("TempFileHash");
+            HttpContext.Session.Remove("TempTitle");
+            HttpContext.Session.Remove("TempSubjectId");
+            HttpContext.Session.Remove("TempFileSize");
             HttpContext.Session.Remove("OldDocumentId");
 
             TempData["Success"] = "Xử lý tài liệu trùng thành công!";
@@ -434,13 +513,8 @@ public class DocumentController : Controller
         }
 
         int userId = User.GetUserId();
-        bool isStaff = User.IsInRole("Lecturer") || User.IsInRole("Admin");
-
-        if (!isStaff)
-        {
-            bool hasAccess = await _permissionService.CanUserAccessSubject(userId, doc.SubjectId);
-            if (!hasAccess) return Forbid();
-        }
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
+        if (!hasAccess) return Forbid();
 
         try
         {
@@ -454,5 +528,15 @@ public class DocumentController : Controller
             TempData["Error"] = ex.Message;
             return RedirectToAction(nameof(Index));
         }
+    }
+
+    private async Task<bool> HasDocumentAccessAsync(int userId, int subjectId)
+    {
+        if (User.IsInRole("Admin")) return true;
+
+        if (User.IsInRole("Lecturer"))
+            return await _subjectService.IsLecturerAssignedToSubject(userId, subjectId);
+
+        return await _permissionService.CanUserAccessSubject(userId, subjectId);
     }
 }

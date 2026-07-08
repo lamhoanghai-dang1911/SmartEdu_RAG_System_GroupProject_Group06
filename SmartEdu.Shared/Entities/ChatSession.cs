@@ -18,5 +18,7 @@
         public string Role { get; set; } = "user";  // "user" | "assistant"
         public string Content { get; set; } = string.Empty;
         public string? SourceChunkIds { get; set; } // JSON array: [1, 5, 12]
+        // JSON array of CitationDto objects (stores citations shown to the user)
+        public string? CitationsJson { get; set; }
     }
 }

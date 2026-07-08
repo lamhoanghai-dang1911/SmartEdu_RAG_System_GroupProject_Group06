@@ -7,5 +7,6 @@
         public string Content { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public List<int>? SourceChunkIds { get; set; }
+        public List<CitationDto>? Citations { get; set; }
     }
 }

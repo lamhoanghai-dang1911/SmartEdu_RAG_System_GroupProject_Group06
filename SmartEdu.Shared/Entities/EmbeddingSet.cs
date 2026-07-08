@@ -21,6 +21,7 @@ namespace SmartEdu.Shared.Entities
         public int SourceDocumentId { get; set; }
         public Document SourceDocument { get; set; } = null!;
 
+        public string CanonicalTitle { get; set; } = string.Empty;
         public ICollection<DocumentChunk> Chunks { get; set; } = new List<DocumentChunk>();
         public ICollection<Document> Documents { get; set; } = new List<Document>(); // tất cả Document dùng chung set này
     }

@@ -1,4 +1,5 @@
 ﻿using SmartEdu.Shared.DTOs;
+using SmartEdu.Shared.Entities;
 
 namespace SmartEdu.Business.Interfaces
 {
@@ -8,5 +9,8 @@ namespace SmartEdu.Business.Interfaces
         Task<IEnumerable<ChatMessageDto>> GetHistoryAsync(string sessionIds, string userId);
         Task<IEnumerable<ChatSessionDto>> GetSessionsByUserIdAsync(string userId);
         Task DeleteSessionAsync(string sessionId, string userId);
+        Task<ChatResponseDto> ProcessChatWithBillingAsync(ChatRequestDto request);
+        Task<UserSubscription?> GetActiveSubscriptionAsync(int userId);
+
     }
 }

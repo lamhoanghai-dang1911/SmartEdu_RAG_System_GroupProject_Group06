@@ -6,5 +6,7 @@
         public string Question { get; set; } = string.Empty;
         public int? SubjectId { get; set; }
         public int UserId { get; set; }
+        public string? ConnectionId { get; set; }
+
     }
 }

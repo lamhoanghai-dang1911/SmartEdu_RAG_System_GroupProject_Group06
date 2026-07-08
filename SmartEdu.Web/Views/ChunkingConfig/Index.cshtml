@@ -3,8 +3,160 @@
     ViewData["Title"] = "Cấu hình Chunking";
 }
 
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --ink-navy: #0b1120;
+        --amber: #ffb648;
+        --paper: #f7f8fc;
+        --slate: #5a6072;
+        --slate-light: #9aa0b4;
+        --success: #1fae63;
+        --danger: #e5484d;
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .page-head .btn-primary {
+        border: none;
+        border-radius: 999px;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        font-weight: 600;
+        font-size: 0.9rem;
+        padding: 0.55rem 1.2rem;
+        box-shadow: 0 8px 20px -10px rgba(13, 110, 253, 0.5);
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+        .page-head .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.07);
+        }
+
+    .alert {
+        border: none;
+        border-radius: 12px;
+        animation: fadeUp 0.35s ease forwards;
+    }
+
+    .alert-success {
+        background: rgba(31, 174, 99, 0.09);
+        color: var(--success);
+        border-left: 3px solid var(--success);
+    }
+
+    .alert-danger {
+        background: rgba(229, 72, 77, 0.08);
+        color: var(--danger);
+        border-left: 3px solid var(--danger);
+    }
+
+    @@keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .table-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        overflow: hidden;
+        opacity: 0;
+        animation: fadeUp 0.45s ease forwards;
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+        .table thead {
+            background: transparent !important;
+        }
+
+            .table thead tr {
+                background: linear-gradient(120deg, var(--ink-navy), #171d3d) !important;
+            }
+
+            .table thead th {
+                border: none !important;
+                color: #fff !important;
+                font-family: 'Sora', sans-serif;
+                font-weight: 600;
+                font-size: 0.82rem;
+                letter-spacing: 0.02em;
+                text-transform: uppercase;
+                padding: 0.9rem 1rem !important;
+                vertical-align: middle;
+            }
+
+        .table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+            .table tbody tr:hover {
+                background: rgba(13, 110, 253, 0.045) !important;
+            }
+
+        .table tbody td {
+            border-color: #eef0f6 !important;
+            padding: 0.85rem 1rem !important;
+            font-size: 0.92rem;
+            color: #33384f;
+            vertical-align: middle;
+        }
+
+    .badge {
+        font-weight: 600;
+        font-size: 0.76rem;
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        letter-spacing: 0.01em;
+    }
+
+        .badge.bg-info {
+            background: rgba(13, 110, 253, 0.1) !important;
+            color: var(--brand-blue) !important;
+        }
+
+        .badge.bg-primary {
+            background: rgba(102, 16, 242, 0.1) !important;
+            color: var(--brand-purple) !important;
+        }
+
+        .badge.bg-success {
+            background: rgba(31, 174, 99, 0.12) !important;
+            color: var(--success) !important;
+        }
+
+        .badge.bg-secondary {
+            background: #eef0f6 !important;
+            color: var(--slate) !important;
+        }
+
+    @@media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="page-head d-flex justify-content-between align-items-center mb-3">
         <h2>⚙️ Cấu hình Chunking</h2>
         <a asp-action="Create" class="btn btn-primary">➕ Thêm cấu hình mới</a>
     </div>
@@ -25,51 +177,53 @@
         </div>
     }
 
-    <table class="table table-bordered table-hover align-middle">
-        <thead class="table-dark">
-            <tr>
-                <th>#</th>
-                <th>Chunk Size</th>
-                <th>Overlap</th>
-                <th>Phạm vi</th>
-                <th>Môn học</th>
-                <th>Trạng thái</th>
-                <th>Cập nhật bởi</th>
-                <th>Ngày tạo</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in Model)
-            {
+    <div class="table-card">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
                 <tr>
-                    <td>@c.Id</td>
-                    <td>@c.ChunkSize</td>
-                    <td>@c.ChunkOverlap</td>
-                    <td>
-                        @if (c.Scope.ToString() == "Global")
-                        {
-                            <span class="badge bg-info">🌐 Global</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-primary">📘 PerSubject</span>
-                        }
-                    </td>
-                    <td>@(c.SubjectName ?? "—")</td>
-                    <td>
-                        @if (c.IsActive)
-                        {
-                            <span class="badge bg-success">✅ Đang dùng</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Đã thay thế</span>
-                        }
-                    </td>
-                    <td>@c.UpdatedByUserName</td>
-                    <td>@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    <th>#</th>
+                    <th>Chunk Size</th>
+                    <th>Overlap</th>
+                    <th>Phạm vi</th>
+                    <th>Môn học</th>
+                    <th>Trạng thái</th>
+                    <th>Cập nhật bởi</th>
+                    <th>Ngày tạo</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var c in Model)
+                {
+                    <tr>
+                        <td>@c.Id</td>
+                        <td>@c.ChunkSize</td>
+                        <td>@c.ChunkOverlap</td>
+                        <td>
+                            @if (c.Scope.ToString() == "Global")
+                            {
+                                <span class="badge bg-info">🌐 Toàn hệ thống</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-primary">📘 Theo môn học</span>
+                            }
+                        </td>
+                        <td>@(c.SubjectName ?? "—")</td>
+                        <td>
+                            @if (c.IsActive)
+                            {
+                                <span class="badge bg-success">✅ Đang dùng</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Đã thay thế</span>
+                            }
+                        </td>
+                        <td>@c.UpdatedByUserName</td>
+                        <td>@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 </div>

@@ -4,6 +4,7 @@ using SmartEdu.Business.Interfaces;
 using SmartEdu.Business.Services;
 using SmartEdu.Data;
 using SmartEdu.Data.Repositories;
+using SmartEdu.Web.Hubs;
 using SmartEdu.Web.Models;
 
 namespace SmartEdu.Web
@@ -23,6 +24,9 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
+            builder.Services.AddScoped<IPackageService, PackageService>();
+            builder.Services.AddScoped<IUserSubscriptionService, UserSubscriptionService>();
+            builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddHttpClient<PaymentService>();
             // HttpClient factory for calling OpenAI
             builder.Services.AddHttpClient();
@@ -68,6 +72,9 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<IEmailService, EmailService>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
+            builder.Services.AddScoped<SmartEdu.Business.Interfaces.IRealtimeNotifier, SmartEdu.Web.Realtime.SignalRNotifier>();
+            // Reports
+            builder.Services.AddScoped<IReportService, ReportService>();
             // Register filter for requiring password change after first login
             builder.Services.AddScoped<SmartEdu.Web.Filters.RequirePasswordChangeFilter>();
             builder.Services.AddControllersWithViews(options =>
@@ -75,6 +82,12 @@ namespace SmartEdu.Web
                 options.Filters.AddService<SmartEdu.Web.Filters.RequirePasswordChangeFilter>();
             });
             builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+        options.PayloadSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
             builder.Services.AddSession(options =>
             {
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -113,6 +126,10 @@ namespace SmartEdu.Web
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            app.MapHub<DocumentProcessingHub>("/hubs/document-processing");
+            app.MapHub<ChatHub>("/hubs/chat");
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
         }

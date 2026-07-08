@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using SmartEdu.Business.Interfaces;
 using SmartEdu.Data;
@@ -8,8 +9,6 @@ using SmartEdu.Data.Repositories;
 using SmartEdu.Shared.DTOs;
 using SmartEdu.Shared.Entities;
 using SmartEdu.Shared.Enums;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -21,26 +20,34 @@ public class ChatService : IChatService
     private readonly IRepository<ChatSession> _sessionRepo;
     private readonly IRepository<ChatMessage> _messageRepo;
     private readonly IRepository<DocumentChunk> _chunkRepo;
+    private readonly IRepository<UserSubscription> _subscriptionRepo;
+    private readonly IRepository<UsageLog> _usageLogRepo;
+    private readonly ILogger<ChatService> _logger;
 
     private readonly IHttpClientFactory _httpFactory;
     private readonly IConfiguration _configuration;
-    //private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IRealtimeNotifier _realtime;
 
     public ChatService(
-        IRepository<ChatSession> sessionRepo,
-        IRepository<ChatMessage> messageRepo,
-        IRepository<DocumentChunk> chunkRepo,
-        IHttpClientFactory httpFactory,
-        IConfiguration configuration
-        //IServiceScopeFactory serviceScopeFactory
-        )
+    IRepository<ChatSession> sessionRepo,
+    IRepository<ChatMessage> messageRepo,
+    IRepository<DocumentChunk> chunkRepo,
+    IRepository<UserSubscription> subscriptionRepo,
+    IRepository<UsageLog> usageLogRepo,
+    IHttpClientFactory httpFactory,
+    IConfiguration configuration,
+    ILogger<ChatService> logger,
+    IRealtimeNotifier realtime)
     {
         _sessionRepo = sessionRepo;
         _messageRepo = messageRepo;
         _chunkRepo = chunkRepo;
+        _subscriptionRepo = subscriptionRepo;
+        _usageLogRepo = usageLogRepo;
         _httpFactory = httpFactory;
         _configuration = configuration;
-        //_serviceScopeFactory = serviceScopeFactory;
+        _logger = logger;
+        _realtime = realtime;
     }
 
     public async Task<ChatResponseDto> AskAsync(ChatRequestDto request)
@@ -50,8 +57,12 @@ public class ChatService : IChatService
             return new ChatResponseDto { SessionId = request.SessionId, Answer = "Vui lòng chọn môn học.", Sources = new List<string>() };
         }
 
-        var sessions = await _sessionRepo.GetAllAsync(s => s.SessionId == request.SessionId);
+        var sessions = await _sessionRepo.GetAllWithIncludeAsync(
+            s => s.SessionId == request.SessionId,
+            s => s.Subject
+        );
         var session = sessions.FirstOrDefault();
+
         if (session == null)
         {
             session = new ChatSession
@@ -63,14 +74,20 @@ public class ChatService : IChatService
             };
             await _sessionRepo.AddAsync(session);
             await _sessionRepo.SaveChangesAsync();
+
+            // reload lại kèm Subject sau khi tạo mới, vì SubjectId vừa set có thể chưa có navigation load
+            var reloaded = await _sessionRepo.GetAllWithIncludeAsync(
+                s => s.Id == session.Id,
+                s => s.Subject
+            );
+            session = reloaded.FirstOrDefault() ?? session;
         }
         else if (session.UserId != request.UserId)
         {
             throw new UnauthorizedAccessException("Bạn không có quyền truy cập phiên chat này.");
         }
-        var ragTask = RunRagPipelineAsync(request, session);
 
-        var ragResponse = await ragTask;
+        var ragResponse = await RunRagPipelineAsync(request, session);
 
         return ragResponse;
     }
@@ -81,9 +98,17 @@ public class ChatService : IChatService
         await _messageRepo.AddAsync(userMessage);
         await _messageRepo.SaveChangesAsync();
 
+        try
+        {
+            await _realtime.SendChatMessageAsync(request.SessionId, "user", request.Question, null, request.ConnectionId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast user message: {ex}");
+        }
+
         float[] queryVector = await GetHuggingFaceEmbeddingAsync(request.Question);
 
-        // Lấy chunk thông qua EmbeddingSet -> Documents có SubjectId khớp và Status = Ready
         var chunks = await _chunkRepo.GetAllWithIncludeAsync(
             c => c.EmbeddingSet != null
                  && c.EmbeddingSet.Status == EmbeddingSetStatus.Ready
@@ -95,25 +120,99 @@ public class ChatService : IChatService
                               .OrderByDescending(s => s.Score).Take(3).ToList();
 
         var contextBuilder = new StringBuilder();
-        var sources = new HashSet<string>();
-        foreach (var item in topChunks)
-        {
-            // Document title lấy theo đúng SubjectId của phiên chat, không phải Document đầu tiên bất kỳ
-            var sourceDoc = item.Chunk.EmbeddingSet.Documents
-                .FirstOrDefault(d => d.SubjectId == request.SubjectId.Value && !d.IsDeleted);
-            var title = sourceDoc?.Title ?? "Không xác định";
+        var citations = new List<CitationDto>();
+        var chunkIds = new List<int>();
+        int citationIndex = 1;
 
-            contextBuilder.AppendLine($"[Nguồn: {title}]\n{item.Chunk.Content}\n---\n");
-            sources.Add(title);
+        var groupedByDocument = topChunks
+            .GroupBy(item => !string.IsNullOrWhiteSpace(item.Chunk.EmbeddingSet?.CanonicalTitle)
+                ? item.Chunk.EmbeddingSet.CanonicalTitle
+                : "Không xác định")
+            .Select(g => g.OrderByDescending(x => x.Score).First())
+            .ToList();
+
+        foreach (var item in groupedByDocument)
+        {
+            var title = !string.IsNullOrWhiteSpace(item.Chunk.EmbeddingSet?.CanonicalTitle)
+                ? item.Chunk.EmbeddingSet.CanonicalTitle
+                : "Không xác định";
+
+            try
+            {
+                _logger?.LogInformation("Chunk {ChunkId}: CanonicalTitle={Title}, Score={Score}", item.Chunk.Id, title, item.Score);
+            }
+            catch { /* swallow logging errors */ }
+
+            contextBuilder.AppendLine($"[{citationIndex}] Nguồn: {title}\n{item.Chunk.Content}\n---\n");
+
+            citations.Add(new CitationDto
+            {
+                Number = citationIndex,
+                DocumentTitle = title,
+                ChunkId = item.Chunk.Id
+            });
+            chunkIds.Add(item.Chunk.Id);
+            citationIndex++;
         }
 
-        string answer = await GenerateGeminiResponseAsync(contextBuilder.ToString(), request.Question);
-        var assistantMessage = new ChatMessage { ChatSessionId = session.Id, Role = "assistant", Content = answer };
+        var (answer, promptTokens, completionTokens) = await GenerateGeminiResponseAsync(contextBuilder.ToString(), request.Question);
+
+        var assistantMessage = new ChatMessage
+        {
+            ChatSessionId = session.Id,
+            Role = "assistant",
+            Content = answer,
+            SourceChunkIds = JsonSerializer.Serialize(chunkIds),
+            CitationsJson = JsonSerializer.Serialize(citations)
+        };
         await _messageRepo.AddAsync(assistantMessage);
         await _messageRepo.SaveChangesAsync();
 
-        return new ChatResponseDto { SessionId = request.SessionId, Answer = answer, Sources = sources.ToList() };
+        try
+        {
+            await _realtime.SendChatMessageAsync(request.SessionId, "assistant", answer, citations, request.ConnectionId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast chat message: {ex}");
+        }
+
+        try
+        {
+            session.UpdatedAt = DateTime.UtcNow;
+            _sessionRepo.Update(session);
+            await _sessionRepo.SaveChangesAsync();
+
+            var allMessages = await _messageRepo.GetAllAsync(m => m.ChatSessionId == session.Id);
+            var msgCount = allMessages.Count();
+
+            var sessionDto = new ChatSessionDto
+            {
+                SessionId = session.SessionId,
+                Title = session.Title,
+                SubjectId = session.SubjectId,
+                SubjectName = session.Subject != null ? session.Subject.Name : "Tất cả",
+                MessageCount = msgCount
+            };
+
+            await _realtime.SendSessionUpsertAsync(request.UserId, sessionDto);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast session upsert: {ex}");
+        }
+
+        return new ChatResponseDto
+        {
+            SessionId = request.SessionId,
+            Answer = answer,
+            Sources = citations.Select(c => c.DocumentTitle).Distinct().ToList(),
+            Citations = citations,
+            PromptTokens = promptTokens,
+            CompletionTokens = completionTokens
+        };
     }
+
     public async Task<IEnumerable<ChatMessageDto>> GetHistoryAsync(string sessionId, string userId)
     {
         int uid = int.Parse(userId);
@@ -123,15 +222,16 @@ public class ChatService : IChatService
         if (session is null) return Enumerable.Empty<ChatMessageDto>();
 
         var messages = await _messageRepo.GetAllAsync(m => m.ChatSessionId == session.Id);
-
         return messages
             .OrderBy(m => m.CreatedAt)
             .Select(m => new ChatMessageDto
             {
                 Id = m.Id,
                 Role = m.Role,
-                Content = m.Content,
-                CreatedAt = m.CreatedAt
+                Content = m.Content?.Trim(),
+                CreatedAt = m.CreatedAt,
+                SourceChunkIds = string.IsNullOrWhiteSpace(m.SourceChunkIds) ? null : JsonSerializer.Deserialize<List<int>>(m.SourceChunkIds),
+                Citations = string.IsNullOrWhiteSpace(m.CitationsJson) ? null : JsonSerializer.Deserialize<List<CitationDto>>(m.CitationsJson)
             }).ToList();
     }
 
@@ -146,7 +246,6 @@ public class ChatService : IChatService
 
         string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
 
-        // Model E5 yêu cầu prefix 'query: ' cho câu hỏi
         var payload = new { inputs = $"query: {question}" };
         using var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
@@ -161,31 +260,31 @@ public class ChatService : IChatService
         return vectorArray.EnumerateArray().Select(x => x.GetSingle()).ToArray();
     }
 
-    private async Task<string> GenerateGeminiResponseAsync(string context, string question)
+    private async Task<(string answer, int promptTokens, int completionTokens)> GenerateGeminiResponseAsync(string context, string question)
     {
         var apiKey = _configuration["Gemini:ApiKey"];
         if (string.IsNullOrWhiteSpace(apiKey) || apiKey == "myKey")
             throw new Exception("Thiếu Gemini API Key hợp lệ trong User Secrets.");
 
-        // Đảm bảo endpoint gọi bản 2.5-flash ổn định
         string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey.Trim()}";
 
-        string fullPrompt = @"Bạn là trợ lý học tập thông minh (SmartEdu AI).
-Nhiệm vụ của bạn là trả lời câu hỏi dựa trên các đoạn ngữ cảnh trích từ tài liệu. Luôn trả lời bằng tiếng Việt tự nhiên, lịch sự. Nếu thông tin không có, hãy nói 'Tôi không tìm thấy thông tin'.
+        string fullPrompt = $@"Bạn là trợ lý học tập thông minh (SmartEdu AI).
+Nhiệm vụ của bạn là trả lời câu hỏi dựa trên các đoạn ngữ cảnh trích từ tài liệu, mỗi đoạn có đánh số [1], [2], [3]...
+Khi trả lời, hãy chèn số trích dẫn tương ứng ngay sau thông tin bạn lấy từ đoạn đó, ví dụ: ""Theo tài liệu, X là Y[1].""
+Luôn trả lời bằng tiếng Việt tự nhiên, lịch sự. Nếu thông tin không có, hãy nói 'Tôi không tìm thấy thông tin'.
 
 NGỮ CẢNH:
-" + context + @"
+{context}
 
 CÂU HỎI:
-" + question;
+{question}";
 
-        // Cấu trúc Payload chuẩn hóa 100% cho Gemini 2.x - Đưa maxOutputTokens vào đúng vị trí
         var payload = new
         {
             contents = new[]
-            {
-                new { parts = new[] { new { text = fullPrompt } } }
-            },
+        {
+            new { parts = new[] { new { text = fullPrompt } } }
+        },
             generationConfig = new
             {
                 temperature = 0.3,
@@ -205,11 +304,10 @@ CÂU HỎI:
         }
 
         using var docJson = JsonDocument.Parse(respJson);
-
         var root = docJson.RootElement;
         var candidates = root.GetProperty("candidates");
 
-        if (candidates.GetArrayLength() == 0) return "Không có phản hồi từ AI.";
+        if (candidates.GetArrayLength() == 0) return ("Không có phản hồi từ AI.", 0, 0);
 
         var contentElement = candidates[0].GetProperty("content");
         var parts = contentElement.GetProperty("parts");
@@ -224,7 +322,20 @@ CÂU HỎI:
         }
 
         string finalResult = fullAnswer.ToString().Trim();
-        return string.IsNullOrEmpty(finalResult) ? "Không có phản hồi từ AI." : finalResult;
+        if (string.IsNullOrEmpty(finalResult)) finalResult = "Không có phản hồi từ AI.";
+
+        int promptTokens = 0;
+        int completionTokens = 0;
+
+        if (root.TryGetProperty("usageMetadata", out var usageMetadata))
+        {
+            if (usageMetadata.TryGetProperty("promptTokenCount", out var pt))
+                promptTokens = pt.GetInt32();
+            if (usageMetadata.TryGetProperty("candidatesTokenCount", out var ct))
+                completionTokens = ct.GetInt32();
+        }
+
+        return (finalResult, promptTokens, completionTokens);
     }
 
     private static double CosineSimilarity(float[] a, float[] b)
@@ -246,18 +357,19 @@ CÂU HỎI:
         int uid = int.Parse(userId);
         var sessions = await _sessionRepo.GetAllWithIncludeAsync(
             s => !s.IsDeleted && s.UserId == uid,
-            s => s.Subject
+            s => s.Subject,
+            s => s.Messages
         );
 
         return sessions
-            .OrderByDescending(s => s.CreatedAt)
+            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
             .Select(s => new ChatSessionDto
             {
                 SessionId = s.SessionId,
                 Title = s.Title,
                 SubjectId = s.SubjectId,
                 SubjectName = s.Subject != null ? s.Subject.Name : "Tất cả",
-                MessageCount = 0
+                MessageCount = s.Messages?.Count ?? 0
             }).ToList();
     }
 
@@ -277,5 +389,63 @@ CÂU HỎI:
 
         _sessionRepo.Update(session);
         await _sessionRepo.SaveChangesAsync();
+
+        try
+        {
+            await _realtime.SendSessionDeletedAsync(uid, sessionId);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast session deleted: {ex}");
+        }
+    }
+
+    public async Task<ChatResponseDto> ProcessChatWithBillingAsync(ChatRequestDto request)
+    {
+        var activeSubs = await _subscriptionRepo.GetAllAsync(s =>
+    s.UserId == request.UserId && s.Status == SubscriptionStatus.Active && !s.IsDeleted);
+        var activeSub = activeSubs.FirstOrDefault();
+
+        if (activeSub == null || activeSub.EndDate < DateTime.UtcNow || activeSub.RemainingTokenQuota <= 0)
+            throw new Exception("Gói dịch vụ không hợp lệ hoặc đã hết hạn/hết token.");
+
+        var response = await AskAsync(request);
+
+        if (response.TotalTokens > 0)
+        {
+            activeSub.RemainingTokenQuota = Math.Max(0, activeSub.RemainingTokenQuota - response.TotalTokens);
+            _subscriptionRepo.Update(activeSub);
+
+            await _usageLogRepo.AddAsync(new UsageLog
+            {
+                UserId = request.UserId,
+                Feature = FeatureType.Chat,
+                ModelUsed = "gemini-2.5-flash",
+                PromptTokens = response.PromptTokens,
+                CompletionTokens = response.CompletionTokens,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _subscriptionRepo.SaveChangesAsync();
+        }
+
+        response.RemainingTokenQuota = activeSub.RemainingTokenQuota;
+
+        try
+        {
+            await _realtime.SendTokenQuotaUpdatedAsync(request.UserId, activeSub.RemainingTokenQuota);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast token quota update: {ex}");
+        }
+
+        return response;
+    }
+
+    public async Task<UserSubscription?> GetActiveSubscriptionAsync(int userId)
+    {
+        var subs = await _subscriptionRepo.GetAllAsync(s =>
+            s.UserId == userId && s.Status == SubscriptionStatus.Active && !s.IsDeleted);
+        return subs.OrderByDescending(s => s.EndDate).FirstOrDefault();
     }
 }

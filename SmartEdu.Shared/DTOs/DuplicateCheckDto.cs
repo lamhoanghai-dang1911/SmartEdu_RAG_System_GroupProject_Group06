@@ -13,6 +13,8 @@ namespace SmartEdu.Shared.DTOs
         public int? DuplicateDocumentId { get; set; }
         public string? DuplicateTitle { get; set; }
         public DateTime? DuplicateCreatedAt { get; set; }
+        // True if the existing document already has embeddings / is Ready
+        public bool IsEmbeddingReady { get; set; }
     }
 
     public class DuplicateHandleDto
