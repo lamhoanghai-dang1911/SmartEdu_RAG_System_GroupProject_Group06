@@ -23,7 +23,7 @@ namespace SmartEdu.Data
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
         public DbSet<UsageLog> UsageLogs { get; set; }
         public DbSet<ModelComparisonLog> ModelComparisonLogs { get; set; }
-
+        public DbSet<UploadConfig> UploadConfigs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

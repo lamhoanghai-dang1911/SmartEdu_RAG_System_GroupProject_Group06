@@ -113,22 +113,30 @@ public class ChatService : IChatService
             c => c.EmbeddingSet != null
                  && c.EmbeddingSet.Status == EmbeddingSetStatus.Ready
                  && c.EmbeddingSet.Documents.Any(d => d.SubjectId == request.SubjectId.Value && !d.IsDeleted),
-            c => c.EmbeddingSet
+            c => c.EmbeddingSet,
+            c => c.EmbeddingSet.Documents
         );
 
-        var topChunks = chunks.Select(c => new { Chunk = c, Score = CosineSimilarity(queryVector, JsonSerializer.Deserialize<float[]>(c.EmbeddingJson)) })
-                              .OrderByDescending(s => s.Score).Take(3).ToList();
+        // === Retrieval: lấy tối đa N chunk tốt nhất MỖI tài liệu, rồi gộp và cắt tổng ===
+        const int maxChunksPerDocument = 3;
+        const int maxTotalChunks = 5;
 
-        var contextBuilder = new StringBuilder();
+        var allScored = chunks.Select(c => new { Chunk = c, Score = CosineSimilarity(queryVector, JsonSerializer.Deserialize<float[]>(c.EmbeddingJson)) })
+                              .OrderByDescending(s => s.Score)
+                              .ToList();
+
+        var contentBuilder = new StringBuilder();
         var citations = new List<CitationDto>();
         var chunkIds = new List<int>();
         int citationIndex = 1;
 
-        var groupedByDocument = topChunks
+        var groupedByDocument = allScored
             .GroupBy(item => !string.IsNullOrWhiteSpace(item.Chunk.EmbeddingSet?.CanonicalTitle)
                 ? item.Chunk.EmbeddingSet.CanonicalTitle
                 : "Không xác định")
-            .Select(g => g.OrderByDescending(x => x.Score).First())
+            .SelectMany(g => g.OrderByDescending(x => x.Score).Take(maxChunksPerDocument))
+            .OrderByDescending(x => x.Score)
+            .Take(maxTotalChunks)
             .ToList();
 
         foreach (var item in groupedByDocument)
@@ -143,74 +151,81 @@ public class ChatService : IChatService
             }
             catch { /* swallow logging errors */ }
 
-            contextBuilder.AppendLine($"[{citationIndex}] Nguồn: {title}\n{item.Chunk.Content}\n---\n");
+            contentBuilder.AppendLine($"[{citationIndex}] Nguồn: {title}\n{item.Chunk.Content}\n---\n");
+
+            var relevantDoc = item.Chunk.EmbeddingSet?.Documents
+                ?.FirstOrDefault(d => d.SubjectId == request.SubjectId.Value && !d.IsDeleted);
+
+            int resolvedDocumentId = relevantDoc?.Id ?? item.Chunk.EmbeddingSet?.SourceDocumentId ?? 0;
 
             citations.Add(new CitationDto
             {
                 Number = citationIndex,
                 DocumentTitle = title,
-                ChunkId = item.Chunk.Id
+                ChunkId = item.Chunk.Id,
+                DocumentId = resolvedDocumentId
             });
             chunkIds.Add(item.Chunk.Id);
             citationIndex++;
         }
 
-        var (answer, promptTokens, completionTokens) = await GenerateGeminiResponseAsync(contextBuilder.ToString(), request.Question);
+        var (answer, promptTokens, completionTokens) = await GenerateGeminiResponseAsync(contentBuilder.ToString(), request.Question);
+
+        // === Hậu kiểm: chỉ giữ citation có số [n] thực sự xuất hiện trong câu trả lời ===
+        var usedCitations = FilterCitationsUsedInAnswer(answer, citations);
+        var usedChunkIds = usedCitations.Select(c => c.ChunkId).ToList();
 
         var assistantMessage = new ChatMessage
         {
             ChatSessionId = session.Id,
             Role = "assistant",
             Content = answer,
-            SourceChunkIds = JsonSerializer.Serialize(chunkIds),
-            CitationsJson = JsonSerializer.Serialize(citations)
+            SourceChunkIds = JsonSerializer.Serialize(usedChunkIds),
+            CitationsJson = JsonSerializer.Serialize(usedCitations)
         };
         await _messageRepo.AddAsync(assistantMessage);
         await _messageRepo.SaveChangesAsync();
 
         try
         {
-            await _realtime.SendChatMessageAsync(request.SessionId, "assistant", answer, citations, request.ConnectionId);
+            await _realtime.SendChatMessageAsync(request.SessionId, "assistant", answer, usedCitations, request.ConnectionId);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Failed to broadcast chat message: {ex}");
         }
 
-        try
-        {
-            session.UpdatedAt = DateTime.UtcNow;
-            _sessionRepo.Update(session);
-            await _sessionRepo.SaveChangesAsync();
-
-            var allMessages = await _messageRepo.GetAllAsync(m => m.ChatSessionId == session.Id);
-            var msgCount = allMessages.Count();
-
-            var sessionDto = new ChatSessionDto
-            {
-                SessionId = session.SessionId,
-                Title = session.Title,
-                SubjectId = session.SubjectId,
-                SubjectName = session.Subject != null ? session.Subject.Name : "Tất cả",
-                MessageCount = msgCount
-            };
-
-            await _realtime.SendSessionUpsertAsync(request.UserId, sessionDto);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to broadcast session upsert: {ex}");
-        }
-
         return new ChatResponseDto
         {
             SessionId = request.SessionId,
             Answer = answer,
-            Sources = citations.Select(c => c.DocumentTitle).Distinct().ToList(),
-            Citations = citations,
+            Sources = usedCitations.Select(c => c.DocumentTitle).Distinct().ToList(),
+            Citations = usedCitations,
             PromptTokens = promptTokens,
             CompletionTokens = completionTokens
         };
+    }
+
+    private static List<CitationDto> FilterCitationsUsedInAnswer(string answer, List<CitationDto> allCitations)
+    {
+        if (string.IsNullOrWhiteSpace(answer) || allCitations.Count == 0)
+            return new List<CitationDto>();
+
+        var usedNumbers = new HashSet<int>();
+        var matches = System.Text.RegularExpressions.Regex.Matches(answer, @"\[(\d+)\]");
+
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            if (int.TryParse(match.Groups[1].Value, out int num))
+            {
+                usedNumbers.Add(num);
+            }
+        }
+
+        if (usedNumbers.Count == 0)
+            return allCitations;
+
+        return allCitations.Where(c => usedNumbers.Contains(c.Number)).ToList();
     }
 
     public async Task<IEnumerable<ChatMessageDto>> GetHistoryAsync(string sessionId, string userId)

@@ -70,6 +70,72 @@
         }
     }
 
+    /* ===== Filter bar ===== */
+    .filter-bar {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .filter-label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--slate);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-right: 0.3rem;
+    }
+
+    .filter-chip {
+        border: 1.5px solid #e3e5ef;
+        background: #fff;
+        color: #33384f;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.42rem 0.95rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        user-select: none;
+    }
+
+        .filter-chip:hover {
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+        }
+
+        .filter-chip.active {
+            border-color: transparent;
+            color: #fff;
+        }
+
+            .filter-chip.active[data-filter="active"] {
+                background: linear-gradient(120deg, var(--success), #17a866);
+            }
+
+            .filter-chip.active[data-filter="inactive"] {
+                background: linear-gradient(120deg, var(--slate), #6b7183);
+            }
+
+            .filter-chip.active[data-filter="all"] {
+                background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+            }
+
+    .filter-count {
+        font-size: 0.72rem;
+        opacity: 0.85;
+        margin-left: 0.3rem;
+    }
+
+    .empty-filter-msg {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--slate-light);
+        font-size: 0.92rem;
+    }
+
     .table-card {
         background: #fff;
         border-radius: 16px;
@@ -147,6 +213,15 @@
             color: var(--slate) !important;
         }
 
+    #sortStatusHeader {
+        cursor: pointer;
+        user-select: none;
+    }
+
+        #sortStatusHeader:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
     @@media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
             animation-duration: 0.01ms !important;
@@ -177,6 +252,13 @@
         </div>
     }
 
+    <div class="filter-bar">
+        <span class="filter-label">Lọc theo trạng thái</span>
+        <span class="filter-chip active" data-filter="active">✅ Đang dùng</span>
+        <span class="filter-chip" data-filter="inactive">🔁 Đã thay thế</span>
+        <span class="filter-chip" data-filter="all">Tất cả</span>
+    </div>
+
     <div class="table-card">
         <table class="table table-hover align-middle mb-0">
             <thead>
@@ -186,15 +268,23 @@
                     <th>Overlap</th>
                     <th>Phạm vi</th>
                     <th>Môn học</th>
-                    <th>Trạng thái</th>
+                    <th id="sortStatusHeader">
+                        TRẠNG THÁI <span id="sortIcon">▾</span>
+                    </th>
                     <th>Cập nhật bởi</th>
                     <th>Ngày tạo</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach (var c in Model)
+                @{
+                    var sortedModel = Model
+                        .OrderByDescending(c => c.IsActive)
+                        .ThenByDescending(c => c.CreatedAt)
+                        .ToList();
+                }
+                @foreach (var c in sortedModel)
                 {
-                    <tr>
+                    <tr data-active="@c.IsActive.ToString().ToLower()">
                         <td>@c.Id</td>
                         <td>@c.ChunkSize</td>
                         <td>@c.ChunkOverlap</td>
@@ -216,7 +306,7 @@
                             }
                             else
                             {
-                                <span class="badge bg-secondary">Đã thay thế</span>
+                                <span class="badge bg-secondary">🔁 Đã thay thế</span>
                             }
                         </td>
                         <td>@c.UpdatedByUserName</td>
@@ -225,5 +315,75 @@
                 }
             </tbody>
         </table>
+        <div id="emptyFilterMsg" class="empty-filter-msg d-none">
+            Không có cấu hình nào khớp với bộ lọc hiện tại.
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const tbody = document.querySelector(".table tbody");
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            const emptyMsg = document.getElementById("emptyFilterMsg");
+            const filterChips = document.querySelectorAll(".filter-chip");
+
+            let currentFilter = "active"; // mặc định: chỉ hiện "Đang dùng"
+
+            function applyFilter() {
+                let visibleCount = 0;
+
+                rows.forEach(row => {
+                    const isActive = row.getAttribute("data-active") === "true";
+                    let show = true;
+
+                    if (currentFilter === "active") show = isActive;
+                    else if (currentFilter === "inactive") show = !isActive;
+                    // currentFilter === "all" -> show = true
+
+                    row.style.display = show ? "" : "none";
+                    if (show) visibleCount++;
+                });
+
+                emptyMsg.classList.toggle("d-none", visibleCount > 0);
+            }
+
+            filterChips.forEach(chip => {
+                chip.addEventListener("click", function () {
+                    filterChips.forEach(c => c.classList.remove("active"));
+                    this.classList.add("active");
+                    currentFilter = this.getAttribute("data-filter");
+                    applyFilter();
+                });
+            });
+
+            // Áp dụng bộ lọc mặc định ngay khi tải trang
+            applyFilter();
+
+            // ===== Sort theo trạng thái (giữ nguyên tính năng cũ) =====
+            const header = document.getElementById("sortStatusHeader");
+            const icon = document.getElementById("sortIcon");
+            let activeFirst = true;
+
+            header.addEventListener("click", function () {
+                const currentRows = Array.from(tbody.querySelectorAll("tr"));
+                activeFirst = !activeFirst;
+
+                currentRows.sort((a, b) => {
+                    const aActive = a.getAttribute("data-active") === "true";
+                    const bActive = b.getAttribute("data-active") === "true";
+                    if (aActive === bActive) return 0;
+                    if (activeFirst) return aActive ? -1 : 1;
+                    return aActive ? 1 : -1;
+                });
+
+                currentRows.forEach(row => tbody.appendChild(row));
+                icon.textContent = activeFirst ? "▾" : "▴";
+
+                // sort xong vẫn phải áp dụng lại filter hiện tại
+                applyFilter();
+            });
+        });
+    </script>
+}

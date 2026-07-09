@@ -17,5 +17,6 @@
         public int Number { get; set; }
         public string DocumentTitle { get; set; } = string.Empty;
         public int ChunkId { get; set; }
+        public int DocumentId { get; set; }        // ← thêm
     }
 }

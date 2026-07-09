@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using SmartEdu.Business.Interfaces;
 using SmartEdu.Business.Services;
@@ -73,6 +74,8 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
             builder.Services.AddScoped<SmartEdu.Business.Interfaces.IRealtimeNotifier, SmartEdu.Web.Realtime.SignalRNotifier>();
+            builder.Services.AddScoped<IUploadConfigService, UploadConfigService>();
+
             // Reports
             builder.Services.AddScoped<IReportService, ReportService>();
             // Register filter for requiring password change after first login
@@ -81,6 +84,7 @@ namespace SmartEdu.Web
             {
                 options.Filters.AddService<SmartEdu.Web.Filters.RequirePasswordChangeFilter>();
             });
+            builder.Services.AddMemoryCache();
             builder.Services.AddDistributedMemoryCache();
             builder.Services.AddSignalR()
     .AddJsonProtocol(options =>
@@ -93,6 +97,20 @@ namespace SmartEdu.Web
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+            });
+            builder.WebHost.ConfigureKestrel(options =>
+            {
+                options.Limits.MaxRequestBodySize = 500 * 1024 * 1024; // 500MB, khớp giới hạn tối đa Admin được set
+            });
+
+            builder.Services.Configure<IISServerOptions>(options =>
+            {
+                options.MaxRequestBodySize = 500 * 1024 * 1024;
+            });
+
+            builder.Services.Configure<FormOptions>(options =>
+            {
+                options.MultipartBodyLengthLimit = 500 * 1024 * 1024;
             });
             var app = builder.Build();
 

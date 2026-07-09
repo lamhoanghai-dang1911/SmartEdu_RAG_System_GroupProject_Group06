@@ -1,0 +1,119 @@
+﻿@model SmartEdu.Shared.DTOs.UploadConfigSaveDto
+@{
+    ViewData["Title"] = "Thêm cấu hình Upload";
+}
+
+<style>
+    :root {
+        --brand-blue: #0d6efd;
+        --brand-purple: #6610f2;
+        --slate-light: #9aa0b4;
+    }
+
+    .config-card {
+        background: #fff;
+        border-radius: 16px;
+        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
+        padding: 1.75rem;
+    }
+
+    .page-head h2 {
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 1.5rem;
+        color: #12162b;
+        margin: 0;
+    }
+
+    .page-head .btn-secondary {
+        border-radius: 999px;
+        border: none;
+        background: #eef0f6;
+        color: #33384f;
+        font-weight: 600;
+        padding: 0.5rem 1.1rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #33384f;
+    }
+
+    .form-control, .form-select {
+        border: 1.5px solid #e3e5ef;
+        border-radius: 10px;
+        padding: 0.6rem 0.85rem;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--brand-blue);
+            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+        }
+
+    .form-text {
+        font-size: 0.8rem;
+        color: var(--slate-light);
+    }
+
+    .btn-save {
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.6rem;
+        font-weight: 700;
+        color: #fff;
+        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="page-head d-flex justify-content-between align-items-center mb-3">
+        <h2>➕ Thêm cấu hình Upload</h2>
+        <a asp-action="Index" class="btn btn-secondary">⬅ Quay lại</a>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger mb-3">
+            <ul class="mb-0">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@err.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <div class="config-card">
+        <form asp-action="Create" method="post" class="row g-3">
+            @Html.AntiForgeryToken()
+
+            <div class="col-md-6">
+                <label class="form-label">Giới hạn kích thước (MB)</label>
+                <input asp-for="MaxFileSizeMB" type="number" class="form-control" min="1" max="500" />
+                <div class="form-text">Từ 1 đến 500 MB.</div>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Loại file</label>
+                <select asp-for="FileType" class="form-select">
+                    <option value="">🗂️ Áp dụng cho mọi loại file</option>
+                    <option value="pdf">📕 PDF</option>
+                    <option value="docx">📘 DOCX</option>
+                    <option value="pptx">📙 PPTX</option>
+                </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Môn học</label>
+                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
+                    <option value="">🌐 Áp dụng cho mọi môn học</option>
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-save">💾 Lưu cấu hình</button>
+            </div>
+        </form>
+    </div>
+</div>

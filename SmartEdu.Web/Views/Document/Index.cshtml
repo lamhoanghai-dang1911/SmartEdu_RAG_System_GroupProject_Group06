@@ -823,15 +823,17 @@
 
         // render config chips
         if (cfg) {
-        const scopeLabel = cfg.scope === 'Global' ? 'Toàn hệ thống' : `Môn học #${cfg.subjectId}`;
-        cfgEl.innerHTML = `
-        <span><strong>Size</strong> ${cfg.chunkSize}</span>
-        <span><strong>Overlap</strong> ${cfg.chunkOverlap}</span>
-        <span><strong>Phạm vi</strong> ${scopeLabel}</span>
-        `;
-        } else {
-        cfgEl.innerHTML = `<span>Không tìm thấy cấu hình chunking đang áp dụng.</span>`;
-        }
+    const scopeLabel = cfg.scope === 'Global'
+        ? '🌐 Toàn hệ thống'
+        : `📘 ${cfg.subjectName ? escapeHtml(cfg.subjectName) : 'Môn học #' + cfg.subjectId}`;
+    cfgEl.innerHTML = `
+    <span><strong>Size</strong> ${cfg.chunkSize}</span>
+    <span><strong>Overlap</strong> ${cfg.chunkOverlap}</span>
+    <span><strong>Phạm vi</strong> ${scopeLabel}</span>
+    `;
+} else {
+    cfgEl.innerHTML = `<span>Không tìm thấy cấu hình chunking đang áp dụng.</span>`;
+}
 
         function parseIsoToDate(s) {
         if (!s) return null;

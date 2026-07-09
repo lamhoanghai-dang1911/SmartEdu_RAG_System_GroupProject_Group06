@@ -16,6 +16,7 @@ public class DocumentController : Controller
     private readonly IPermissionService _permissionService;
     private readonly IChunkingConfigService _chunkingConfigService;
     private readonly IWebHostEnvironment _env;
+    private readonly IUploadConfigService _uploadConfigService;
 
 
     public DocumentController(
@@ -23,13 +24,15 @@ public class DocumentController : Controller
         ISubjectService subjectService,
         IPermissionService permissionService,
         IChunkingConfigService chunkingConfigService,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        IUploadConfigService uploadConfigService)
     {
         _documentService = documentService;
         _subjectService = subjectService;
         _permissionService = permissionService;
         _chunkingConfigService = chunkingConfigService;
         _env = env;
+        _uploadConfigService = uploadConfigService;
     }
 
     [HttpGet]
@@ -153,13 +156,21 @@ public class DocumentController : Controller
             var cfg = await _chunkingConfigService.ResolveActiveConfigAsync(doc.SubjectId);
             if (cfg != null)
             {
+                string subjectName = null;
+                if (cfg.Scope == SmartEdu.Shared.Enums.ChunkingScope.PerSubject && cfg.SubjectId.HasValue)
+                {
+                    var subject = await _subjectService.GetByIdAsync(cfg.SubjectId.Value);
+                    subjectName = subject?.Name;
+                }
+
                 configObj = new
                 {
                     cfg.ChunkSize,
                     cfg.ChunkOverlap,
                     Strategy = cfg.Strategy.ToString(),
                     Scope = cfg.Scope.ToString(),
-                    cfg.SubjectId
+                    cfg.SubjectId,
+                    SubjectName = subjectName
                 };
             }
         }
@@ -205,7 +216,6 @@ public class DocumentController : Controller
     }
 
     [Authorize(Roles = "Lecturer, Admin")]
-    [RequestSizeLimit(10 * 1024 * 1024)]
     public async Task<IActionResult> Upload()
     {
             var subjects = User.IsInRole("Admin")
@@ -300,8 +310,7 @@ public class DocumentController : Controller
         }
         catch (Exception ex)
         {
-            TempData["Error"] = ex.Message;
-            return RedirectToAction(nameof(Index));
+            return Json(new { success = false, error = ex.Message });
         }
     }
 
@@ -528,6 +537,57 @@ public class DocumentController : Controller
             TempData["Error"] = ex.Message;
             return RedirectToAction(nameof(Index));
         }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUploadLimits(int subjectId)
+    {
+        if (subjectId <= 0) return Json(new { });
+
+        var types = new[] { "pdf", "docx", "pptx" };
+        var limits = new Dictionary<string, int>();
+
+        foreach (var t in types)
+        {
+            limits[t] = await _uploadConfigService.ResolveMaxFileSizeMBAsync(subjectId, t);
+        }
+
+        return Json(limits);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChunksRange(int documentId, int fromIndex, int toIndex)
+    {
+        var doc = await _documentService.GetByIdAsync(documentId);
+        if (doc == null) return NotFound();
+
+        int userId = User.GetUserId();
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
+        if (!hasAccess) return Forbid();
+
+        if (toIndex - fromIndex > 200)
+            return BadRequest("Phạm vi yêu cầu quá lớn (tối đa 200 chunk/lần).");
+
+        var result = await _documentService.GetChunksRangeAsync(documentId, fromIndex, toIndex);
+        if (result == null) return NotFound();
+
+        return Json(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetChunksAroundCitation(int documentId, int chunkId, int range = 10)
+    {
+        var doc = await _documentService.GetByIdAsync(documentId);
+        if (doc == null) return NotFound();
+
+        int userId = User.GetUserId();
+        bool hasAccess = await HasDocumentAccessAsync(userId, doc.SubjectId);
+        if (!hasAccess) return Forbid();
+
+        var result = await _documentService.GetChunksAroundCitationAsync(documentId, chunkId, range);
+        if (result == null) return NotFound();
+
+        return Json(result);
     }
 
     private async Task<bool> HasDocumentAccessAsync(int userId, int subjectId)

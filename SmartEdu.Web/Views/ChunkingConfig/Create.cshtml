@@ -174,11 +174,14 @@
 
             <div class="col-md-6">
                 <label class="form-label">Phạm vi (Scope)</label>
-                <select asp-for="Scope" id="scopeSelect" asp-items="Html.GetEnumSelectList<SmartEdu.Shared.Enums.ChunkingScope>()" class="form-select"></select>
+                <select asp-for="Scope" id="scopeSelect" class="form-select">
+                    <option value="@((int)SmartEdu.Shared.Enums.ChunkingScope.Global)">🌐 Toàn hệ thống</option>
+                    <option value="@((int)SmartEdu.Shared.Enums.ChunkingScope.PerSubject)">📘 Theo môn học</option>
+                </select>
             </div>
 
             <div class="col-md-6" id="subjectGroup">
-                <label class="form-label">Môn học (chỉ áp dụng nếu Scope = PerSubject)</label>
+                <label class="form-label">Môn học</label>
                 <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
                     <option value="">-- Chọn môn học --</option>
                 </select>

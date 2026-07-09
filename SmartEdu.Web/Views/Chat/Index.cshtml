@@ -18,8 +18,35 @@
         --slate-light: #9aa0b4;
     }
 
+    /* ===== Panel tabs (mobile/tablet switcher) ===== */
+    .panel-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .panel-tab-btn {
+        flex: 1;
+        border: 1.5px solid #e3e5ef;
+        background: #fff;
+        color: #33384f;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.55rem 0.6rem;
+        border-radius: 12px;
+        transition: all 0.15s ease;
+    }
+
+        .panel-tab-btn.active {
+            border-color: transparent;
+            background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+            color: #fff;
+        }
+
     /* ===== Panels ===== */
-    .chat-panel {
+    .chat-panel,
+    .sidebar-panel,
+    .source-panel {
         height: calc(100vh - 120px);
         display: flex;
         flex-direction: column;
@@ -38,18 +65,21 @@
     }
 
         .chat-messages::-webkit-scrollbar,
-        .sidebar-list::-webkit-scrollbar {
+        .sidebar-list::-webkit-scrollbar,
+        .source-body::-webkit-scrollbar {
             width: 8px;
         }
 
         .chat-messages::-webkit-scrollbar-thumb,
-        .sidebar-list::-webkit-scrollbar-thumb {
+        .sidebar-list::-webkit-scrollbar-thumb,
+        .source-body::-webkit-scrollbar-thumb {
             background: #d7dbe8;
             border-radius: 8px;
         }
 
             .chat-messages::-webkit-scrollbar-thumb:hover,
-            .sidebar-list::-webkit-scrollbar-thumb:hover {
+            .sidebar-list::-webkit-scrollbar-thumb:hover,
+            .source-body::-webkit-scrollbar-thumb:hover {
                 background: #b9bfd4;
             }
 
@@ -59,18 +89,8 @@
         border-top: 1px solid #ecedf4 !important;
     }
 
-    .sidebar-panel {
-        height: calc(100vh - 120px);
-        display: flex;
-        flex-direction: column;
-        background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
-        overflow: hidden;
-        border: none !important;
-    }
-
-    .sidebar-header {
+    .sidebar-header,
+    .source-header {
         flex: 0 0 auto;
         background: #fff;
         z-index: 2;
@@ -78,7 +98,8 @@
         padding: 1rem !important;
     }
 
-        .sidebar-header h6 {
+        .sidebar-header h6,
+        .source-header h6 {
             font-family: 'Sora', sans-serif;
             font-weight: 700;
             font-size: 0.95rem;
@@ -109,7 +130,6 @@
         padding: 0.75rem !important;
     }
 
-        /* ===== Session cards ===== */
         .sidebar-list .card {
             border: 1px solid #edeef5 !important;
             border-radius: 12px !important;
@@ -216,7 +236,7 @@
         }
     }
 
-    /* ===== Message bubbles (also used by JS-appended messages) ===== */
+    /* ===== Message bubbles ===== */
     .chat-messages .bg-primary {
         background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple)) !important;
         border: none !important;
@@ -254,7 +274,7 @@
         letter-spacing: 0.02em;
     }
 
-    /* ===== Citations (khối "Nguồn:") ===== */
+    /* ===== Citations ===== */
     .citation-block {
         margin-top: 0.7rem;
         padding-top: 0.65rem;
@@ -289,6 +309,7 @@
         padding: 0.28rem 0.7rem 0.28rem 0.32rem;
         text-decoration: none !important;
         max-width: 220px;
+        cursor: pointer;
         transition: background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
     }
 
@@ -395,34 +416,85 @@
             opacity: 0.6;
         }
 
-    /* ===== Chunk detail modal ===== */
-    #chunkDetailModal .modal-content {
-        border: none;
-        border-radius: 16px;
-        overflow: hidden;
+    /* ===== Source panel (mới) ===== */
+    .source-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
 
-    #chunkDetailModal .modal-header {
-        background: linear-gradient(120deg, var(--ink-navy), #171d3d);
-        color: #fff;
-        border: none;
+    #sourceDocSubtitle {
+        font-size: 0.76rem;
     }
 
-    #chunkDetailModal .modal-title {
-        font-family: 'Sora', sans-serif;
+    .source-body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        background: var(--paper);
+        padding: 0.9rem;
+    }
+
+    .source-empty {
+        text-align: center;
+        color: var(--slate-light);
+        margin-top: 3rem;
+    }
+
+    .source-loading-top,
+    .source-loading-bottom {
+        text-align: center;
+        font-size: 0.78rem;
+        color: var(--slate-light);
+        padding: 0.5rem 0;
+    }
+
+    .source-chunk {
+        background: #fff;
+        border: 1px solid #edeef5;
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.7rem;
+        transition: background 0.4s ease, border-color 0.4s ease;
+    }
+
+        .source-chunk.highlight {
+            background: rgba(13, 110, 253, 0.08);
+            border-color: rgba(13, 110, 253, 0.4);
+        }
+
+    .source-chunk-location {
+        font-size: 0.72rem;
         font-weight: 700;
-        font-size: 1.05rem;
-    }
-
-    #chunkDetailModal .btn-close {
-        filter: invert(1) brightness(2);
-    }
-
-    #chunkDetailModal .list-group-item {
-        border-radius: 10px !important;
+        color: var(--brand-blue);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
         margin-bottom: 0.4rem;
-        border: 1px solid #edeef5 !important;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
     }
+
+    .source-chunk-content {
+        font-size: 0.86rem;
+        color: #33384f;
+        white-space: pre-wrap;
+        line-height: 1.55;
+    }
+
+    .source-close-btn {
+        border: none;
+        background: transparent;
+        color: var(--slate-light);
+        font-size: 1.1rem;
+        line-height: 1;
+        padding: 0.2rem 0.4rem;
+    }
+
+        .source-close-btn:hover {
+            color: var(--danger, #e5484d);
+        }
 
     @@media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
@@ -431,30 +503,44 @@
             transition-duration: 0.01ms !important;
         }
     }
-    /* ===== Responsive: màn hình hẹp / chia đôi cửa sổ ===== */
-    @@media (max-width: 991.98px) {
+
+    /* ===== Responsive: ≥1200px hiện đủ 3 cột, dưới 1200px dùng tab-switcher ===== */
+    .panel-tabs {
+        display: none;
+    }
+
+    @@media (max-width: 1199.98px) {
+        .panel-tabs {
+            display: flex;
+        }
+
         .container-fluid.mt-3 .row {
             height: auto !important;
-            display: flex;
-            flex-direction: column;
         }
 
+        .panel-col {
+            display: none;
+        }
+
+            .panel-col.active {
+                display: block;
+            }
+
+        .chat-panel,
         .sidebar-panel,
-        .chat-panel {
-            height: 45vh !important; /* hoặc auto nếu muốn co giãn theo nội dung */
-            min-height: 320px;
-            margin-bottom: 1rem;
+        .source-panel {
+            height: calc(100vh - 190px);
+            min-height: 420px;
+        }
+    }
+
+    @@media (min-width: 1200px) {
+        .panel-col {
+            display: block !important;
         }
 
-        .chat-panel {
-            height: 55vh !important;
-        }
-
-        .col-md-3,
-        .col-md-9 {
-            width: 100%;
-            max-width: 100%;
-            flex: 0 0 100%;
+        .source-close-btn {
+            display: none;
         }
     }
 
@@ -477,15 +563,22 @@
         }
     }
 
-    /* Ngăn tràn ngang toàn trang */
     html, body {
         overflow-x: hidden;
     }
 </style>
 
 <div class="container-fluid mt-3">
+
+    <div class="panel-tabs">
+        <button type="button" class="panel-tab-btn active" data-target="sessions">💬 Phiên chat</button>
+        <button type="button" class="panel-tab-btn" data-target="chat">🤖 Chat</button>
+        <button type="button" class="panel-tab-btn" data-target="source">📎 Nguồn</button>
+    </div>
+
     <div class="row" style="height: calc(100vh - 120px)">
-        <div class="col-md-3">
+
+        <div class="col-12 col-xl-3 panel-col active" data-panel="sessions">
             <div class="sidebar-panel border-end d-flex flex-column">
 
                 <div class="sidebar-header p-2 d-flex justify-content-between align-items-center">
@@ -519,7 +612,7 @@
             </div>
         </div>
 
-        <div class="col-md-9">
+        <div class="col-12 col-xl-5 panel-col" data-panel="chat">
             <div class="chat-panel border d-flex flex-column">
 
                 <div class="d-flex align-items-center gap-2 mb-2 p-2">
@@ -544,7 +637,6 @@
                     }
                 </div>
 
-                @* Messages area: grows and scrolls *@
                 <div id="chatBox" class="chat-messages p-3 bg-light mb-2">
 
                     @if (!history.Any())
@@ -580,7 +672,7 @@
                                                 @Html.Raw(string.Join(
                                                     "",
                                                     msg.Citations.Select(c =>
-                                                        $"<a href='#' class='citation-link' data-chunkid='{c.ChunkId}' title='{System.Net.WebUtility.HtmlEncode(c.DocumentTitle)}'>" +
+                                                        $"<a href='#' class='citation-link' data-chunkid='{c.ChunkId}' data-documentid='{c.DocumentId}' data-number='{c.Number}' title='{System.Net.WebUtility.HtmlEncode(c.DocumentTitle)}'>" +
                                                         $"<span class='chip-num'>{c.Number}</span>" +
                                                         $"<span class='chip-title'>{System.Net.WebUtility.HtmlEncode(c.DocumentTitle)}</span>" +
                                                         $"</a>"
@@ -600,7 +692,6 @@
                     }
                 </div>
 
-                @* Input area fixed at bottom of panel *@
                 <div class="chat-input-area p-2 bg-white border-top">
                     <div id="typingIndicator" class="text-muted small mb-1 d-none">
                         🤖 Đang trả lời...
@@ -618,446 +709,466 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-12 col-xl-4 panel-col" data-panel="source">
+            <div class="source-panel border d-flex flex-column">
+                <div class="source-header">
+                    <div>
+                        <h6 class="mb-1" id="sourceDocTitle">📎 Nguồn tham khảo</h6>
+                        <small class="text-muted" id="sourceDocSubtitle">Bấm vào số trích dẫn trong câu trả lời để xem nguồn</small>
+                    </div>
+                    <button type="button" class="source-close-btn" id="sourceCloseBtn" title="Đóng">✕</button>
+                </div>
+                <div class="source-body" id="sourceBody">
+                    <div class="source-empty" id="sourceEmptyMsg">
+                        <div style="font-size:2rem;">📄</div>
+                        <p>Chưa có nguồn nào được chọn</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
-                const sessionId   = "@currentSessionId";
-                const chatBox     = document.getElementById("chatBox");
-                const input       = document.getElementById("questionInput");
-                const sendBtn     = document.getElementById("sendBtn");
-                const typing      = document.getElementById("typingIndicator");
-                const emptyMsg    = document.getElementById("emptyMsg");
+        const sessionId   = "@currentSessionId";
+        const chatBox     = document.getElementById("chatBox");
+        const input       = document.getElementById("questionInput");
+        const sendBtn     = document.getElementById("sendBtn");
+        const typing      = document.getElementById("typingIndicator");
+        const emptyMsg    = document.getElementById("emptyMsg");
 
-                
+        function scrollBottom() {
+        chatBox.scrollTop = chatBox.scrollHeight;
+        }
+        scrollBottom();
 
-                // Scroll xuống cuối
-                function scrollBottom() {
-                    chatBox.scrollTop = chatBox.scrollHeight;
-                }
-                scrollBottom();
+        function autosizeTextarea(el, maxHeight = 400) {
+        if (!el) return;
+        el.style.height = 'auto';
+        const newH = Math.min(el.scrollHeight, maxHeight);
+        el.style.height = newH + 'px';
+        }
 
-                // Autosize textarea to content
-                function autosizeTextarea(el, maxHeight = 400) {
-                    if (!el) return;
-                    el.style.height = 'auto';
-                    const newH = Math.min(el.scrollHeight, maxHeight);
-                    el.style.height = newH + 'px';
-                }
+        function renderChatMarkdown(containerId, markdownText) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+        marked.setOptions({ gfm: true, breaks: true, smartLists: true, smartypants: false });
+        const raw = marked.parse(markdownText ?? '');
+        const safe = DOMPurify.sanitize(raw);
+        container.classList.add('chat-message-content');
+        container.innerHTML = safe;
+        } else {
+        container.classList.add('chat-message-content');
+        container.textContent = (markdownText ?? '').replace(/\\n/g, '\n');
+        }
+        }
 
-                // Render markdown safely into element by id
-                function renderChatMarkdown(containerId, markdownText) {
-                    const container = document.getElementById(containerId);
-                    if (!container) return;
-                    if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
-                        marked.setOptions({ gfm: true, breaks: true, smartLists: true, smartypants: false });
-                        const raw = marked.parse(markdownText ?? '');
-                        const safe = DOMPurify.sanitize(raw);
-                        container.classList.add('chat-message-content');
-                        container.innerHTML = safe;
-                    } else {
-                        container.classList.add('chat-message-content');
-                        container.textContent = (markdownText ?? '').replace(/\\n/g, '\n');
-                    }
-                }
+        function appendMessage(role, content) {
+        if (emptyMsg) emptyMsg.remove();
 
-                // Thêm bubble tin nhắn
-                function appendMessage(role, content) {
-                    if (emptyMsg) emptyMsg.remove();
+        const wrapper = document.createElement("div");
+        wrapper.className = `d-flex mb-2 ${role === "user" ? "justify-content-end" : "justify-content-start"}`;
 
-                    const wrapper = document.createElement("div");
-                    wrapper.className = `d-flex mb-2 ${role === "user"
-                        ? "justify-content-end"
-                        : "justify-content-start"}`;
+        const bubble = document.createElement("div");
+        bubble.style.maxWidth = "75%";
 
-                    const bubble = document.createElement("div");
-                    bubble.style.maxWidth = "75%";
+        if (role === "user") {
+        bubble.className = "bg-primary text-white rounded p-2 px-3";
+        bubble.classList.add('chat-message-content');
+        bubble.textContent = content.replace(/\\n/g, '\n');
+        } else {
+        bubble.className = "bg-white border rounded p-2 px-3";
+        const tmpId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+        const header = `<small class="text-muted d-block mb-1">🤖 SmartEdu AI</small>`;
+        bubble.innerHTML = header + `<div id="${tmpId}"></div>`;
+        setTimeout(() => renderChatMarkdown(tmpId, content), 0);
+        bubble.dataset.role = 'assistant-bubble';
+        }
 
-                    if (role === "user") {
-                        bubble.className = "bg-primary text-white rounded p-2 px-3";
-                        // Use textContent but preserve newlines visually via CSS pre-wrap
-                        bubble.classList.add('chat-message-content');
-                        bubble.textContent = content.replace(/\\n/g, '\n');
-                    } else {
-                        bubble.className = "bg-white border rounded p-2 px-3";
-                        // Create a temporary container to render markdown safely
-                        const tmpId = 'tmp_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-                        const header = `<small class="text-muted d-block mb-1">🤖 SmartEdu AI</small>`;
-                        bubble.innerHTML = header + `<div id="${tmpId}"></div>`;
-                        // Render markdown into that inner div
-                        // Use setTimeout to ensure element is in DOM
-                        setTimeout(() => renderChatMarkdown(tmpId, content), 0);
-                        // Trả về bubble để sendMessage() có thể gắn citation ngay bên trong (thay vì tách rời)
-                        bubble.dataset.role = 'assistant-bubble';
-                    }
+        wrapper.appendChild(bubble);
+        chatBox.appendChild(wrapper);
+        scrollBottom();
+        return bubble;
+        }
 
-                    wrapper.appendChild(bubble);
-                    chatBox.appendChild(wrapper);
-                    scrollBottom();
-                    return bubble;
-                }
+        function buildCitationChipsHtml(citations) {
+        return citations.map(c =>
+        `<a href="#" class="citation-link" data-chunkid="${c.chunkId}" data-documentid="${c.documentId}" data-number="${c.number}" title="${escapeHtml(c.documentTitle)}">` +
+        `<span class="chip-num">${c.number}</span>` +
+        `<span class="chip-title">${escapeHtml(c.documentTitle)}</span>` +
+        `</a>`
+        ).join("");
+        }
 
-                // Gửi câu hỏi
-                async function sendMessage() {
-                    const questionRaw = input.value;
-                    const question = questionRaw.trim();
-                    if (!question) return;
+        function appendCitationBlock(bubble, citations) {
+        if (!citations || citations.length === 0) return;
+        setTimeout(() => {
+        const block = document.createElement("div");
+        block.className = "citation-block";
+        const label = document.createElement("div");
+        label.className = "citation-block-label";
+        label.textContent = "📎 Nguồn tham khảo";
+        const chips = document.createElement("div");
+        chips.className = "citation-chips";
+        chips.innerHTML = buildCitationChipsHtml(citations);
+        block.appendChild(label);
+        block.appendChild(chips);
+        bubble.appendChild(block);
+        scrollBottom();
+        }, 10);
+        }
 
-                    const subjectId = document.getElementById("subjectSelect").value;
+        async function sendMessage() {
+        const questionRaw = input.value;
+        const question = questionRaw.trim();
+        if (!question) return;
 
-                    input.value = "";
-                    autosizeTextarea(input);
-                    sendBtn.disabled = true;
-                    appendMessage("user", questionRaw);
-                    typing.classList.remove("d-none");
+        const subjectId = document.getElementById("subjectSelect").value;
 
-                    try {
-                        await chatHubReady;
+        input.value = "";
+        autosizeTextarea(input);
+        sendBtn.disabled = true;
+        appendMessage("user", questionRaw);
+        typing.classList.remove("d-none");
 
-                        const res = await fetch("/Chat/Ask", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                        sessionId,
-                        question,
-                        subjectId: subjectId ? parseInt(subjectId) : null,
-                        connectionId: chatHubConnection.connectionId
-                        })
-                        });
+        try {
+        await chatHubReady;
 
-                        const data = await res.json();
+        const res = await fetch("/Chat/Ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+        sessionId,
+        question,
+        subjectId: subjectId ? parseInt(subjectId) : null,
+        connectionId: chatHubConnection.connectionId
+        })
+        });
 
-                        typing.classList.add("d-none");
+        const data = await res.json();
+        typing.classList.add("d-none");
 
-                        if (res.ok) {
-                            const assistantBubble = appendMessage("assistant", data.answer);
+        if (res.ok) {
+        const assistantBubble = appendMessage("assistant", data.answer);
+        appendCitationBlock(assistantBubble, data.citations);
 
-                            // Hiển thị citations dạng chip gộp số + tên tài liệu, gắn ngay bên trong bubble
-                            if (data.citations && data.citations.length > 0) {
-                                setTimeout(() => {
-                                    const block = document.createElement("div");
-                                    block.className = "citation-block";
-                                    const label = document.createElement("div");
-                                    label.className = "citation-block-label";
-                                    label.textContent = "📎 Nguồn tham khảo";
-                                    const chips = document.createElement("div");
-                                    chips.className = "citation-chips";
-                                    chips.innerHTML = data.citations.map(c =>
-                                        `<a href="#" class="citation-link" data-chunkid="${c.chunkId}" title="${escapeHtml(c.documentTitle)}">` +
-                                        `<span class="chip-num">${c.number}</span>` +
-                                        `<span class="chip-title">${escapeHtml(c.documentTitle)}</span>` +
-                                        `</a>`
-                                    ).join("");
-                                    block.appendChild(label);
-                                    block.appendChild(chips);
-                                    assistantBubble.appendChild(block);
-                                    scrollBottom();
-                                }, 10);
-                            }
+        if (data.remainingTokenQuota !== undefined) {
+        const tokenSpan = document.getElementById("remainingTokens");
+        if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+        }
+        } else {
+        appendMessage("assistant", "❌ Lỗi: " + data.error);
+        if (data.error && (data.error.includes("token") || data.error.includes("gói"))) {
+        const btnDiv = document.createElement("div");
+        btnDiv.className = "text-center my-2";
+        btnDiv.innerHTML = '<a href="/Package/List" class="btn btn-sm btn-warning">💳 Mua gói dịch vụ</a>';
+        chatBox.appendChild(btnDiv);
+        scrollBottom();
+        }
+        }
+        } catch (err) {
+        typing.classList.add("d-none");
+        appendMessage("assistant", "❌ Không thể kết nối server.");
+        } finally {
+        sendBtn.disabled = false;
+        input.focus();
+        }
+        }
 
-                            // Update token badge
-                            if (data.remainingTokenQuota !== undefined) {
-                                const tokenSpan = document.getElementById("remainingTokens");
-                                if (tokenSpan) {
-                                    tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
-                                }
-                            }
-                        } else {
-                            appendMessage("assistant", "❌ Lỗi: " + data.error);
+        sendBtn.addEventListener("click", sendMessage);
+        autosizeTextarea(input);
+        input.addEventListener('input', () => autosizeTextarea(input));
+        input.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+        }
+        });
 
-                            // Nếu hết token/chưa mua gói, hiện nút mua gói
-                            if (data.error && (data.error.includes("token") || data.error.includes("gói"))) {
-                                const btnDiv = document.createElement("div");
-                                btnDiv.className = "text-center my-2";
-                                btnDiv.innerHTML = '<a href="/Package/List" class="btn btn-sm btn-warning">💳 Mua gói dịch vụ</a>';
-                                chatBox.appendChild(btnDiv);
-                                scrollBottom();
-                            }
-                        }
-                    } catch (err) {
-                        typing.classList.add("d-none");
-                        appendMessage("assistant", "❌ Không thể kết nối server.");
-                    } finally {
-                        sendBtn.disabled = false;
-                        input.focus();
-                    }
-                }
+        document.addEventListener("DOMContentLoaded", function() {
+        const selectEl = document.getElementById("subjectSelect");
+        const selectedValue = "@(ViewBag.Subjects?.SelectedValue ?? "")";
+        if (selectedValue) selectEl.value = selectedValue;
+        });
 
-                // Event listeners
-                sendBtn.addEventListener("click", sendMessage);
-                // Initialize autosize
-                autosizeTextarea(input);
-                input.addEventListener('input', () => autosizeTextarea(input));
-                input.addEventListener("keydown", e => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        sendMessage();
-                    }
-                    // Shift+Enter => allow newline
-                });
-                    document.addEventListener("DOMContentLoaded", function() {
-                    const selectEl = document.getElementById("subjectSelect");
-                    const selectedValue = "@(ViewBag.Subjects?.SelectedValue ?? "")";
-                    if (selectedValue) {
-                        selectEl.value = selectedValue;
-                    }
-                });
+        function escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return String(unsafe)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+        }
 
-                // Utility to escape HTML in strings
-                function escapeHtml(unsafe) {
-                    if (!unsafe) return '';
-                    return unsafe
-                        .replace(/&/g, "&amp;")
-                        .replace(/</g, "&lt;")
-                        .replace(/>/g, "&gt;")
-                        .replace(/\"/g, "&quot;")
-                        .replace(/'/g, "&#039;");
-                }
+        // =====================================================================
+        // ===== PANEL TAB SWITCHER (dùng cho <1200px) ============================
+        // =====================================================================
+        const panelTabBtns = document.querySelectorAll(".panel-tab-btn");
+        const panelCols = document.querySelectorAll(".panel-col");
 
-                // Map DocumentStatus enum (0=Pending, 1=Processing, 2=Ready, 3=Failed) sang badge dễ đọc
-                function documentStatusBadge(status) {
-                    const map = {
-                        0: { label: 'Chờ xử lý', cls: 'bg-secondary' },
-                        1: { label: 'Đang xử lý', cls: 'bg-warning text-dark' },
-                        2: { label: 'Sẵn sàng', cls: 'bg-success' },
-                        3: { label: 'Thất bại', cls: 'bg-danger' }
-                    };
-                    const info = map[status] || { label: `Không rõ (${status})`, cls: 'bg-secondary' };
-                    return `<span class="badge ${info.cls}">${info.label}</span>`;
-                }
+        function switchPanel(target) {
+        panelTabBtns.forEach(b => b.classList.toggle("active", b.getAttribute("data-target") === target));
+        panelCols.forEach(c => c.classList.toggle("active", c.getAttribute("data-panel") === target));
+        }
 
-                // Click handler for citation links - fetch chunk detail and show modal
-                document.addEventListener('click', async function (e) {
-                    const el = e.target.closest('.citation-link');
-                    if (el) {
-                        e.preventDefault();
-                        const chunkId = el.getAttribute('data-chunkid');
-                        if (!chunkId) return;
+        panelTabBtns.forEach(btn => {
+        btn.addEventListener("click", () => switchPanel(btn.getAttribute("data-target")));
+        });
 
-                        try {
-                            const res = await fetch(`/Document/GetChunkDetail?chunkId=${encodeURIComponent(chunkId)}`);
-                            if (!res.ok) {
-                                alert('Không thể tải nguồn');
-                                return;
-                            }
-                            const json = await res.json();
+        document.getElementById("sourceCloseBtn")?.addEventListener("click", () => switchPanel("chat"));
 
-                            // Build modal content
-                            let modal = document.getElementById('chunkDetailModal');
-                            if (!modal) {
-                                modal = document.createElement('div');
-                                modal.id = 'chunkDetailModal';
-                                modal.className = 'modal fade';
-                                modal.tabIndex = -1;
-                                modal.innerHTML = `
-        <div class="modal-dialog modal-lg modal-dialog-scrollable">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">📎 Thông tin nguồn</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="chunkDetailBody"></div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-            </div>
-          </div>
+        // =====================================================================
+        // ===== SOURCE PANEL (click citation -> load + scroll + highlight) =====
+        // =====================================================================
+        const sourceBody = document.getElementById("sourceBody");
+        const sourceDocTitle = document.getElementById("sourceDocTitle");
+        const sourceDocSubtitle = document.getElementById("sourceDocSubtitle");
+
+        let currentSourceDocumentId = null;
+        let currentLoadedMin = null;
+        let currentLoadedMax = null;
+        let currentTotalChunks = null;
+        let isLoadingMore = false;
+
+        // Ghi thêm data-chunkid vào mỗi block để highlight đúng theo ChunkId (không chỉ ChunkIndex)
+        function buildChunkHtmlWithId(documentId, chunk) {
+        const loc = chunk.sourceLocation ? escapeHtml(chunk.sourceLocation) : "Không xác định";
+        return `<div class="source-chunk" id="chunk-${documentId}-${chunk.chunkIndex}" data-chunk-index="${chunk.chunkIndex}" data-chunk-id="${chunk.chunkId}">
+        <div class="source-chunk-location">📍 ${loc}</div>
+        <div class="source-chunk-content">${escapeHtml(chunk.content)}</div>
         </div>`;
-                                document.body.appendChild(modal);
-                                // initialize bootstrap modal if available
-                            }
+        }
 
-                            const body = document.getElementById('chunkDetailBody');
-                            if (body) {
-                                body.innerHTML = '';
+        function renderSourcePanelFinal(data, highlightChunkId) {
+        currentSourceDocumentId = data.documentId;
+        currentTotalChunks = data.totalChunks;
 
-                                // Nội dung trích dẫn
-                                const contentLabel = document.createElement('h6');
-                                contentLabel.className = 'text-muted mb-2';
-                                contentLabel.textContent = 'Nội dung trích dẫn';
-                                body.appendChild(contentLabel);
+        if (data.chunks.length > 0) {
+        currentLoadedMin = data.chunks[0].chunkIndex;
+        currentLoadedMax = data.chunks[data.chunks.length - 1].chunkIndex;
+        } else {
+        currentLoadedMin = 0;
+        currentLoadedMax = -1;
+        }
 
-                                const contentBox = document.createElement('div');
-                                contentBox.className = 'p-3 bg-light rounded border';
-                                contentBox.style.whiteSpace = 'pre-wrap';
-                                contentBox.style.maxHeight = '350px';
-                                contentBox.style.overflowY = 'auto';
-                                contentBox.style.fontSize = '0.9rem';
-                                contentBox.textContent = json.content || '';
-                                body.appendChild(contentBox);
+        sourceDocTitle.textContent = "📎 " + data.documentTitle;
+        sourceDocSubtitle.textContent = `${data.totalChunks} đoạn nội dung`;
 
-                                // Danh sách tài liệu liên quan
-                                const docLabel = document.createElement('h6');
-                                docLabel.className = 'text-muted mt-3 mb-2';
-                                docLabel.textContent = 'Tài liệu liên quan';
-                                body.appendChild(docLabel);
+        sourceBody.innerHTML = data.chunks.map(c => buildChunkHtmlWithId(data.documentId, c)).join("");
 
-                                if (json.documents && json.documents.length > 0) {
-                                    const list = document.createElement('div');
-                                    list.className = 'list-group';
-                                    json.documents.forEach(d => {
-                                        const item = document.createElement('div');
-                                        item.className = 'list-group-item d-flex justify-content-between align-items-center';
-                                        item.innerHTML = `
-                                            <div>
-                                                <strong>${escapeHtml(d.title)}</strong>
-                                                <div class="text-muted small">ID: ${d.id}</div>
-                                            </div>
-                                            ${documentStatusBadge(d.status)}
-                                        `;
-                                        list.appendChild(item);
-                                    });
-                                    body.appendChild(list);
-                                } else {
-                                    const p = document.createElement('p');
-                                    p.className = 'text-muted mt-2';
-                                    p.textContent = 'Không có tài liệu liên quan.';
-                                    body.appendChild(p);
-                                }
-                            }
+        if (highlightChunkId) {
+        setTimeout(() => doHighlight(highlightChunkId), 60);
+        }
+        }
 
-                            // Show bootstrap modal if available, otherwise simple alert with content
-                            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-                                const bsModal = new bootstrap.Modal(modal);
-                                bsModal.show();
-                            } else {
-                                // fallback
-                                alert(json.content || 'Không có nội dung');
-                            }
+        function doHighlight(chunkId) {
+        const el = sourceBody.querySelector(`.source-chunk[data-chunk-id="${chunkId}"]`);
+        if (!el) return;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("highlight");
+        setTimeout(() => el.classList.remove("highlight"), 2500);
+        }
 
-                        } catch (ex) {
-                            console.error(ex);
-                            alert('Lỗi khi tải nguồn');
-                        }
-                    }
-                });
+        async function openSourcePanel(documentId, chunkId, range = 15) {
+        if (window.innerWidth < 1200) switchPanel("source");
 
-                // === SignalR: đồng bộ đa tab cùng session + cập nhật token quota real-time ===
-                const chatHubConnection = new signalR.HubConnectionBuilder()
-                    .withUrl("/hubs/chat")
-                    .withAutomaticReconnect()
-                    .build();
+        sourceBody.innerHTML = `<div class="source-empty"><div style="font-size:2rem;">⏳</div><p>Đang tải nguồn...</p></div>`;
 
-                chatHubConnection.on("ReceiveMessage", (msg) => {
-                    if (msg.role === "assistant") {
-                        const bubble = appendMessage("assistant", msg.content);
-                        if (msg.citations && msg.citations.length > 0) {
-                            setTimeout(() => {
-                                const block = document.createElement("div");
-                                block.className = "citation-block";
-                                const label = document.createElement("div");
-                                label.className = "citation-block-label";
-                                label.textContent = "📎 Nguồn tham khảo";
-                                const chips = document.createElement("div");
-                                chips.className = "citation-chips";
-                                chips.innerHTML = msg.citations.map(c =>
-                                    `<a href="#" class="citation-link" data-chunkid="${c.chunkId}" title="${escapeHtml(c.documentTitle)}">` +
-                                    `<span class="chip-num">${c.number}</span>` +
-                                    `<span class="chip-title">${escapeHtml(c.documentTitle)}</span>` +
-                                    `</a>`
-                                ).join("");
-                                block.appendChild(label);
-                                block.appendChild(chips);
-                                bubble.appendChild(block);
-                                scrollBottom();
-                            }, 10);
-                        }
-                    } else {
-                        appendMessage(msg.role, msg.content);
-                    }
-                });
+        try {
+        const resp = await fetch(`/Document/GetChunksAroundCitation?documentId=${documentId}&chunkId=${chunkId}&range=${range}`);
+        if (!resp.ok) {
+        sourceBody.innerHTML = `<div class="source-empty"><div style="font-size:2rem;">⚠️</div><p>Không thể tải nguồn (bạn có thể không có quyền truy cập).</p></div>`;
+        return;
+        }
+        const data = await resp.json();
+        renderSourcePanelFinal(data, chunkId);
+        } catch (err) {
+        console.error(err);
+        sourceBody.innerHTML = `<div class="source-empty"><div style="font-size:2rem;">⚠️</div><p>Lỗi kết nối khi tải nguồn.</p></div>`;
+        }
+        }
 
-                const chatHubReady = chatHubConnection.start()
-                    .then(() => chatHubConnection.invoke("JoinSession", sessionId))
-                    .catch(err => console.error("ChatHub connect failed:", err));
+        // Infinite scroll: load thêm khi cuộn gần đầu/cuối panel nguồn
+        sourceBody.addEventListener("scroll", async function () {
+        if (isLoadingMore || currentSourceDocumentId == null) return;
 
-                chatHubConnection.start()
-                    .then(() => chatHubConnection.invoke("JoinSession", sessionId))
-                    .catch(err => console.error("ChatHub connect failed:", err));
+        const nearTop = sourceBody.scrollTop < 60;
+        const nearBottom = sourceBody.scrollHeight - sourceBody.scrollTop - sourceBody.clientHeight < 60;
 
-                const notifyHubConnection = new signalR.HubConnectionBuilder()
-                    .withUrl("/hubs/notifications")
-                    .withAutomaticReconnect()
-                    .build();
+        if (nearTop && currentLoadedMin > 0) {
+        isLoadingMore = true;
+        const oldScrollHeight = sourceBody.scrollHeight;
+        const fromIdx = Math.max(0, currentLoadedMin - 15);
+        const toIdx = currentLoadedMin - 1;
 
-                notifyHubConnection.on("TokenQuotaUpdated", (data) => {
-                    const tokenSpan = document.getElementById("remainingTokens");
-                    if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
-                });
+        try {
+        const resp = await fetch(`/Document/GetChunksRange?documentId=${currentSourceDocumentId}&fromIndex=${fromIdx}&toIndex=${toIdx}`);
+        if (resp.ok) {
+        const data = await resp.json();
+        if (data.chunks.length > 0) {
+        const html = data.chunks.map(c => buildChunkHtmlWithId(currentSourceDocumentId, c)).join("");
+        sourceBody.insertAdjacentHTML("afterbegin", html);
+        currentLoadedMin = data.chunks[0].chunkIndex;
+        sourceBody.scrollTop += (sourceBody.scrollHeight - oldScrollHeight);
+        } else {
+        currentLoadedMin = 0;
+        }
+        }
+        } catch (err) {
+        console.error("Lỗi load thêm (top):", err);
+        } finally {
+        isLoadingMore = false;
+        }
+        } else if (nearBottom && currentLoadedMax < currentTotalChunks - 1) {
+        isLoadingMore = true;
+        const fromIdx = currentLoadedMax + 1;
+        const toIdx = Math.min(currentTotalChunks - 1, currentLoadedMax + 15);
 
-                notifyHubConnection.on("PaymentCompleted", (data) => {
-                    // Nếu người dùng đang mở Chat RAG lúc thanh toán gói mới thành công,
-                    // cập nhật ngay badge token còn lại mà không cần F5.
-                    const tokenSpan = document.getElementById("remainingTokens");
-                    if (tokenSpan && data.remainingTokenQuota !== undefined) {
-                        tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
-                    }
-                });
+        try {
+        const resp = await fetch(`/Document/GetChunksRange?documentId=${currentSourceDocumentId}&fromIndex=${fromIdx}&toIndex=${toIdx}`);
+        if (resp.ok) {
+        const data = await resp.json();
+        if (data.chunks.length > 0) {
+        const html = data.chunks.map(c => buildChunkHtmlWithId(currentSourceDocumentId, c)).join("");
+        sourceBody.insertAdjacentHTML("beforeend", html);
+        currentLoadedMax = data.chunks[data.chunks.length - 1].chunkIndex;
+        } else {
+        currentLoadedMax = currentTotalChunks - 1;
+        }
+        }
+        } catch (err) {
+        console.error("Lỗi load thêm (bottom):", err);
+        } finally {
+        isLoadingMore = false;
+        }
+        }
+        });
 
-                // Helper: build session card HTML
-                    function buildSessionCardHtml(s) {
-                        const isActive = s.sessionId === sessionId;
-                        return `
-                        <div class="card mb-2 shadow-sm ${isActive ? 'border-primary' : ''}" data-session-card="${s.sessionId}">
-                            <div class="card-body p-2">
-                                <div class="d-flex justify-content-between">
-                                    <a href="/Chat?sessionId=${encodeURIComponent(s.sessionId)}"
-                                       class="text-decoration-none text-dark fw-bold small text-truncate"
-                                       style="max-width:150px">
-                                        ${escapeHtml(s.title || 'Phiên mới')}
-                                    </a>
-                                    <form action="/Chat/DeleteSession" method="post" class="d-inline">
-                                        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
-                                        <input type="hidden" name="sessionId" value="${s.sessionId}" />
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Xóa phiên này?')">🗑️</button>
-                                    </form>
-                                </div>
-                                <small class="text-muted">📚 ${escapeHtml(s.subjectName || '')} | 💬 ${s.messageCount} tin</small>
-                            </div>
-                        </div>`;
-                    }
+        // Click handler cho citation-link: mở/scroll panel nguồn (thay hoàn toàn modal cũ)
+        document.addEventListener('click', function (e) {
+        const el = e.target.closest('.citation-link');
+        if (!el) return;
+        e.preventDefault();
 
-                    function getAntiForgeryToken() {
-                        const el = document.querySelector('input[name="__RequestVerificationToken"]');
-                        return el ? el.value : '';
-                    }
+        const chunkId = parseInt(el.getAttribute('data-chunkid'), 10);
+        const documentId = parseInt(el.getAttribute('data-documentid'), 10);
+        if (!chunkId || !documentId) return;
 
-                    const sidebarList = document.querySelector('.sidebar-list');
+        if (currentSourceDocumentId === documentId) {
+        const existing = sourceBody.querySelector(`.source-chunk[data-chunk-id="${chunkId}"]`);
+        if (existing) {
+        if (window.innerWidth < 1200) switchPanel("source");
+        doHighlight(chunkId);
+        return;
+        }
+        }
 
-                    function upsertSessionCard(s) {
-                        if (!sidebarList) return;
-                        const existing = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
-                        const html = buildSessionCardHtml(s);
+        openSourcePanel(documentId, chunkId);
+        });
 
-                        if (existing) {
-                            existing.outerHTML = html;
-                            const updated = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
-                            if (updated) sidebarList.prepend(updated);
-                        } else {
-                            sidebarList.insertAdjacentHTML('afterbegin', html);
-                        }
-                    }
+        // === SignalR: đồng bộ đa tab cùng session + cập nhật token quota real-time ===
+        const chatHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/chat")
+        .withAutomaticReconnect()
+        .build();
 
-                    function removeSessionCard(sid) {
-                        if (!sidebarList) return;
-                        const el = sidebarList.querySelector(`[data-session-card="${sid}"]`);
-                        if (el) el.remove();
+        chatHubConnection.on("ReceiveMessage", (msg) => {
+        if (msg.role === "assistant") {
+        const bubble = appendMessage("assistant", msg.content);
+        appendCitationBlock(bubble, msg.citations);
+        } else {
+        appendMessage(msg.role, msg.content);
+        }
+        });
 
-                        // Nếu đang xóa đúng session hiện tại, điều hướng về trang Chat mới
-                        if (sid === sessionId) {
-                            window.location.href = '/Chat';
-                        }
-                    }
+        const chatHubReady = chatHubConnection.start()
+        .then(() => chatHubConnection.invoke("JoinSession", sessionId))
+        .catch(err => console.error("ChatHub connect failed:", err));
 
-                    notifyHubConnection.on("SessionUpsert", (s) => {
-                        upsertSessionCard(s);
-                    });
+        const notifyHubConnection = new signalR.HubConnectionBuilder()
+        .withUrl("/hubs/notifications")
+        .withAutomaticReconnect()
+        .build();
 
-                    notifyHubConnection.on("SessionDeleted", (data) => {
-                        removeSessionCard(data.sessionId);
-                    });
+        notifyHubConnection.on("TokenQuotaUpdated", (data) => {
+        const tokenSpan = document.getElementById("remainingTokens");
+        if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+        });
 
-                notifyHubConnection.start().catch(err => console.error("NotificationHub connect failed:", err));
+        notifyHubConnection.on("PaymentCompleted", (data) => {
+        const tokenSpan = document.getElementById("remainingTokens");
+        if (tokenSpan && data.remainingTokenQuota !== undefined) {
+        tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+        }
+        });
+
+        function buildSessionCardHtml(s) {
+        const isActive = s.sessionId === sessionId;
+        return `
+        <div class="card mb-2 shadow-sm ${isActive ? 'border-primary' : ''}" data-session-card="${s.sessionId}">
+        <div class="card-body p-2">
+        <div class="d-flex justify-content-between">
+        <a href="/Chat?sessionId=${encodeURIComponent(s.sessionId)}"
+        class="text-decoration-none text-dark fw-bold small text-truncate"
+        style="max-width:150px">
+        ${escapeHtml(s.title || 'Phiên mới')}
+        </a>
+        <form action="/Chat/DeleteSession" method="post" class="d-inline">
+        <input type="hidden" name="__RequestVerificationToken" value="${getAntiForgeryToken()}" />
+        <input type="hidden" name="sessionId" value="${s.sessionId}" />
+        <button type="submit" class="btn btn-sm btn-link text-danger p-0" onclick="return confirm('Xóa phiên này?')">🗑️</button>
+        </form>
+        </div>
+        <small class="text-muted">📚 ${escapeHtml(s.subjectName || '')} | 💬 ${s.messageCount} tin</small>
+        </div>
+        </div>`;
+        }
+
+        function getAntiForgeryToken() {
+        const el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+        }
+
+        const sidebarList = document.querySelector('.sidebar-list');
+
+        function upsertSessionCard(s) {
+        if (!sidebarList) return;
+        const existing = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
+        const html = buildSessionCardHtml(s);
+
+        if (existing) {
+        existing.outerHTML = html;
+        const updated = sidebarList.querySelector(`[data-session-card="${s.sessionId}"]`);
+        if (updated) sidebarList.prepend(updated);
+        } else {
+        sidebarList.insertAdjacentHTML('afterbegin', html);
+        }
+        }
+
+        function removeSessionCard(sid) {
+        if (!sidebarList) return;
+        const el = sidebarList.querySelector(`[data-session-card="${sid}"]`);
+        if (el) el.remove();
+
+        if (sid === sessionId) {
+        window.location.href = '/Chat';
+        }
+        }
+
+        notifyHubConnection.on("SessionUpsert", (s) => {
+        upsertSessionCard(s);
+        });
+
+        notifyHubConnection.on("SessionDeleted", (data) => {
+        removeSessionCard(data.sessionId);
+        });
+
+        notifyHubConnection.start().catch(err => console.error("NotificationHub connect failed:", err));
     </script>
 }

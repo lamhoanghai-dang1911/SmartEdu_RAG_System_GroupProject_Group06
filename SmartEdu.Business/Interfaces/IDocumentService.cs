@@ -21,5 +21,11 @@ namespace SmartEdu.Business.Interfaces
         Task<DocumentDto> CreateFromTempAsync(string tempFilePath, string originalFileName, string title, int subjectId, string fileHash, long fileSize, string webRootPath);
         Task<DocumentChunkDetailDto?> GetChunkDetailAsync(int chunkId);
         Task<IEnumerable<DocumentDto>> GetAllByUserIdAsync(int userId, bool isAdmin, bool isLecturer, int? subjectId = null);
+        //Task<DocumentSourcePanelDto?> GetChunksAroundAsync(int documentId, int centerChunkIndex, int range = 10);
+        //Task<DocumentSourcePanelDto?> GetChunksRangeAsync(int documentId, int fromIndex, int toIndex);
+        //Task<int?> GetChunkIndexByIdAsync(int chunkId);
+        Task<int?> GetChunkIndexByIdAsync(int chunkId);
+        Task<DocumentSourcePanelDto?> GetChunksAroundCitationAsync(int documentId, int chunkId, int range = 10);
+        Task<DocumentSourcePanelDto?> GetChunksRangeAsync(int documentId, int fromIndex, int toIndex);
     }
 }

@@ -79,6 +79,69 @@
         font-size: 0.88rem;
     }
 
+    /* ===== Upload limits info box ===== */
+    .upload-limits-box {
+        background: var(--paper);
+        border-radius: 12px;
+        padding: 0.75rem 0.9rem;
+        margin-bottom: 1rem;
+        display: none;
+    }
+
+        .upload-limits-box.show {
+            display: block;
+            animation: fadeUp 0.3s ease forwards;
+        }
+
+    .upload-limits-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--slate-light);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .upload-limits-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .limit-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: #fff;
+        border: 1px solid #e3e5ef;
+        border-radius: 999px;
+        padding: 0.32rem 0.75rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #33384f;
+        transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+        .limit-chip.matched {
+            border-color: var(--brand-blue);
+            background: rgba(13, 110, 253, 0.06);
+            color: var(--brand-blue);
+        }
+
+    .file-size-warning {
+        font-size: 0.82rem;
+        color: var(--danger);
+        margin-top: 0.4rem;
+        display: none;
+    }
+
+        .file-size-warning.show {
+            display: block;
+        }
+
     .btn-upload {
         border: none;
         border-radius: 12px;
@@ -306,6 +369,8 @@
     </div>
 
     <div class="upload-card">
+        <div id="uploadErrorAlert" class="alert alert-danger" style="display:none;"></div>
+
         <form id="uploadForm" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
 
@@ -323,12 +388,18 @@
 
             <div id="uploadPermissionAlert" class="alert alert-danger" style="display:none;"></div>
 
-            <div class="mb-4">
-                <label class="form-label">File (PDF hoặc DOCX)</label>
-                <input name="file" type="file" class="form-control" accept=".pdf,.docx" required />
+            <div id="uploadLimitsBox" class="upload-limits-box">
+                <div class="upload-limits-label">📦 Giới hạn kích thước file cho môn này</div>
+                <div id="uploadLimitsChips" class="upload-limits-chips"></div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="mb-2">
+                <label class="form-label">File (PDF, DOCX hoặc PPTX)</label>
+                <input name="file" id="fileInput" type="file" class="form-control" accept=".pdf,.docx,.pptx" required />
+                <div id="fileSizeWarning" class="file-size-warning"></div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
                 <button type="submit" id="uploadBtn" class="btn btn-upload" disabled>💾 Upload</button>
                 <a asp-action="Index" class="btn btn-back">← Quay lại</a>
             </div>
@@ -384,6 +455,13 @@
             const select = document.querySelector('select[name="subjectId"]');
             const uploadBtn = document.getElementById('uploadBtn');
             const alertEl = document.getElementById('uploadPermissionAlert');
+            const errorAlert = document.getElementById('uploadErrorAlert');
+            const limitsBox = document.getElementById('uploadLimitsBox');
+            const limitsChips = document.getElementById('uploadLimitsChips');
+            const fileInput = document.getElementById('fileInput');
+            const fileSizeWarning = document.getElementById('fileSizeWarning');
+
+            let currentLimits = null; // { pdf: 10, docx: 15, pptx: 50 }
 
             // Logic tải danh sách môn học
             async function loadSubjects() {
@@ -398,7 +476,11 @@
 
             // Logic kiểm tra quyền upload
             async function check(subjectId) {
-                if (!subjectId) { uploadBtn.disabled = true; return; }
+                if (!subjectId) {
+                    uploadBtn.disabled = true;
+                    limitsBox.classList.remove('show');
+                    return;
+                }
                 const resp = await fetch(`/Document/CanUpload?subjectId=${subjectId}`);
                 const j = await resp.json();
                 uploadBtn.disabled = !j.canUpload;
@@ -406,35 +488,109 @@
                 alertEl.textContent = j.message || '';
             }
 
-            select.addEventListener('change', () => check(select.value));
+            // Tải + hiển thị giới hạn upload theo từng loại file cho môn đã chọn
+            async function loadUploadLimits(subjectId) {
+                if (!subjectId) {
+                    limitsBox.classList.remove('show');
+                    currentLimits = null;
+                    return;
+                }
+                try {
+                    const resp = await fetch(`/Document/GetUploadLimits?subjectId=${subjectId}`);
+                    if (!resp.ok) return;
+                    const limits = await resp.json();
+                    if (!limits || Object.keys(limits).length === 0) {
+                        limitsBox.classList.remove('show');
+                        currentLimits = null;
+                        return;
+                    }
+                    currentLimits = limits;
+                    renderLimitsChips();
+                    limitsBox.classList.add('show');
+                } catch (err) {
+                    console.error('Không thể tải giới hạn upload:', err);
+                }
+            }
+
+            function renderLimitsChips(highlightExt) {
+                if (!currentLimits) return;
+                const labels = { pdf: '📕 PDF', docx: '📘 DOCX', pptx: '📙 PPTX' };
+                limitsChips.innerHTML = Object.keys(currentLimits).map(type => {
+                    const isMatched = highlightExt === type;
+                    return `<span class="limit-chip ${isMatched ? 'matched' : ''}">${labels[type] || type.toUpperCase()}: ${currentLimits[type]}MB</span>`;
+                }).join('');
+            }
+
+            select.addEventListener('change', () => {
+                check(select.value);
+                loadUploadLimits(select.value);
+                fileSizeWarning.classList.remove('show');
+            });
+
+            // Kiểm tra size file phía client ngay khi chọn file (UX nhanh, không thay thế validate server)
+            fileInput.addEventListener('change', () => {
+                const file = fileInput.files[0];
+                fileSizeWarning.classList.remove('show');
+                if (!file || !currentLimits) {
+                    renderLimitsChips();
+                    return;
+                }
+
+                const ext = file.name.split('.').pop().toLowerCase();
+                renderLimitsChips(ext);
+
+                const limitMB = currentLimits[ext];
+                if (limitMB !== undefined) {
+                    const fileSizeMB = file.size / 1024 / 1024;
+                    if (fileSizeMB > limitMB) {
+                        fileSizeWarning.textContent = `⚠️ File của bạn (${fileSizeMB.toFixed(1)}MB) vượt quá giới hạn cho phép (${limitMB}MB) đối với file ${ext.toUpperCase()}.`;
+                        fileSizeWarning.classList.add('show');
+                    }
+                }
+            });
 
             // Xử lý Submit form qua AJAX
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const formData = new FormData(form);
-                const resp = await fetch('/Document/Upload', { method: 'POST', body: formData });
-                const result = await resp.json();
+                errorAlert.style.display = 'none';
+                uploadBtn.disabled = true;
 
-                if (result.isDuplicate) {
-                    document.getElementById('oldDocId').value = result.oldDocumentId;
-                    document.getElementById('dupMessage').textContent = result.message;
-                    // reset về lựa chọn mặc định "Giữ cả hai" mỗi lần mở modal
-                    setActionChoice('3');
+                try {
+                    const formData = new FormData(form);
+                    const resp = await fetch('/Document/Upload', { method: 'POST', body: formData });
+                    const result = await resp.json();
 
-                    // show whether the existing document already has embeddings
-                    const statusEl = document.getElementById('dupOldStatus');
-                    if (result.isEmbeddingReady) {
-                        statusEl.className = 'alert alert-success';
-                        statusEl.textContent = 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể giữ cả hai hoặc thay thế.';
-                        statusEl.style.display = 'block';
-                    } else {
-                        statusEl.className = 'alert alert-warning';
-                        statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>), hoặc tiếp tục chấp nhận thay thế.';
-                        statusEl.style.display = 'block';
+                    if (result.success === false) {
+                        errorAlert.textContent = result.error || 'Đã xảy ra lỗi khi upload.';
+                        errorAlert.style.display = 'block';
+                        uploadBtn.disabled = false;
+                        return;
                     }
-                    new bootstrap.Modal(document.getElementById('duplicateModal')).show();
-                } else {
-                    window.location.href = '@Url.Action("Index", "Document")';
+
+                    if (result.isDuplicate) {
+                        document.getElementById('oldDocId').value = result.oldDocumentId;
+                        document.getElementById('dupMessage').textContent = result.message;
+                        setActionChoice('3');
+
+                        const statusEl = document.getElementById('dupOldStatus');
+                        if (result.isEmbeddingReady) {
+                            statusEl.className = 'alert alert-success';
+                            statusEl.textContent = 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể giữ cả hai hoặc thay thế.';
+                            statusEl.style.display = 'block';
+                        } else {
+                            statusEl.className = 'alert alert-warning';
+                            statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>), hoặc tiếp tục chấp nhận thay thế.';
+                            statusEl.style.display = 'block';
+                        }
+                        new bootstrap.Modal(document.getElementById('duplicateModal')).show();
+                        uploadBtn.disabled = false;
+                    } else {
+                        window.location.href = '@Url.Action("Index", "Document")';
+                    }
+                } catch (err) {
+                    errorAlert.textContent = 'Không thể kết nối server. Vui lòng thử lại.';
+                    errorAlert.style.display = 'block';
+                    uploadBtn.disabled = false;
                 }
             });
 

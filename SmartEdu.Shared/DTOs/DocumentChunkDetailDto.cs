@@ -6,6 +6,7 @@ namespace SmartEdu.Shared.DTOs
         public int ChunkIndex { get; set; }
         public string Content { get; set; } = string.Empty;
         public int EmbeddingSetId { get; set; }
+        public string? SourceLocation { get; set; }   // ← thêm
         public List<DocumentShortDto> Documents { get; set; } = new List<DocumentShortDto>();
     }
 
