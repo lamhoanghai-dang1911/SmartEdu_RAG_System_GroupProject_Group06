@@ -24,6 +24,8 @@ namespace SmartEdu.Data
         public DbSet<UsageLog> UsageLogs { get; set; }
         public DbSet<ModelComparisonLog> ModelComparisonLogs { get; set; }
         public DbSet<UploadConfig> UploadConfigs { get; set; }
+        public DbSet<FreeTierConfig> FreeTierConfigs { get; set; }
+        public DbSet<FreeTierUsage> FreeTierUsages { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

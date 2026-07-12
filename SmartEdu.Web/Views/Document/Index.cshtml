@@ -617,7 +617,7 @@
                             }
                             <span class="badge bg-@badge">@label</span>
                         </td>
-                        <td>@d.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@d.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</td>
                         <td>
                             <a asp-action="Details" asp-route-id="@d.Id" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
                             <a asp-action="Download" asp-route-id="@d.Id" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>

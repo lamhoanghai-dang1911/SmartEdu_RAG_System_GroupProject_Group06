@@ -51,7 +51,7 @@
                         <td>@s.Id</td>
                         <td>@s.Name</td>
                         <td>@s.Description</td>
-                        <td>@s.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td>@s.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy")</td>
                         <td>
                             @if (isAdmin)
                             {

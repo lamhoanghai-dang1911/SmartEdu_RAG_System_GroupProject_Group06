@@ -17,16 +17,19 @@ namespace SmartEdu.Web.Controllers
         private readonly ISubjectService _subjectService;
         private readonly IPermissionService _permissionService;
         private readonly IDocumentService _documentService;
+        private readonly IFreeTierService _freeTierService;
         public ChatController(
             IChatService chatService,
             ISubjectService subjectService,
             IPermissionService permissionService,
-            IDocumentService documentService)
+            IDocumentService documentService,
+            IFreeTierService freeTierService)
         {
             _chatService = chatService;
             _subjectService = subjectService;
             _permissionService = permissionService;
             _documentService = documentService;
+            _freeTierService = freeTierService;
         }
 
         public async Task<IActionResult> Index(string? sessionId)
@@ -53,8 +56,18 @@ namespace SmartEdu.Web.Controllers
             }
 
             var activeSub = await _chatService.GetActiveSubscriptionAsync(userId);
-            ViewBag.RemainingTokens = activeSub?.RemainingTokenQuota ?? 0;
             ViewBag.HasActiveSubscription = activeSub != null;
+
+            if (activeSub != null)
+            {
+                ViewBag.RemainingTokens = activeSub.RemainingTokenQuota;
+                ViewBag.IsFreeTier = false;
+            }
+            else
+            {
+                ViewBag.RemainingTokens = await _freeTierService.GetRemainingFreeTokensAsync(userId);
+                ViewBag.IsFreeTier = true;
+            }
 
             ViewBag.History = history;
             return View();
@@ -80,12 +93,17 @@ namespace SmartEdu.Web.Controllers
                 bool hasDocs = await _documentService.HasReadyDocumentsAsync(request.SubjectId.Value);
                 if (!hasDocs)
                 {
+                    var activeSub = await _chatService.GetActiveSubscriptionAsync(userId);
+                    int remainingQuota = activeSub != null
+                        ? activeSub.RemainingTokenQuota
+                        : await _freeTierService.GetRemainingFreeTokensAsync(userId);
+
                     return Ok(new
                     {
                         answer = "Môn học này hiện chưa có tài liệu nào được xử lý hoàn tất. Vui lòng đợi giảng viên tải lên và kích hoạt nhé! 📚",
                         sources = new List<object>(),
                         citations = new List<object>(),
-                        remainingTokenQuota = (await _chatService.GetActiveSubscriptionAsync(userId))?.RemainingTokenQuota ?? 0
+                        remainingTokenQuota = remainingQuota
                     });
                 }
             }

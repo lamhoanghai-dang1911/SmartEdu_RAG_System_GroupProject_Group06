@@ -1,6 +1,6 @@
-﻿@model IEnumerable<SmartEdu.Shared.DTOs.UploadConfigDto>
+﻿@model IEnumerable<SmartEdu.Shared.DTOs.FreeTierConfigDto>
 @{
-    ViewData["Title"] = "Giới hạn Upload";
+    ViewData["Title"] = "Cấu hình Token miễn phí";
 }
 
 <style>
@@ -90,16 +90,11 @@
             background: #eef0f6 !important;
             color: var(--slate) !important;
         }
-
-        .badge.bg-info {
-            background: rgba(13, 110, 253, 0.1) !important;
-            color: var(--brand-blue) !important;
-        }
 </style>
 
 <div class="container mt-4">
     <div class="page-head d-flex justify-content-between align-items-center mb-3">
-        <h2>📦 Giới hạn kích thước Upload</h2>
+        <h2>🎁 Cấu hình Token miễn phí</h2>
         <a asp-action="Create" class="btn btn-primary">➕ Thêm cấu hình mới</a>
     </div>
 
@@ -125,9 +120,8 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Giới hạn (MB)</th>
-                        <th>Loại file</th>
-                        <th>Môn học</th>
+                        <th>Token / cửa sổ</th>
+                        <th>Độ dài cửa sổ</th>
                         <th>Trạng thái</th>
                         <th>Cập nhật bởi</th>
                         <th>Ngày tạo</th>
@@ -138,18 +132,8 @@
                     {
                         <tr>
                             <td>@c.Id</td>
-                            <td>@c.MaxFileSizeMB MB</td>
-                            <td>
-                                @if (string.IsNullOrEmpty(c.FileType))
-                                {
-                                    <span class="badge bg-info">Mọi loại</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-info">@c.FileType.ToUpper()</span>
-                                }
-                            </td>
-                            <td>@(c.SubjectName ?? "Mọi môn")</td>
+                            <td>@c.TokensPerWindow.ToString("N0")</td>
+                            <td>@c.WindowHours giờ</td>
                             <td>
                                 @if (c.IsActive)
                                 {

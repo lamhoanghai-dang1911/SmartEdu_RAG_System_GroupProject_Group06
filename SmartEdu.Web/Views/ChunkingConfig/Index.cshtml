@@ -310,7 +310,7 @@
                             }
                         </td>
                         <td>@c.UpdatedByUserName</td>
-                        <td>@c.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@c.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</td>
                     </tr>
                 }
             </tbody>

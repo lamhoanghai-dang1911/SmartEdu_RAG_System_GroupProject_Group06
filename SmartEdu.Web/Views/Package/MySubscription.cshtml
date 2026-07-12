@@ -360,11 +360,11 @@
                                 </li>
                                 <li>
                                     <span class="spec-icon">📅</span>
-                                    <span>Bắt đầu <strong>@sub.StartDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                                    <span>Bắt đầu <strong>@sub.StartDate.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</strong></span>
                                 </li>
                                 <li>
                                     <span class="spec-icon">📅</span>
-                                    <span>Kết thúc <strong>@sub.EndDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                                    <span>Kết thúc <strong>@sub.EndDate.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</strong></span>
                                 </li>
                                 @{
                                     var daysRemaining = (sub.EndDate - DateTime.UtcNow).Days;

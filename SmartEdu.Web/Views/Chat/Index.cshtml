@@ -631,8 +631,11 @@
                     }
                     else
                     {
-                        <a asp-controller="Package" asp-action="List" class="btn btn-sm btn-warning ms-auto">
-                            💳 Mua gói để chat
+                        <span class="badge bg-info ms-auto" id="tokenBadge" title="Token miễn phí, tự động cấp lại theo chu kỳ">
+                            🎁 Token miễn phí: <span id="remainingTokens">@(((int)ViewBag.RemainingTokens).ToString("N0"))</span>
+                        </span>
+                        <a asp-controller="Package" asp-action="List" class="btn btn-sm btn-warning ms-2">
+                            💳 Mua gói
                         </a>
                     }
                 </div>

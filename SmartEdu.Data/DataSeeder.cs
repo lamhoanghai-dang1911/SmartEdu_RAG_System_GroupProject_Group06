@@ -27,7 +27,8 @@ namespace SmartEdu.Data
         new User { Username = "lecturer", FullName = "Giảng viên mẫu", Role = UserRole.Lecturer, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
         new User { Username = "lecturer2", FullName = "Giảng viên mẫu 2", Role = UserRole.Lecturer, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
         new User { Username = "student", FullName = "Sinh viên mẫu 1", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
-        new User { Username = "student2", FullName = "Sinh viên mẫu 2", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") }
+        new User { Username = "student2", FullName = "Sinh viên mẫu 2", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") },
+        new User { Username = "student3", FullName = "Sinh viên mẫu 3", Role = UserRole.Student, PasswordHash = BCrypt.Net.BCrypt.HashPassword("123") }
     };
 
             bool hasChanges = false;

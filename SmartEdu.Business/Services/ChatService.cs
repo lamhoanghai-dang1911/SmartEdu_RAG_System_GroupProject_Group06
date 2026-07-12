@@ -22,6 +22,7 @@ public class ChatService : IChatService
     private readonly IRepository<DocumentChunk> _chunkRepo;
     private readonly IRepository<UserSubscription> _subscriptionRepo;
     private readonly IRepository<UsageLog> _usageLogRepo;
+    private readonly IFreeTierService _freeTierService;
     private readonly ILogger<ChatService> _logger;
 
     private readonly IHttpClientFactory _httpFactory;
@@ -37,7 +38,8 @@ public class ChatService : IChatService
     IHttpClientFactory httpFactory,
     IConfiguration configuration,
     ILogger<ChatService> logger,
-    IRealtimeNotifier realtime)
+    IRealtimeNotifier realtime,
+    IFreeTierService freeTierService)
     {
         _sessionRepo = sessionRepo;
         _messageRepo = messageRepo;
@@ -48,6 +50,7 @@ public class ChatService : IChatService
         _configuration = configuration;
         _logger = logger;
         _realtime = realtime;
+        _freeTierService = freeTierService;
     }
 
     public async Task<ChatResponseDto> AskAsync(ChatRequestDto request)
@@ -414,22 +417,37 @@ CÂU HỎI:
             Console.WriteLine($"Failed to broadcast session deleted: {ex}");
         }
     }
-
     public async Task<ChatResponseDto> ProcessChatWithBillingAsync(ChatRequestDto request)
     {
         var activeSubs = await _subscriptionRepo.GetAllAsync(s =>
-    s.UserId == request.UserId && s.Status == SubscriptionStatus.Active && !s.IsDeleted);
-        var activeSub = activeSubs.FirstOrDefault();
+            s.UserId == request.UserId && s.Status == SubscriptionStatus.Active && !s.IsDeleted);
+        var activeSub = activeSubs.FirstOrDefault(s => s.EndDate >= DateTime.UtcNow && s.RemainingTokenQuota > 0);
 
-        if (activeSub == null || activeSub.EndDate < DateTime.UtcNow || activeSub.RemainingTokenQuota <= 0)
-            throw new Exception("Gói dịch vụ không hợp lệ hoặc đã hết hạn/hết token.");
+        bool usingFreeTier = activeSub == null;
+
+        if (usingFreeTier)
+        {
+            var remainingFree = await _freeTierService.GetRemainingFreeTokensAsync(request.UserId);
+            if (remainingFree <= 0)
+                throw new Exception("Bạn đã dùng hết token miễn phí trong cửa sổ hiện tại. Vui lòng mua gói hoặc chờ cửa sổ được cấp lại.");
+        }
 
         var response = await AskAsync(request);
 
         if (response.TotalTokens > 0)
         {
-            activeSub.RemainingTokenQuota = Math.Max(0, activeSub.RemainingTokenQuota - response.TotalTokens);
-            _subscriptionRepo.Update(activeSub);
+            if (usingFreeTier)
+            {
+                await _freeTierService.DeductFreeTokensAsync(request.UserId, response.TotalTokens);
+                response.RemainingTokenQuota = await _freeTierService.GetRemainingFreeTokensAsync(request.UserId);
+            }
+            else
+            {
+                activeSub.RemainingTokenQuota = Math.Max(0, activeSub.RemainingTokenQuota - response.TotalTokens);
+                _subscriptionRepo.Update(activeSub);
+                await _subscriptionRepo.SaveChangesAsync();
+                response.RemainingTokenQuota = activeSub.RemainingTokenQuota;
+            }
 
             await _usageLogRepo.AddAsync(new UsageLog
             {
@@ -440,14 +458,12 @@ CÂU HỎI:
                 CompletionTokens = response.CompletionTokens,
                 CreatedAt = DateTime.UtcNow
             });
-            await _subscriptionRepo.SaveChangesAsync();
+            await _usageLogRepo.SaveChangesAsync();
         }
-
-        response.RemainingTokenQuota = activeSub.RemainingTokenQuota;
 
         try
         {
-            await _realtime.SendTokenQuotaUpdatedAsync(request.UserId, activeSub.RemainingTokenQuota);
+            await _realtime.SendTokenQuotaUpdatedAsync(request.UserId, response.RemainingTokenQuota ?? 0);
         }
         catch (Exception ex)
         {

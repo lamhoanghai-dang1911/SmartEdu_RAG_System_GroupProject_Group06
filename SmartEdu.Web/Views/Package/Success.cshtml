@@ -270,11 +270,11 @@
                     </div>
                     <div class="info-row">
                         <span class="info-icon">⏱️</span>
-                        <span>Bắt đầu <strong>@Model.StartDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                        <span>Bắt đầu <strong>@Model.StartDate.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</strong></span>
                     </div>
                     <div class="info-row">
                         <span class="info-icon">⏰</span>
-                        <span>Hết hạn <strong>@Model.EndDate.ToString("dd/MM/yyyy HH:mm")</strong></span>
+                        <span>Hết hạn <strong>@Model.EndDate.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</strong></span>
                     </div>
                 </div>
 

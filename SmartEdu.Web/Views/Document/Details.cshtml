@@ -40,7 +40,7 @@
         </dd>
 
         <dt class="col-sm-4">Ngày upload</dt>
-        <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+        <dd class="col-sm-8">@Model.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</dd>
     </dl>
 
     <div class="mt-4">

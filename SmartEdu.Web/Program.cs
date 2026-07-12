@@ -75,6 +75,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<IChunkingConfigService, ChunkingConfigService>();
             builder.Services.AddScoped<SmartEdu.Business.Interfaces.IRealtimeNotifier, SmartEdu.Web.Realtime.SignalRNotifier>();
             builder.Services.AddScoped<IUploadConfigService, UploadConfigService>();
+            builder.Services.AddScoped<IFreeTierService, FreeTierService>();
 
             // Reports
             builder.Services.AddScoped<IReportService, ReportService>();
