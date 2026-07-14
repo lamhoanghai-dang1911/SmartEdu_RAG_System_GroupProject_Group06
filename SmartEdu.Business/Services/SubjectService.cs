@@ -34,6 +34,7 @@ namespace SmartEdu.Business.Services
             _realtime = realtime;
         }
 
+        // Assign giảng viên cho subject
         public async Task AssignLecturerToSubject(AssignLecturerDto dto)
         {
             if (dto == null) throw new ArgumentNullException(nameof(dto));
@@ -100,6 +101,7 @@ namespace SmartEdu.Business.Services
             }
         }
 
+        // Kiểm tra leader được phép upload tài liệu
         public async Task<bool> CanUploadDocument(int lecturerId, int subjectId)
         {
             var rels = await _uow.LecturerSubjects.GetAllAsync();
@@ -293,6 +295,7 @@ namespace SmartEdu.Business.Services
                               });
         }
 
+        // Assign sinh viên vào môn học
         public async Task AssignStudentToSubject(int studentId, int subjectId)
         {
             var existing = await _studentSubjectRepo.GetAllAsync();
@@ -355,12 +358,13 @@ namespace SmartEdu.Business.Services
             return (Enrolled: enrolledDtos, NotEnrolled: notEnrolledDtos);
         }
 
+        // Import danh sách sinh viên từ excel
         public async Task ImportStudentsAsync(int subjectId, List<StudentImportDto> importedStudents)
         {
             if (importedStudents == null || !importedStudents.Any()) return;
 
             var subject = await _uow.Subjects.GetByIdAsync(subjectId);
-            if (subject == null || subject.IsDeleted)
+            if (subject == null || subject.IsDeleted) // Check subject
                 throw new InvalidOperationException("Không tìm thấy môn học.");
 
             await _uow.BeginTransactionAsync();
