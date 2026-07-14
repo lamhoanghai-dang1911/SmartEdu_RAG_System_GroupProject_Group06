@@ -359,10 +359,28 @@
                                     </li>
                                 </ul>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="ChunkingConfig" asp-action="Index">
-                                    <span class="fs-4 me-2" aria-hidden="true">⚙️</span> Cấu hình Chunking
+                            <li class="nav-item dropdown nav-dropdown-hover">
+                                <a class="nav-link dropdown-toggle fs-5 px-3 d-flex align-items-center" href="#" role="button"
+                                   data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span class="fs-4 me-2" aria-hidden="true">⚙️</span> Cấu hình
                                 </a>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="ChunkingConfig" asp-action="Index">
+                                            🧩 Cấu hình Chunking
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="UploadConfig" asp-action="Index">
+                                            📦 Giới hạn Upload
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="FreeTierConfig" asp-action="Index">
+                                            🎁 Token miễn phí
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link fs-5 px-3 d-flex align-items-center" asp-controller="Reports" asp-action="Index">
