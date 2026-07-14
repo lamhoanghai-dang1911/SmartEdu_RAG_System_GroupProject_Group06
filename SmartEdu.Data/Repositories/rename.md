@@ -67038,3 +67038,3508 @@ Do not modify:
 - Workspace Detail data mapping
 - Open Chat orchestration
 - Chat session reuse
+- 
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
+- Expert Submission
+- Client Request Revision
+- Package History
+- Hire response handling
+- Contract signing
+- VNPay return
+- Payment service
+- Proposal Unlock
+- Notification
+- Marketplace
+- Apply flow
+- Jobpost status handling
+- Supabase upload
+- completion status
+- escrow display
+- rating
+- withdrawal
+
+Do not add Workspace list invalidation into Hire in this phase.
+
+That integration can be handled later after the Hire/VNPay resume flow is stabilized.
+
+==================================================
+MANUAL RUNTIME TEST REQUIREMENTS
+==================================================
+
+Client:
+
+1. Login as a Client who owns at least one Workspace.
+2. Open `/client/dashboard/projects`.
+3. Confirm one GET request is sent to:
+   `/api/workspace/api/v1/workspaces/dashboard?pageNo=0&pageSize=10`
+4. Confirm no Client code or UUID is sent.
+5. Confirm cards display the Expert as partner.
+6. Confirm project name, status, progress, and deadline match the response.
+7. Open a card.
+8. Confirm navigation uses:
+   `/client/dashboard/projects/{workspaceId}`
+9. Confirm Workspace Detail still loads normally.
+10. Return to the list and confirm cached page data behaves normally.
+
+Expert:
+
+11. Login as the Expert in the same browser.
+12. Open `/expert/dashboard/projects`.
+13. Confirm stale Client Project cards are not displayed.
+14. Confirm the same endpoint is called using the Expert token.
+15. Confirm cards display the Client as partner.
+16. Open a card.
+17. Confirm navigation uses:
+   `/expert/dashboard/projects/{workspaceId}`
+18. Confirm Workspace Detail still loads normally.
+
+Pagination:
+
+19. Use an account with more than one page when available.
+20. Confirm Previous and Next behavior.
+21. Confirm the API receives the correct zero-based `pageNo`.
+22. Confirm Next is disabled when `last` is true.
+
+Network integrity:
+
+23. Confirm there is no Workspace Detail request for every card.
+24. Confirm no chat session is created.
+25. Confirm no Hire, Contract, Payment, Submission, or Notification mutation occurs.
+
+Empty/error:
+
+26. Confirm a zero-result response shows an empty state.
+27. Confirm API failure shows a retry state.
+28. Confirm Retry calls only the dashboard list endpoint.
+
+==================================================
+STATIC VERIFICATION
+==================================================
+
+Run:
+
+1. `git status --short`
+2. `npx tsc --noEmit --incremental false --pretty false`
+3. `npm run lint -- --no-cache`
+4. `git diff --check`
+5. `git diff --stat`
+6. final `git status --short`
+
+Run `npm run build` only after TypeScript and lint pass.
+
+Known environment caveats:
+
+- Google Font network access may fail.
+- `.next/trace` may fail with EPERM.
+
+Report those as environment failures when applicable.
+
+Do not change source or dependencies to work around environment-only failures.
+
+Do not leave unexpected `package-lock.json` changes.
+
+==================================================
+REQUIRED OUTPUT FORMAT
+==================================================
+
+Return a report with exactly these sections:
+
+1. Summary
+2. Initial Repository State
+3. Existing Workspace List Foundation
+4. Confirmed API Contract
+5. Files Changed
+6. Workspace Dashboard Types
+7. Workspace Dashboard Service
+8. User-Scoped Query Strategy
+9. Shared Projects List UI
+10. Client Projects Route Result
+11. Expert Projects Route Result
+12. Project Card Mapping
+13. Partner Mapping Confirmation
+14. Pagination Behavior
+15. Loading, Error and Empty States
+16. N+1 Request Confirmation
+17. Identifier and Navigation Confirmation
+18. Account-Switch Cache Safety
+19. Scope and Regression Confirmation
+20. Verification Results
+21. Manual Runtime Test Checklist
+22. Remaining Risks
+23. Final Decision
+
+The Final Decision must explicitly report:
+
+WORKSPACE DASHBOARD ENDPOINT: PASS / FAIL
+RAW RESPONSE ALIGNMENT: PASS / FAIL
+CLIENT PROJECT LIST: PASS / FAIL
+EXPERT PROJECT LIST: PASS / FAIL
+BACKEND-DERIVED PARTNER USED: YES / NO
+USER-SCOPED LIST CACHE: PASS / FAIL
+PAGINATION: PASS / FAIL
+EMPTY STATE: PASS / FAIL
+ERROR RETRY STATE: PASS / FAIL
+N+1 DETAIL REQUESTS ADDED: YES / NO
+CLIENT DETAIL NAVIGATION: PASS / FAIL
+EXPERT DETAIL NAVIGATION: PASS / FAIL
+WORKSPACE DETAIL CHANGED: YES / NO
+WORKSPACE CHAT CHANGED: YES / NO
+HIRE LOGIC CHANGED: YES / NO
+PAYMENT LOGIC CHANGED: YES / NO
+SUBMISSION LOGIC CHANGED: YES / NO
+FILES CHANGED: list exact files
+RUNTIME TEST REQUIRED: YES / NO
+READY FOR PHASE 7C-1 AUDIT: YES / NO
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
+- Expert Submission
+- Client Request Revision
+- Package History
+- Hire response handling
+- Contract signing
+- VNPay return
+- Payment service
+- Proposal Unlock
+- Notification
+- Marketplace
+- Apply flow
+- Jobpost status handling
+- Supabase upload
+- completion status
+- escrow display
+- rating
+- withdrawal
+
+Do not add Workspace list invalidation into Hire in this phase.
+
+That integration can be handled later after the Hire/VNPay resume flow is stabilized.
+
+==================================================
+MANUAL RUNTIME TEST REQUIREMENTS
+==================================================
+
+Client:
+
+1. Login as a Client who owns at least one Workspace.
+2. Open `/client/dashboard/projects`.
+3. Confirm one GET request is sent to:
+   `/api/workspace/api/v1/workspaces/dashboard?pageNo=0&pageSize=10`
+4. Confirm no Client code or UUID is sent.
+5. Confirm cards display the Expert as partner.
+6. Confirm project name, status, progress, and deadline match the response.
+7. Open a card.
+8. Confirm navigation uses:
+   `/client/dashboard/projects/{workspaceId}`
+9. Confirm Workspace Detail still loads normally.
+10. Return to the list and confirm cached page data behaves normally.
+
+Expert:
+
+11. Login as the Expert in the same browser.
+12. Open `/expert/dashboard/projects`.
+13. Confirm stale Client Project cards are not displayed.
+14. Confirm the same endpoint is called using the Expert token.
+15. Confirm cards display the Client as partner.
+16. Open a card.
+17. Confirm navigation uses:
+   `/expert/dashboard/projects/{workspaceId}`
+18. Confirm Workspace Detail still loads normally.
+
+Pagination:
+
+19. Use an account with more than one page when available.
+20. Confirm Previous and Next behavior.
+21. Confirm the API receives the correct zero-based `pageNo`.
+22. Confirm Next is disabled when `last` is true.
+
+Network integrity:
+
+23. Confirm there is no Workspace Detail request for every card.
+24. Confirm no chat session is created.
+25. Confirm no Hire, Contract, Payment, Submission, or Notification mutation occurs.
+
+Empty/error:
+
+26. Confirm a zero-result response shows an empty state.
+27. Confirm API failure shows a retry state.
+28. Confirm Retry calls only the dashboard list endpoint.
+
+==================================================
+STATIC VERIFICATION
+==================================================
+
+Run:
+
+1. `git status --short`
+2. `npx tsc --noEmit --incremental false --pretty false`
+3. `npm run lint -- --no-cache`
+4. `git diff --check`
+5. `git diff --stat`
+6. final `git status --short`
+
+Run `npm run build` only after TypeScript and lint pass.
+
+Known environment caveats:
+
+- Google Font network access may fail.
+- `.next/trace` may fail with EPERM.
+
+Report those as environment failures when applicable.
+
+Do not change source or dependencies to work around environment-only failures.
+
+Do not leave unexpected `package-lock.json` changes.
+
+==================================================
+REQUIRED OUTPUT FORMAT
+==================================================
+
+Return a report with exactly these sections:
+
+1. Summary
+2. Initial Repository State
+3. Existing Workspace List Foundation
+4. Confirmed API Contract
+5. Files Changed
+6. Workspace Dashboard Types
+7. Workspace Dashboard Service
+8. User-Scoped Query Strategy
+9. Shared Projects List UI
+10. Client Projects Route Result
+11. Expert Projects Route Result
+12. Project Card Mapping
+13. Partner Mapping Confirmation
+14. Pagination Behavior
+15. Loading, Error and Empty States
+16. N+1 Request Confirmation
+17. Identifier and Navigation Confirmation
+18. Account-Switch Cache Safety
+19. Scope and Regression Confirmation
+20. Verification Results
+21. Manual Runtime Test Checklist
+22. Remaining Risks
+23. Final Decision
+
+The Final Decision must explicitly report:
+
+WORKSPACE DASHBOARD ENDPOINT: PASS / FAIL
+RAW RESPONSE ALIGNMENT: PASS / FAIL
+CLIENT PROJECT LIST: PASS / FAIL
+EXPERT PROJECT LIST: PASS / FAIL
+BACKEND-DERIVED PARTNER USED: YES / NO
+USER-SCOPED LIST CACHE: PASS / FAIL
+PAGINATION: PASS / FAIL
+EMPTY STATE: PASS / FAIL
+ERROR RETRY STATE: PASS / FAIL
+N+1 DETAIL REQUESTS ADDED: YES / NO
+CLIENT DETAIL NAVIGATION: PASS / FAIL
+EXPERT DETAIL NAVIGATION: PASS / FAIL
+WORKSPACE DETAIL CHANGED: YES / NO
+WORKSPACE CHAT CHANGED: YES / NO
+HIRE LOGIC CHANGED: YES / NO
+PAYMENT LOGIC CHANGED: YES / NO
+SUBMISSION LOGIC CHANGED: YES / NO
+FILES CHANGED: list exact files
+RUNTIME TEST REQUIRED: YES / NO
+READY FOR PHASE 7C-1 AUDIT: YES / NO
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
+- Expert Submission
+- Client Request Revision
+- Package History
+- Hire response handling
+- Contract signing
+- VNPay return
+- Payment service
+- Proposal Unlock
+- Notification
+- Marketplace
+- Apply flow
+- Jobpost status handling
+- Supabase upload
+- completion status
+- escrow display
+- rating
+- withdrawal
+
+Do not add Workspace list invalidation into Hire in this phase.
+
+That integration can be handled later after the Hire/VNPay resume flow is stabilized.
+
+==================================================
+MANUAL RUNTIME TEST REQUIREMENTS
+==================================================
+
+Client:
+
+1. Login as a Client who owns at least one Workspace.
+2. Open `/client/dashboard/projects`.
+3. Confirm one GET request is sent to:
+   `/api/workspace/api/v1/workspaces/dashboard?pageNo=0&pageSize=10`
+4. Confirm no Client code or UUID is sent.
+5. Confirm cards display the Expert as partner.
+6. Confirm project name, status, progress, and deadline match the response.
+7. Open a card.
+8. Confirm navigation uses:
+   `/client/dashboard/projects/{workspaceId}`
+9. Confirm Workspace Detail still loads normally.
+10. Return to the list and confirm cached page data behaves normally.
+
+Expert:
+
+11. Login as the Expert in the same browser.
+12. Open `/expert/dashboard/projects`.
+13. Confirm stale Client Project cards are not displayed.
+14. Confirm the same endpoint is called using the Expert token.
+15. Confirm cards display the Client as partner.
+16. Open a card.
+17. Confirm navigation uses:
+   `/expert/dashboard/projects/{workspaceId}`
+18. Confirm Workspace Detail still loads normally.
+
+Pagination:
+
+19. Use an account with more than one page when available.
+20. Confirm Previous and Next behavior.
+21. Confirm the API receives the correct zero-based `pageNo`.
+22. Confirm Next is disabled when `last` is true.
+
+Network integrity:
+
+23. Confirm there is no Workspace Detail request for every card.
+24. Confirm no chat session is created.
+25. Confirm no Hire, Contract, Payment, Submission, or Notification mutation occurs.
+
+Empty/error:
+
+26. Confirm a zero-result response shows an empty state.
+27. Confirm API failure shows a retry state.
+28. Confirm Retry calls only the dashboard list endpoint.
+
+==================================================
+STATIC VERIFICATION
+==================================================
+
+Run:
+
+1. `git status --short`
+2. `npx tsc --noEmit --incremental false --pretty false`
+3. `npm run lint -- --no-cache`
+4. `git diff --check`
+5. `git diff --stat`
+6. final `git status --short`
+
+Run `npm run build` only after TypeScript and lint pass.
+
+Known environment caveats:
+
+- Google Font network access may fail.
+- `.next/trace` may fail with EPERM.
+
+Report those as environment failures when applicable.
+
+Do not change source or dependencies to work around environment-only failures.
+
+Do not leave unexpected `package-lock.json` changes.
+
+==================================================
+REQUIRED OUTPUT FORMAT
+==================================================
+
+Return a report with exactly these sections:
+
+1. Summary
+2. Initial Repository State
+3. Existing Workspace List Foundation
+4. Confirmed API Contract
+5. Files Changed
+6. Workspace Dashboard Types
+7. Workspace Dashboard Service
+8. User-Scoped Query Strategy
+9. Shared Projects List UI
+10. Client Projects Route Result
+11. Expert Projects Route Result
+12. Project Card Mapping
+13. Partner Mapping Confirmation
+14. Pagination Behavior
+15. Loading, Error and Empty States
+16. N+1 Request Confirmation
+17. Identifier and Navigation Confirmation
+18. Account-Switch Cache Safety
+19. Scope and Regression Confirmation
+20. Verification Results
+21. Manual Runtime Test Checklist
+22. Remaining Risks
+23. Final Decision
+
+The Final Decision must explicitly report:
+
+WORKSPACE DASHBOARD ENDPOINT: PASS / FAIL
+RAW RESPONSE ALIGNMENT: PASS / FAIL
+CLIENT PROJECT LIST: PASS / FAIL
+EXPERT PROJECT LIST: PASS / FAIL
+BACKEND-DERIVED PARTNER USED: YES / NO
+USER-SCOPED LIST CACHE: PASS / FAIL
+PAGINATION: PASS / FAIL
+EMPTY STATE: PASS / FAIL
+ERROR RETRY STATE: PASS / FAIL
+N+1 DETAIL REQUESTS ADDED: YES / NO
+CLIENT DETAIL NAVIGATION: PASS / FAIL
+EXPERT DETAIL NAVIGATION: PASS / FAIL
+WORKSPACE DETAIL CHANGED: YES / NO
+WORKSPACE CHAT CHANGED: YES / NO
+HIRE LOGIC CHANGED: YES / NO
+PAYMENT LOGIC CHANGED: YES / NO
+SUBMISSION LOGIC CHANGED: YES / NO
+FILES CHANGED: list exact files
+RUNTIME TEST REQUIRED: YES / NO
+READY FOR PHASE 7C-1 AUDIT: YES / NO
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
+- Expert Submission
+- Client Request Revision
+- Package History
+- Hire response handling
+- Contract signing
+- VNPay return
+- Payment service
+- Proposal Unlock
+- Notification
+- Marketplace
+- Apply flow
+- Jobpost status handling
+- Supabase upload
+- completion status
+- escrow display
+- rating
+- withdrawal
+
+Do not add Workspace list invalidation into Hire in this phase.
+
+That integration can be handled later after the Hire/VNPay resume flow is stabilized.
+
+==================================================
+MANUAL RUNTIME TEST REQUIREMENTS
+==================================================
+
+Client:
+
+1. Login as a Client who owns at least one Workspace.
+2. Open `/client/dashboard/projects`.
+3. Confirm one GET request is sent to:
+   `/api/workspace/api/v1/workspaces/dashboard?pageNo=0&pageSize=10`
+4. Confirm no Client code or UUID is sent.
+5. Confirm cards display the Expert as partner.
+6. Confirm project name, status, progress, and deadline match the response.
+7. Open a card.
+8. Confirm navigation uses:
+   `/client/dashboard/projects/{workspaceId}`
+9. Confirm Workspace Detail still loads normally.
+10. Return to the list and confirm cached page data behaves normally.
+
+Expert:
+
+11. Login as the Expert in the same browser.
+12. Open `/expert/dashboard/projects`.
+13. Confirm stale Client Project cards are not displayed.
+14. Confirm the same endpoint is called using the Expert token.
+15. Confirm cards display the Client as partner.
+16. Open a card.
+17. Confirm navigation uses:
+   `/expert/dashboard/projects/{workspaceId}`
+18. Confirm Workspace Detail still loads normally.
+
+Pagination:
+
+19. Use an account with more than one page when available.
+20. Confirm Previous and Next behavior.
+21. Confirm the API receives the correct zero-based `pageNo`.
+22. Confirm Next is disabled when `last` is true.
+
+Network integrity:
+
+23. Confirm there is no Workspace Detail request for every card.
+24. Confirm no chat session is created.
+25. Confirm no Hire, Contract, Payment, Submission, or Notification mutation occurs.
+
+Empty/error:
+
+26. Confirm a zero-result response shows an empty state.
+27. Confirm API failure shows a retry state.
+28. Confirm Retry calls only the dashboard list endpoint.
+
+==================================================
+STATIC VERIFICATION
+==================================================
+
+Run:
+
+1. `git status --short`
+2. `npx tsc --noEmit --incremental false --pretty false`
+3. `npm run lint -- --no-cache`
+4. `git diff --check`
+5. `git diff --stat`
+6. final `git status --short`
+
+Run `npm run build` only after TypeScript and lint pass.
+
+Known environment caveats:
+
+- Google Font network access may fail.
+- `.next/trace` may fail with EPERM.
+
+Report those as environment failures when applicable.
+
+Do not change source or dependencies to work around environment-only failures.
+
+Do not leave unexpected `package-lock.json` changes.
+
+==================================================
+REQUIRED OUTPUT FORMAT
+==================================================
+
+Return a report with exactly these sections:
+
+1. Summary
+2. Initial Repository State
+3. Existing Workspace List Foundation
+4. Confirmed API Contract
+5. Files Changed
+6. Workspace Dashboard Types
+7. Workspace Dashboard Service
+8. User-Scoped Query Strategy
+9. Shared Projects List UI
+10. Client Projects Route Result
+11. Expert Projects Route Result
+12. Project Card Mapping
+13. Partner Mapping Confirmation
+14. Pagination Behavior
+15. Loading, Error and Empty States
+16. N+1 Request Confirmation
+17. Identifier and Navigation Confirmation
+18. Account-Switch Cache Safety
+19. Scope and Regression Confirmation
+20. Verification Results
+21. Manual Runtime Test Checklist
+22. Remaining Risks
+23. Final Decision
+
+The Final Decision must explicitly report:
+
+WORKSPACE DASHBOARD ENDPOINT: PASS / FAIL
+RAW RESPONSE ALIGNMENT: PASS / FAIL
+CLIENT PROJECT LIST: PASS / FAIL
+EXPERT PROJECT LIST: PASS / FAIL
+BACKEND-DERIVED PARTNER USED: YES / NO
+USER-SCOPED LIST CACHE: PASS / FAIL
+PAGINATION: PASS / FAIL
+EMPTY STATE: PASS / FAIL
+ERROR RETRY STATE: PASS / FAIL
+N+1 DETAIL REQUESTS ADDED: YES / NO
+CLIENT DETAIL NAVIGATION: PASS / FAIL
+EXPERT DETAIL NAVIGATION: PASS / FAIL
+WORKSPACE DETAIL CHANGED: YES / NO
+WORKSPACE CHAT CHANGED: YES / NO
+HIRE LOGIC CHANGED: YES / NO
+PAYMENT LOGIC CHANGED: YES / NO
+SUBMISSION LOGIC CHANGED: YES / NO
+FILES CHANGED: list exact files
+RUNTIME TEST REQUIRED: YES / NO
+READY FOR PHASE 7C-1 AUDIT: YES / NO
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
+- Expert Submission
+- Client Request Revision
+- Package History
+- Hire response handling
+- Contract signing
+- VNPay return
+- Payment service
+- Proposal Unlock
+- Notification
+- Marketplace
+- Apply flow
+- Jobpost status handling
+- Supabase upload
+- completion status
+- escrow display
+- rating
+- withdrawal
+
+Do not add Workspace list invalidation into Hire in this phase.
+
+That integration can be handled later after the Hire/VNPay resume flow is stabilized.
+
+==================================================
+MANUAL RUNTIME TEST REQUIREMENTS
+==================================================
+
+Client:
+
+1. Login as a Client who owns at least one Workspace.
+2. Open `/client/dashboard/projects`.
+3. Confirm one GET request is sent to:
+   `/api/workspace/api/v1/workspaces/dashboard?pageNo=0&pageSize=10`
+4. Confirm no Client code or UUID is sent.
+5. Confirm cards display the Expert as partner.
+6. Confirm project name, status, progress, and deadline match the response.
+7. Open a card.
+8. Confirm navigation uses:
+   `/client/dashboard/projects/{workspaceId}`
+9. Confirm Workspace Detail still loads normally.
+10. Return to the list and confirm cached page data behaves normally.
+
+Expert:
+
+11. Login as the Expert in the same browser.
+12. Open `/expert/dashboard/projects`.
+13. Confirm stale Client Project cards are not displayed.
+14. Confirm the same endpoint is called using the Expert token.
+15. Confirm cards display the Client as partner.
+16. Open a card.
+17. Confirm navigation uses:
+   `/expert/dashboard/projects/{workspaceId}`
+18. Confirm Workspace Detail still loads normally.
+
+Pagination:
+
+19. Use an account with more than one page when available.
+20. Confirm Previous and Next behavior.
+21. Confirm the API receives the correct zero-based `pageNo`.
+22. Confirm Next is disabled when `last` is true.
+
+Network integrity:
+
+23. Confirm there is no Workspace Detail request for every card.
+24. Confirm no chat session is created.
+25. Confirm no Hire, Contract, Payment, Submission, or Notification mutation occurs.
+
+Empty/error:
+
+26. Confirm a zero-result response shows an empty state.
+27. Confirm API failure shows a retry state.
+28. Confirm Retry calls only the dashboard list endpoint.
+
+==================================================
+STATIC VERIFICATION
+==================================================
+
+Run:
+
+1. `git status --short`
+2. `npx tsc --noEmit --incremental false --pretty false`
+3. `npm run lint -- --no-cache`
+4. `git diff --check`
+5. `git diff --stat`
+6. final `git status --short`
+
+Run `npm run build` only after TypeScript and lint pass.
+
+Known environment caveats:
+
+- Google Font network access may fail.
+- `.next/trace` may fail with EPERM.
+
+Report those as environment failures when applicable.
+
+Do not change source or dependencies to work around environment-only failures.
+
+Do not leave unexpected `package-lock.json` changes.
+
+==================================================
+REQUIRED OUTPUT FORMAT
+==================================================
+
+Return a report with exactly these sections:
+
+1. Summary
+2. Initial Repository State
+3. Existing Workspace List Foundation
+4. Confirmed API Contract
+5. Files Changed
+6. Workspace Dashboard Types
+7. Workspace Dashboard Service
+8. User-Scoped Query Strategy
+9. Shared Projects List UI
+10. Client Projects Route Result
+11. Expert Projects Route Result
+12. Project Card Mapping
+13. Partner Mapping Confirmation
+14. Pagination Behavior
+15. Loading, Error and Empty States
+16. N+1 Request Confirmation
+17. Identifier and Navigation Confirmation
+18. Account-Switch Cache Safety
+19. Scope and Regression Confirmation
+20. Verification Results
+21. Manual Runtime Test Checklist
+22. Remaining Risks
+23. Final Decision
+
+The Final Decision must explicitly report:
+
+WORKSPACE DASHBOARD ENDPOINT: PASS / FAIL
+RAW RESPONSE ALIGNMENT: PASS / FAIL
+CLIENT PROJECT LIST: PASS / FAIL
+EXPERT PROJECT LIST: PASS / FAIL
+BACKEND-DERIVED PARTNER USED: YES / NO
+USER-SCOPED LIST CACHE: PASS / FAIL
+PAGINATION: PASS / FAIL
+EMPTY STATE: PASS / FAIL
+ERROR RETRY STATE: PASS / FAIL
+N+1 DETAIL REQUESTS ADDED: YES / NO
+CLIENT DETAIL NAVIGATION: PASS / FAIL
+EXPERT DETAIL NAVIGATION: PASS / FAIL
+WORKSPACE DETAIL CHANGED: YES / NO
+WORKSPACE CHAT CHANGED: YES / NO
+HIRE LOGIC CHANGED: YES / NO
+PAYMENT LOGIC CHANGED: YES / NO
+SUBMISSION LOGIC CHANGED: YES / NO
+FILES CHANGED: list exact files
+RUNTIME TEST REQUIRED: YES / NO
+READY FOR PHASE 7C-1 AUDIT: YES / NO
+You are working in my existing Next.js application:
+
+D:\SU2026\SWD\Neuro-bridge-FE
+
+Current branch:
+
+feature/main-flow-14-07
+
+This is Phase 7B-1 — Workspace Projects List Integration.
+
+This is a focused implementation phase for the Client and Expert Project list pages only.
+
+Do not redesign the whole dashboard.
+Do not refactor unrelated features.
+Do not install packages.
+Do not upgrade dependencies.
+Do not modify Backend code.
+Do not change API contracts.
+Do not add mock Workspace data.
+Do not add N+1 Workspace Detail requests.
+Do not modify Workspace Detail behavior.
+Do not modify Workspace Chat behavior.
+Do not modify Hire, Contract, Payment, Proposal Unlock, Notification, Submission, Review, Completion, Escrow, Withdrawal, Rating, or Jobpost business logic.
+
+The repository should be clean before implementation.
+
+==================================================
+PHASE OBJECTIVE
+==================================================
+
+Replace the placeholder Project base pages with a real authenticated Workspace list.
+
+Routes:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both routes must use the authoritative authenticated Workspace Dashboard endpoint:
+
+GET `/api/workspace/api/v1/workspaces/dashboard`
+
+Query parameters:
+
+- `pageNo`
+- `pageSize`
+
+Default values:
+
+- `pageNo = 0`
+- `pageSize = 10`
+
+Important:
+
+The existing Axios base URL may already include `/api`.
+
+Inspect the existing API client before constructing the service path.
+
+Do not accidentally call:
+
+`/api/api/workspace/...`
+
+Use the same relative-path convention already used by the existing Workspace Detail service.
+
+==================================================
+CONFIRMED BACKEND CONTRACT
+==================================================
+
+The endpoint derives the authenticated user from the bearer token.
+
+Frontend must not send:
+
+- Client code
+- Expert code
+- Client UUID
+- Expert UUID
+- role-based participant IDs
+
+Backend automatically derives `partner`:
+
+- Logged-in CLIENT receives the Expert as partner.
+- Logged-in EXPERT receives the Client as partner.
+
+Backend already sorts Workspaces by newest `createdAt DESC`.
+
+Expected raw response:
+
+{
+  "content": [
+    {
+      "workspaceId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "projectName": "string",
+      "projectStatus": "string",
+      "progressPercentage": 0,
+      "deadline": "2026-07-14T03:40:47.053Z",
+      "partner": {
+        "name": "string",
+        "avatarUrl": "string",
+        "role": "string"
+      }
+    }
+  ],
+  "pageNo": 0,
+  "pageSize": 10,
+  "totalElements": 0,
+  "totalPages": 0,
+  "last": true
+}
+
+Treat this as a raw paged response, not an `APIResponse<T>` wrapper, unless inspection of the actual existing service infrastructure proves otherwise.
+
+Do not silently support speculative response shapes.
+
+If the runtime response materially differs from this contract, stop and report the mismatch instead of inventing a mapper.
+
+==================================================
+TASK 1 — INSPECT EXISTING WORKSPACE FOUNDATION
+==================================================
+
+Before editing, inspect:
+
+- `services/workspace.service.ts`
+- `types/workspace.type.ts`
+- existing Workspace query keys
+- existing Workspace Detail hooks
+- `/client/dashboard/projects/page.tsx`
+- `/expert/dashboard/projects/page.tsx`
+- `/client/dashboard/projects/[workspaceId]/page.tsx`
+- `/expert/dashboard/projects/[workspaceId]/page.tsx`
+- `features/workspace/**`
+- Redux authenticated user shape
+- current role and user-code access patterns
+- existing loading, retry, empty-state, card, pagination, and page-shell patterns
+
+The previous source audit found possible existing unused types:
+
+- `WorkspaceDashboardItem`
+- `WorkspaceDashboardPage`
+- `workspaceKeys.dashboard(...)`
+
+Confirm whether these still exist after the merge.
+
+Reuse and align existing types where safe.
+
+Do not create duplicate Workspace dashboard types or query-key families.
+
+==================================================
+TASK 2 — TYPES
+==================================================
+
+Define or align the Workspace Dashboard contracts.
+
+Expected item:
+
+- `workspaceId: string`
+- `projectName: string`
+- `projectStatus: string`
+- `progressPercentage: number`
+- `deadline: string | null`
+- `partner`
+  - `name: string`
+  - `avatarUrl: string | null`
+  - `role: string`
+
+Expected page:
+
+- `content: WorkspaceDashboardItem[]`
+- `pageNo: number`
+- `pageSize: number`
+- `totalElements: number`
+- `totalPages: number`
+- `last: boolean`
+
+Use safe nullability for optional avatar and deadline values.
+
+Do not invent fields that are not returned:
+
+- workspace status
+- jobId
+- contractId
+- escrowId
+- createdAt
+- financial amount
+- funding status
+- chat session ID
+- rating state
+
+Do not type unrelated fields as `any`.
+
+==================================================
+TASK 3 — WORKSPACE DASHBOARD SERVICE
+==================================================
+
+Add or align a service function equivalent to:
+
+`getWorkspaceDashboard({ pageNo, pageSize })`
+
+It must call the authenticated Workspace Dashboard endpoint using the existing shared API client.
+
+Requirements:
+
+- HTTP method: GET
+- query params: `pageNo`, `pageSize`
+- bearer token remains handled by the current interceptor
+- no user identity is sent manually
+- return the raw page object
+- no per-card detail requests
+- no frontend partner inversion
+- no frontend sorting
+- no mock fallback
+- no swallowed API errors
+
+Use `encodeURIComponent` only where applicable. Query parameters should use the Axios `params` option rather than manual unsafe string concatenation.
+
+==================================================
+TASK 4 — USER-SCOPED QUERY KEY AND HOOK
+==================================================
+
+Create or align a React Query hook for the dashboard list.
+
+The list cache must be scoped by authenticated identity to avoid Client/Expert cache bleed when accounts are switched in the same browser.
+
+Recommended stable key structure:
+
+[
+  "workspace",
+  "user",
+  userCode,
+  role,
+  "dashboard",
+  pageNo,
+  pageSize
+]
+
+Requirements:
+
+- use authenticated Redux `state.user.code`
+- include authenticated role
+- include pageNo and pageSize
+- query enabled only when user code and supported role exist
+- retry: 0, consistent with the current Workspace domain
+- do not include the token
+- do not include the whole user object
+- do not include mutable response objects
+- do not change unrelated Workspace Detail keys in this phase
+
+Supported roles:
+
+- CLIENT
+- EXPERT
+
+Unsupported or missing roles must fail safely without calling the API.
+
+==================================================
+TASK 5 — SHARED PROJECT LIST VIEW
+==================================================
+
+Build one shared Workspace Projects list view used by both Client and Expert routes.
+
+Do not duplicate the entire list UI for each role.
+
+The shared view may receive the authenticated role or derive it from Redux.
+
+Each project card should show only real returned data:
+
+- project name
+- project status
+- progress percentage
+- deadline
+- partner avatar or initials fallback
+- partner name
+- partner role
+- action to open Workspace Detail
+
+Navigation must use `workspaceId`.
+
+Client card route:
+
+`/client/dashboard/projects/{workspaceId}`
+
+Expert card route:
+
+`/expert/dashboard/projects/{workspaceId}`
+
+Never navigate using:
+
+- jobId
+- contractId
+- escrowId
+- packageId
+- chat sessionId
+
+Do not navigate to `/chat-room/{workspaceId}` from the new list.
+
+Keep `/chat-room/{workspaceId}` compatibility untouched.
+
+==================================================
+TASK 6 — CARD UI REQUIREMENTS
+==================================================
+
+Use the current Neuro Bridge dashboard design language.
+
+Prefer existing:
+
+- white rounded cards
+- subtle borders/shadows
+- current status badge patterns
+- current progress bar patterns
+- existing page background and spacing
+- partner avatar fallback conventions
+
+Do not redesign the whole page.
+
+Do not invent charts or statistics.
+
+Do not display fake financial values.
+
+Project status:
+
+- render the backend value as a readable label
+- do not derive completion from progress
+- do not change backend status meaning
+- do not treat `ASSIGNED` Jobpost status as Project completion
+- unknown statuses should still display safely
+
+Progress:
+
+- display the backend value
+- clamp only the visual bar between 0 and 100
+- do not rewrite the stored value
+- do not calculate progress from submissions or files
+
+Deadline:
+
+- format safely using existing date utilities where possible
+- handle null or invalid values with a neutral fallback such as `No deadline`
+- do not calculate remaining days unless an existing shared helper already does so reliably
+
+Partner:
+
+- trust the Backend-returned `partner`
+- do not search participants
+- do not swap Client and Expert in frontend
+- use initials when `avatarUrl` is empty or unavailable
+
+==================================================
+TASK 7 — PAGE STATES
+==================================================
+
+Implement all required states:
+
+Loading:
+- show Project card skeletons
+- do not show fake project data
+
+Error:
+- show a clear retryable error state
+- provide a Retry button using query refetch
+- do not expose raw Axios objects, tokens, or headers
+
+Empty:
+- explain that the authenticated account currently has no project Workspaces
+- no fake Workspace IDs
+- no instruction asking the user to manually type `/projects/{id}`
+
+Client empty-state action may link to an existing real Client Jobpost/Hiring route only if the route is source-verified.
+
+Expert empty-state action may link to:
+
+`/expert/dashboard/browse-job-posts`
+
+Do not create new routes for empty-state actions.
+
+Success:
+- render `content`
+- show total project count from `totalElements` when useful
+- do not treat current page length as the authoritative total
+
+==================================================
+TASK 8 — PAGINATION
+==================================================
+
+Use Backend pagination fields directly.
+
+Required behavior:
+
+- initial page: 0
+- page size: 10
+- Previous disabled on page 0
+- Next disabled when `last === true`
+- show human-readable page number as `pageNo + 1`
+- use `totalPages` when displaying total pages
+- changing page triggers only the dashboard list query
+- scroll the list area or page top into view after a deliberate page change if this matches existing project patterns
+
+Do not add unsupported:
+
+- search query
+- sort selector
+- status filter
+- custom page size selector
+- infinite scroll
+
+Backend currently supports only `pageNo` and `pageSize`.
+
+==================================================
+TASK 9 — CONNECT BOTH BASE ROUTES
+==================================================
+
+Replace the placeholder content in:
+
+- `/client/dashboard/projects`
+- `/expert/dashboard/projects`
+
+Both pages should remain thin App Router route shells and render the shared Projects list view.
+
+Preserve:
+
+- existing Client layout
+- existing Expert layout
+- sidebar navigation
+- canonical detail routes
+- current route naming
+
+Do not move the detail routes.
+
+Do not rename `projects` to `workspaces`.
+
+The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
+
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+
+Do not modify:
+
+- Workspace Detail data mapping
+- Open Chat orchestration
+- Chat session reuse
