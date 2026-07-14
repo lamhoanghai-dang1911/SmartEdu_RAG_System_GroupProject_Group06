@@ -7,6 +7,7 @@ using SmartEdu.Data.Repositories;
 using SmartEdu.Shared.DTOs;
 using SmartEdu.Shared.Entities;
 using SmartEdu.Shared.Enums;
+using SmartEdu.Shared.Helpers;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,6 +32,8 @@ public class DocumentService : IDocumentService
     private readonly IRepository<Subject> _subjectRepo;
     private readonly IRealtimeNotifier _realtime;
     private readonly IUploadConfigService _uploadConfigService;
+    private const double NearDuplicateThreshold = 0.90;
+    private const int MaxChunksForDuplicateCheck = 10;
 
     public DocumentService(
     IRepository<EntityDocument> docRepo,
@@ -646,27 +649,185 @@ public class DocumentService : IDocumentService
         return docs.Any();
     }
 
-    public async Task<DuplicateCheckDto> CheckDuplicateAsync(string fileHash, int subjectId)
+    public async Task<DuplicateCheckDto> CheckDuplicateAsync(string filePath, string fileExt, string fileHash, int subjectId, int excludeDocumentId = 0)
     {
-        var existing = await _docRepo.GetAllAsync(d =>
+        // === Bước 1: check trùng 100% (giữ nguyên logic cũ) ===
+        var exactMatches = await _docRepo.GetAllAsync(d =>
             d.FileHash == fileHash &&
             d.SubjectId == subjectId &&
+            d.Id != excludeDocumentId &&
             !d.IsDeleted);
 
-        var doc = existing.FirstOrDefault();
-        if (doc == null)
+        var exactDoc = exactMatches.FirstOrDefault();
+        if (exactDoc != null)
         {
-            return new DuplicateCheckDto { HasDuplicate = false };
+            return new DuplicateCheckDto
+            {
+                HasDuplicate = true,
+                MatchType = DuplicateMatchType.Exact,
+                DuplicateDocumentId = exactDoc.Id,
+                DuplicateTitle = exactDoc.Title,
+                DuplicateCreatedAt = exactDoc.CreatedAt,
+                IsEmbeddingReady = exactDoc.Status == DocumentStatus.Ready || exactDoc.EmbeddingSetId != null
+            };
         }
 
-        return new DuplicateCheckDto
+        // === Bước 2: check gần giống (similarity >= 80%) ===
+        try
         {
-            HasDuplicate = true,
-            DuplicateDocumentId = doc.Id,
-            DuplicateTitle = doc.Title,
-            DuplicateCreatedAt = doc.CreatedAt,
-            IsEmbeddingReady = doc.Status == DocumentStatus.Ready || doc.EmbeddingSetId != null
-        };
+            var newDocVector = await ComputeDocumentVectorFromFileAsync(filePath, fileExt, subjectId);
+            if (newDocVector.Length == 0)
+                return new DuplicateCheckDto { HasDuplicate = false };
+
+            var candidateDocs = await _docRepo.GetAllWithIncludeAsync(
+                d => d.SubjectId == subjectId
+                     && d.Id != excludeDocumentId
+                     && !d.IsDeleted
+                     && d.Status == DocumentStatus.Ready
+                     && d.EmbeddingSetId != null,
+                d => d.EmbeddingSet
+            );
+
+            DocumentDto? bestMatch = null;
+            double bestScore = 0;
+
+            foreach (var candidate in candidateDocs)
+            {
+                var candidateChunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == candidate.EmbeddingSetId!.Value);
+                var candidateVectors = candidateChunks
+                    .Select(c => JsonSerializer.Deserialize<float[]>(c.EmbeddingJson!))
+                    .Where(v => v != null)
+                    .ToList();
+
+                if (candidateVectors.Count == 0) continue;
+
+                var candidateDocVector = VectorMath.MeanPool(candidateVectors!);
+                var score = VectorMath.CosineSimilarity(newDocVector, candidateDocVector);
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMatch = new DocumentDto { Id = candidate.Id, Title = candidate.Title, CreatedAt = candidate.CreatedAt, Status = candidate.Status };
+                }
+            }
+
+            if (bestMatch != null && bestScore >= NearDuplicateThreshold)
+            {
+                return new DuplicateCheckDto
+                {
+                    HasDuplicate = true,
+                    MatchType = DuplicateMatchType.Near,
+                    DuplicateDocumentId = bestMatch.Id,
+                    DuplicateTitle = bestMatch.Title,
+                    DuplicateCreatedAt = bestMatch.CreatedAt,
+                    IsEmbeddingReady = true,
+                    SimilarityPercent = Math.Round(bestScore * 100, 1)
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            // Nếu bước check similarity lỗi (ví dụ HuggingFace tạm downtime), KHÔNG chặn upload —
+            // chỉ log lại và coi như không phát hiện trùng, để không làm gián đoạn trải nghiệm giảng viên
+            Console.WriteLine($"Lỗi khi kiểm tra tài liệu gần giống: {ex}");
+        }
+
+        return new DuplicateCheckDto { HasDuplicate = false };
+    }
+
+    private async Task<float[]> ComputeDocumentVectorFromFileAsync(string filePath, string fileExt, int subjectId)
+    {
+        var activeConfig = await _chunkingConfigService.ResolveActiveConfigAsync(subjectId);
+        var ext = fileExt.ToLowerInvariant().TrimStart('.');
+
+        List<(string Content, string SourceLocation)> chunks;
+
+        if (ext == "pdf")
+        {
+            var segments = ExtractPdfSegments(filePath);
+            chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
+        }
+        else if (ext == "docx")
+        {
+            var segments = ExtractDocxSegments(filePath);
+            chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
+        }
+        else if (ext == "pptx")
+        {
+            var segments = ExtractPptxSegments(filePath);
+            chunks = ChunkSegmentsBySlide(segments);
+        }
+        else
+        {
+            return Array.Empty<float>();
+        }
+
+        if (chunks.Count == 0) return Array.Empty<float>();
+
+        // Giới hạn số chunk embed thử để tránh file quá dài làm chậm bước check trùng —
+        // lấy mẫu đều nhau xuyên suốt tài liệu thay vì chỉ N chunk đầu, để đại diện tốt hơn
+        var sampledChunks = chunks.Count <= MaxChunksForDuplicateCheck
+            ? chunks
+            : SampleEvenly(chunks, MaxChunksForDuplicateCheck);
+
+        var embeddingTasks = sampledChunks.Select(c => GetChunkEmbeddingForCheckAsync(c.Content)).ToList();
+        var results = await Task.WhenAll(embeddingTasks);
+        var vectors = results.Where(v => v.Length > 0).ToList();
+
+        return VectorMath.MeanPool(vectors);
+    }
+
+    private static List<(string Content, string SourceLocation)> SampleEvenly(
+        List<(string Content, string SourceLocation)> chunks, int sampleCount)
+    {
+        var step = (double)chunks.Count / sampleCount;
+        var result = new List<(string, string)>();
+        for (int i = 0; i < sampleCount; i++)
+        {
+            int idx = (int)(i * step);
+            if (idx < chunks.Count) result.Add(chunks[idx]);
+        }
+        return result;
+    }
+
+    private async Task<float[]> GetChunkEmbeddingForCheckAsync(string text)
+    {
+        var hfToken = _configuration["HuggingFace:Token"];
+        if (string.IsNullOrWhiteSpace(hfToken)) return Array.Empty<float>();
+
+        var client = _httpFactory.CreateClient();
+        client.Timeout = TimeSpan.FromSeconds(15);   // giới hạn 15s/request, tránh treo cả upload
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hfToken);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
+
+        try
+        {
+            var payload = new { inputs = $"passage: {text}" };
+            var json = JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var resp = await client.PostAsync(modelUrl, content);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<float>();
+
+            var respJson = await resp.Content.ReadAsStringAsync();
+            using var docJson = JsonDocument.Parse(respJson);
+            var vector = new List<float>();
+            var root = docJson.RootElement;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                var firstElement = root[0];
+                var vectorArray = firstElement.ValueKind == JsonValueKind.Number ? root : firstElement;
+                foreach (var el in vectorArray.EnumerateArray()) vector.Add(el.GetSingle());
+            }
+            return vector.ToArray();
+        }
+        catch (TaskCanceledException)
+        {
+            // Timeout riêng cho request này - bỏ qua, không chặn cả quá trình check
+            return Array.Empty<float>();
+        }
     }
 
     public async Task HandleDuplicateAsync(DuplicateHandleDto dto, int currentUserId)

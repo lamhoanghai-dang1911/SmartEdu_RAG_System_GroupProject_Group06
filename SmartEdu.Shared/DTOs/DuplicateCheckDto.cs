@@ -7,20 +7,23 @@ using System.Threading.Tasks;
 
 namespace SmartEdu.Shared.DTOs
 {
+    public enum DuplicateMatchType { None = 0, Exact = 1, Near = 2 }
+
     public class DuplicateCheckDto
     {
         public bool HasDuplicate { get; set; }
+        public DuplicateMatchType MatchType { get; set; } = DuplicateMatchType.None;
         public int? DuplicateDocumentId { get; set; }
         public string? DuplicateTitle { get; set; }
         public DateTime? DuplicateCreatedAt { get; set; }
-        // True if the existing document already has embeddings / is Ready
         public bool IsEmbeddingReady { get; set; }
+        public double? SimilarityPercent { get; set; }   // chỉ có giá trị khi MatchType == Near
     }
 
     public class DuplicateHandleDto
     {
         public int NewDocumentId { get; set; }
         public int OldDocumentId { get; set; }
-        public DocumentDuplicateAction Action { get; set; } // Ignored = 1, Replaced = 2, KeptBoth = 3
+        public DocumentDuplicateAction Action { get; set; }
     }
 }

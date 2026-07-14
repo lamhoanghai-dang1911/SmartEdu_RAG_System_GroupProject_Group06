@@ -246,46 +246,45 @@ public class DocumentController : Controller
     public async Task<IActionResult> Upload(IFormFile file, string title, int subjectId)
     {
         if (file == null || file.Length == 0)
-        {
-            TempData["Error"] = "Vui lòng chọn file.";
-            return RedirectToAction(nameof(Index));
-        }
+            return Json(new { success = false, error = "Vui lòng chọn file." });
 
         var userIdClaim = User.FindFirst("UserId")?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
-            return RedirectToAction("Login", "Account");
+            return Json(new { success = false, error = "Vui lòng đăng nhập lại." });
 
-        // Check quyền truy cập subject
         bool canAccess = await _permissionService.CanUserAccessSubject(userId, subjectId);
         if (!canAccess)
-            return Forbid();
+            return Json(new { success = false, error = "Bạn không có quyền upload tài liệu cho môn học này." });
 
         try
         {
             var webRootPath = _env.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRootPath))
+                webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
 
-            // Compute hash first and check duplicate BEFORE creating DB record
+            var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            var fileTypeKey = ext.TrimStart('.');
+            var maxSizeMB = await _uploadConfigService.ResolveMaxFileSizeMBAsync(subjectId, fileTypeKey);
+            var maxSizeBytes = (long)maxSizeMB * 1024 * 1024;
+            if (file.Length > maxSizeBytes)
+                return Json(new { success = false, error = $"File vượt quá kích thước cho phép ({maxSizeMB}MB)." });
+
             string fileHash = await ComputeFileHashAsync(file);
-            var dupCheck = await _documentService.CheckDuplicateAsync(fileHash, subjectId);
+
+            var tempRoot = Path.Combine(webRootPath, "uploads", "temp");
+            Directory.CreateDirectory(tempRoot);
+            var tempName = $"{Guid.NewGuid()}{ext}";
+            var tempPath = Path.Combine(tempRoot, tempName);
+            await using (var stream = System.IO.File.Create(tempPath))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var dupCheck = await _documentService.CheckDuplicateAsync(tempPath, ext, fileHash, subjectId);
 
             if (dupCheck.HasDuplicate)
             {
-                // Save uploaded file to temporary folder until user confirms action
-                if (string.IsNullOrWhiteSpace(webRootPath))
-                {
-                    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
-                }
-                var tempRoot = Path.Combine(webRootPath, "uploads", "temp");
-                Directory.CreateDirectory(tempRoot);
-                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-                var tempName = $"{Guid.NewGuid()}{ext}";
-                var tempPath = Path.Combine(tempRoot, tempName);
-                await using (var stream = System.IO.File.Create(tempPath))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // store temp info in session for later confirmation
                 HttpContext.Session.SetString("TempFilePath", tempPath);
                 HttpContext.Session.SetString("TempFileName", file.FileName);
                 HttpContext.Session.SetString("TempFileHash", fileHash);
@@ -293,19 +292,23 @@ public class DocumentController : Controller
                 HttpContext.Session.SetInt32("TempSubjectId", subjectId);
                 HttpContext.Session.SetString("TempFileSize", file.Length.ToString());
                 HttpContext.Session.SetInt32("OldDocumentId", dupCheck.DuplicateDocumentId ?? 0);
+                HttpContext.Session.SetInt32("DuplicateMatchType", (int)dupCheck.MatchType);
 
-                // Trả về JSON để JS xử lý hiển thị Modal, kèm flag cho biết tài liệu cũ đã có embeddings hay chưa
                 return Json(new
                 {
                     isDuplicate = true,
+                    matchType = dupCheck.MatchType.ToString(),
+                    similarityPercent = dupCheck.SimilarityPercent,
                     oldDocumentId = dupCheck.DuplicateDocumentId,
                     isEmbeddingReady = dupCheck.IsEmbeddingReady,
-                    message = $"Tài liệu đã tồn tại: {dupCheck.DuplicateTitle}"
+                    message = dupCheck.MatchType == DuplicateMatchType.Exact
+                        ? $"Tài liệu đã tồn tại: {dupCheck.DuplicateTitle}"
+                        : $"Tài liệu này có vẻ giống {dupCheck.SimilarityPercent}% với tài liệu \"{dupCheck.DuplicateTitle}\" đã tải lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy HH:mm}."
                 });
             }
 
-            // Not duplicate -> create DB record and persist as before
-            var dto = await _documentService.UploadAsync(file, title, subjectId, webRootPath);
+            // Không trùng -> tạo document ngay từ file temp
+            var dto = await _documentService.CreateFromTempAsync(tempPath, file.FileName, title, subjectId, fileHash, file.Length, webRootPath);
             return Json(new { success = true, message = "Upload thành công! Nhấn nút ⚡ để bắt đầu embedding." });
         }
         catch (Exception ex)
@@ -339,9 +342,19 @@ public class DocumentController : Controller
     public async Task<IActionResult> ConfirmDuplicate(int action)
     {
         var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
+        var matchTypeInt = HttpContext.Session.GetInt32("DuplicateMatchType") ?? 0;
+        var matchType = (DuplicateMatchType)matchTypeInt;
 
         if (!oldDocId.HasValue)
             return RedirectToAction(nameof(Index));
+
+        var chosenAction = (DocumentDuplicateAction)action;
+
+        if (matchType == DuplicateMatchType.Exact && chosenAction == DocumentDuplicateAction.KeptBoth)
+        {
+            TempData["Error"] = "Không thể giữ cả hai khi tài liệu trùng khớp hoàn toàn. Vui lòng chọn Thay thế hoặc Hủy.";
+            return RedirectToAction(nameof(Index));
+        }
 
         var userIdClaim = User.FindFirst("UserId")?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
@@ -349,7 +362,6 @@ public class DocumentController : Controller
 
         try
         {
-            // If a temp file exists in session, create the new document record now
             var tempPath = HttpContext.Session.GetString("TempFilePath");
             DocumentDto newDocDto = null;
             if (!string.IsNullOrWhiteSpace(tempPath))
@@ -374,7 +386,7 @@ public class DocumentController : Controller
             {
                 NewDocumentId = newDocDto.Id,
                 OldDocumentId = oldDocId.Value,
-                Action = (DocumentDuplicateAction)action
+                Action = chosenAction
             };
 
             await _documentService.HandleDuplicateAsync(dto, userId);
@@ -386,6 +398,7 @@ public class DocumentController : Controller
             HttpContext.Session.Remove("TempSubjectId");
             HttpContext.Session.Remove("TempFileSize");
             HttpContext.Session.Remove("OldDocumentId");
+            HttpContext.Session.Remove("DuplicateMatchType");
 
             TempData["Success"] = "Xử lý tài liệu trùng thành công!";
             return RedirectToAction(nameof(Index));

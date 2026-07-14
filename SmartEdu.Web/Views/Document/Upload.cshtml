@@ -412,7 +412,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">⚠️ Phát hiện tài liệu trùng</h5>
+                <h5 class="modal-title" id="dupModalTitle">⚠️ Phát hiện tài liệu trùng</h5>
             </div>
             <div class="modal-body">
                 <p id="dupMessage"></p>
@@ -567,26 +567,43 @@
                         return;
                     }
 
-                    if (result.isDuplicate) {
-                        document.getElementById('oldDocId').value = result.oldDocumentId;
-                        document.getElementById('dupMessage').textContent = result.message;
-                        setActionChoice('3');
+                     if (result.isDuplicate) {
+            document.getElementById('oldDocId').value = result.oldDocumentId;
+            document.getElementById('dupMessage').textContent = result.message;
 
-                        const statusEl = document.getElementById('dupOldStatus');
-                        if (result.isEmbeddingReady) {
-                            statusEl.className = 'alert alert-success';
-                            statusEl.textContent = 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể giữ cả hai hoặc thay thế.';
-                            statusEl.style.display = 'block';
-                        } else {
-                            statusEl.className = 'alert alert-warning';
-                            statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>), hoặc tiếp tục chấp nhận thay thế.';
-                            statusEl.style.display = 'block';
-                        }
-                        new bootstrap.Modal(document.getElementById('duplicateModal')).show();
-                        uploadBtn.disabled = false;
-                    } else {
-                        window.location.href = '@Url.Action("Index", "Document")';
-                    }
+            const isExact = result.matchType === 'Exact';
+
+            document.getElementById('dupModalTitle').textContent = isExact
+                ? '⚠️ Tài liệu trùng khớp hoàn toàn'
+                : '🔍 Tài liệu có vẻ giống bản đã tải trước';
+
+            const keepBothOption = document.querySelector('.action-option[data-value="3"]');
+
+            if (isExact) {
+                keepBothOption.style.display = 'none';
+                setActionChoice('2');
+            } else {
+                keepBothOption.style.display = '';
+                setActionChoice('3');
+            }
+
+            const statusEl = document.getElementById('dupOldStatus');
+            if (result.isEmbeddingReady) {
+                statusEl.className = 'alert alert-success';
+                statusEl.textContent = isExact
+                    ? 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể thay thế hoặc hủy upload.'
+                    : 'Tài liệu cũ đã có embeddings. Vì chỉ giống một phần, bạn có thể giữ cả hai, thay thế, hoặc hủy.';
+                statusEl.style.display = 'block';
+            } else {
+                statusEl.className = 'alert alert-warning';
+                statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>).';
+                statusEl.style.display = 'block';
+            }
+            new bootstrap.Modal(document.getElementById('duplicateModal')).show();
+            uploadBtn.disabled = false;
+        } else {
+            window.location.href = '@Url.Action("Index", "Document")';
+        }
                 } catch (err) {
                     errorAlert.textContent = 'Không thể kết nối server. Vui lòng thử lại.';
                     errorAlert.style.display = 'block';

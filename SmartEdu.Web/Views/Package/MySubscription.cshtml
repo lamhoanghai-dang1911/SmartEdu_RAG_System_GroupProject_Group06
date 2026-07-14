@@ -265,26 +265,6 @@
             color: #fff;
         }
 
-    .btn-cancel-sub {
-        width: 100%;
-        border: 1.5px solid rgba(229, 72, 77, 0.35);
-        border-radius: 999px;
-        padding: 0.55rem 1rem;
-        font-weight: 700;
-        font-size: 0.86rem;
-        color: var(--danger);
-        background: rgba(229, 72, 77, 0.06);
-        transition: background 0.15s ease, transform 0.15s ease;
-        margin-top: 0.6rem;
-        cursor: pointer;
-    }
-
-        .btn-cancel-sub:hover {
-            background: rgba(229, 72, 77, 0.12);
-            color: var(--danger);
-            transform: translateY(-1px);
-        }
-
     @@media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
             animation-duration: 0.01ms !important;
@@ -390,17 +370,6 @@
                                 <a asp-action="List" class="btn-renew d-inline-block text-center">
                                     🛒 Gia hạn gói
                                 </a>
-                            }
-
-                            @if (sub.Status == SmartEdu.Shared.Enums.SubscriptionStatus.Active)
-                            {
-                                <form asp-action="Cancel" asp-route-id="@sub.Id" method="post"
-                                      onsubmit="return confirm('Bạn chắc chắn muốn hủy gói này? Sau khi hủy, bạn sẽ không thể tiếp tục sử dụng gói này nữa.');">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn-cancel-sub">
-                                        🚫 Hủy gói
-                                    </button>
-                                </form>
                             }
                         </div>
                     </div>

@@ -15,7 +15,6 @@ namespace SmartEdu.Business.Interfaces
         Task<DocumentDownloadDto?> GetFileForDownloadAsync(int id);
         Task<bool> HasReadyDocumentsAsync(int subjectId);
         Task<IEnumerable<SmartEdu.Shared.DTOs.DocumentChunkDto>> GetChunksByDocumentIdAsync(int documentId);
-        Task<DuplicateCheckDto> CheckDuplicateAsync(string fileHash, int subjectId);
         Task HandleDuplicateAsync(DuplicateHandleDto dto, int currentUserId);
         // Create document DB record from an already-saved temporary file. The temp file will be moved to uploads folder.
         Task<DocumentDto> CreateFromTempAsync(string tempFilePath, string originalFileName, string title, int subjectId, string fileHash, long fileSize, string webRootPath);
@@ -27,5 +26,7 @@ namespace SmartEdu.Business.Interfaces
         Task<int?> GetChunkIndexByIdAsync(int chunkId);
         Task<DocumentSourcePanelDto?> GetChunksAroundCitationAsync(int documentId, int chunkId, int range = 10);
         Task<DocumentSourcePanelDto?> GetChunksRangeAsync(int documentId, int fromIndex, int toIndex);
+
+        Task<DuplicateCheckDto> CheckDuplicateAsync(string filePath, string fileExt, string fileHash, int subjectId, int excludeDocumentId = 0);
     }
 }
