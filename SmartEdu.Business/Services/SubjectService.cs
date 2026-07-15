@@ -326,6 +326,7 @@ namespace SmartEdu.Business.Services
             }
         }
 
+        // Render 2 state for admin 
         public async Task<(IEnumerable<UserDto> Enrolled, IEnumerable<UserDto> NotEnrolled)> GetStudentEnrollmentStatus(int subjectId)
         {
             var allStudents = await _userRepo.GetAllAsync(u => u.Role == UserRole.Student && !u.IsDeleted);
