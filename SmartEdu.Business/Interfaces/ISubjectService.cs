@@ -3,7 +3,7 @@ using SmartEdu.Shared.Entities;
 
 namespace SmartEdu.Business.Interfaces
 {
-    public interface ISubjectService
+    public interface ISubjectService // For Controller call
     {
         Task<IEnumerable<SubjectDto>> GetAllAsync();
         Task<SubjectDto?> GetByIdAsync(int id);
