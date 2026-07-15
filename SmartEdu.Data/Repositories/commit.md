@@ -39290,29 +39290,6 @@ Do not invent charts or statistics.
 
 Do not display fake financial values.
 
-Project status:
-
-- render the backend value as a readable label
-- do not derive completion from progress
-- do not change backend status meaning
-- do not treat `ASSIGNED` Jobpost status as Project completion
-- unknown statuses should still display safely
-
-Progress:
-
-- display the backend value
-- clamp only the visual bar between 0 and 100
-- do not rewrite the stored value
-- do not calculate progress from submissions or files
-
-Deadline:
-
-- format safely using existing date utilities where possible
-- handle null or invalid values with a neutral fallback such as `No deadline`
-- do not calculate remaining days unless an existing shared helper already does so reliably
-
-Partner:
-
 - trust the Backend-returned `partner`
 - do not search participants
 - do not swap Client and Expert in frontend
@@ -57673,6 +57650,29 @@ Do not rename `projects` to `workspaces`.
 
 The user-facing feature may remain named Project while `workspaceId` remains the technical identifier.
 
+
+==================================================
+TASK 11 — REGRESSION BOUNDARIES
+==================================================
+TASK 10 — NO N+1 REQUESTS
+==================================================
+
+This is mandatory.
+
+The dashboard endpoint already returns card summary data.
+
+The Project list must not call:
+
+`GET /workspace/api/v1/workspaces/{workspaceId}`
+
+once per card.
+
+Expected network behavior for one page:
+
+- one Workspace Dashboard list request
+- no automatic Workspace Detail request per item
+
+Workspace Detail should only be requested after the user opens one project.
 ==================================================
 TASK 10 — NO N+1 REQUESTS
 ==================================================
@@ -57694,28 +57694,3043 @@ Expected network behavior for one page:
 
 Workspace Detail should only be requested after the user opens one project.
 
-==================================================
-TASK 11 — REGRESSION BOUNDARIES
-==================================================
+You are working inside an existing .NET project that I have just received from another developer.
 
-Do not modify:
+This is a LARGE READ-ONLY PROJECT AUDIT.
 
-- Workspace Detail data mapping
-- Open Chat orchestration
-- Chat session reuse
-- Expert Submission
-- Client Request Revision
-- Package History
-- Hire response handling
-- Contract signing
-- VNPay return
-- Payment service
-- Proposal Unlock
-- Notification
-- Marketplace
-- Apply flow
-- Jobpost status handling
+Your job is to help a new developer understand the entire project well enough to continue development safely.
 
-==================================================
+DO NOT implement new features.
+DO NOT modify source code.
+DO NOT refactor.
+DO NOT format files.
+DO NOT rename or move files.
+DO NOT create new files.
+DO NOT install or upgrade packages.
+DO NOT run database migrations.
+DO NOT seed, delete, or modify database data.
+DO NOT make destructive API calls.
+DO NOT expose secrets or print complete API keys.
+DO NOT treat `commit.md` as project documentation.
 
-Return a report with exactly these sections:
+Important:
+- The repository contains a file named `commit.md`.
+- This file is unnecessary and not relevant to the audit.
+- Ignore `commit.md` completely.
+- Do not read it, summarize it, or use it as evidence.
+
+You may safely inspect the repository, configuration files, source files, project files, package references, migrations, tests, and documentation.
+
+You may run safe read-only verification commands such as:
+- listing files and folders;
+- `dotnet --info`;
+- `dotnet restore`, if dependencies are already configured and this does not modify source code;
+- `dotnet build`;
+- existing test commands;
+- static searches through the codebase.
+
+Do not start making fixes even when issues are found.
+
+# PROJECT CONTEXT
+
+The project is a course project related to an educational chatbot.
+
+Expected business direction:
+
+1. Document management
+   - Upload PDF, DOCX, or lecture slides.
+   - Automatically split documents into chunks.
+   - Embed and index document content.
+   - Organize documents by subject or chapter.
+   - Show indexed documents.
+
+2. Chat and question answering
+   - Natural conversation using conversation context.
+   - Retrieve answers from uploaded documents.
+   - Limit answers to the information available in the documents.
+   - Cite the source used for an answer.
+   - Save chat history.
+
+3. AI/RAG research
+   - Compare RAG with a fine-tuned model.
+   - Experiment with multiple chunking strategies.
+   - Experiment with multiple embedding models.
+   - Save or present benchmark results.
+   - Possible embedding model references include:
+     - multilingual-e5-base
+     - text-embedding-3-small
+     - PhoBERT-base
+     - bge-m3
+
+4. Main expected deliverables
+   - Web chatbot.
+   - Source code.
+   - Test question set and ground-truth answers.
+   - Model comparison report.
+   - RAGAS benchmark data.
+
+The project is known to use:
+- .NET MVC, or a closely related ASP.NET architecture;
+- SignalR.
+
+Do not assume the exact .NET version or architecture. Determine the actual stack from the repository.
+
+# PRIMARY AUDIT OBJECTIVES
+
+Audit the entire project and explain:
+
+1. What the application currently does.
+2. What technologies and packages it actually uses.
+3. How the application starts and how requests travel through the system.
+4. What the main business workflows are.
+5. What each Controller is responsible for.
+6. What each Service is responsible for.
+7. How Controllers and Services interact.
+8. How SignalR is configured and used.
+9. How the AI provider is called.
+10. How AI keys and configuration are loaded and used.
+11. Whether the project currently implements real RAG, simple prompt-based chat, or another AI approach.
+12. How files are uploaded, parsed, chunked, embedded, indexed, searched, and cited.
+13. How chat sessions and chat history are stored.
+14. What data is stored in the database.
+15. Which project requirements are complete, partial, missing, mocked, or unclear.
+16. What a new developer should understand before changing the project.
+
+Every important conclusion must be supported by concrete code evidence.
+
+# AUDIT PROCESS
+
+## Phase 1 — Repository and solution structure
+
+Inspect the complete repository structure.
+
+Identify:
+
+- solution files;
+- project files;
+- startup project;
+- application layers;
+- Controllers;
+- Services;
+- Interfaces;
+- Repositories;
+- Models;
+- Entities;
+- DTOs;
+- ViewModels;
+- Views;
+- Razor pages, if present;
+- SignalR Hubs;
+- middleware;
+- filters;
+- background services;
+- database context;
+- migrations;
+- static files;
+- frontend scripts;
+- tests;
+- utility/helper classes;
+- AI-related files;
+- document-processing files;
+- configuration files;
+- environment variable usage;
+- Docker or deployment files.
+
+Determine whether this is:
+
+- classic ASP.NET MVC;
+- ASP.NET Core MVC;
+- Razor Pages;
+- Web API;
+- Blazor;
+- a hybrid architecture;
+- a multi-project solution.
+
+Provide a compact repository tree containing only important files and folders.
+
+Do not dump the entire repository tree without explanation.
+
+## Phase 2 — Technology stack
+
+Determine the exact technologies actually used.
+
+Inspect:
+
+- `.sln`;
+- `.csproj`;
+- `Program.cs`;
+- `Startup.cs`, if present;
+- package references;
+- JavaScript package files, if present;
+- database configuration;
+- SignalR registration;
+- AI SDK registration;
+- document-processing packages;
+- authentication packages.
+
+Report:
+
+- .NET SDK and target framework;
+- ASP.NET application model;
+- Entity Framework version;
+- database provider;
+- frontend technology;
+- UI libraries;
+- dependency injection approach;
+- SignalR version and package;
+- authentication and authorization;
+- AI provider and AI SDK;
+- PDF/DOCX/PPTX parsing libraries;
+- embedding provider;
+- vector database or vector-search mechanism;
+- logging;
+- caching;
+- object mapping;
+- validation;
+- test frameworks;
+- deployment/runtime dependencies.
+
+Do not list a technology unless it is proven by the repository.
+
+## Phase 3 — Application startup and dependency injection
+
+Trace application startup from the entry point.
+
+Explain:
+
+- which file contains the entry point;
+- which services are registered;
+- which interfaces map to which implementations;
+- how MVC, APIs, Razor, SignalR, database, authentication, sessions, CORS, static files, and AI clients are registered;
+- middleware order;
+- route configuration;
+- SignalR endpoint mapping;
+- database initialization behavior;
+- environment-specific behavior;
+- configuration sources.
+
+Produce a startup flow such as:
+
+Application entry
+→ configuration loading
+→ dependency registration
+→ middleware pipeline
+→ route mapping
+→ Controller or Hub execution
+
+Identify any startup risks, including:
+
+- missing configuration;
+- incorrect middleware order;
+- duplicate registrations;
+- service lifetime problems;
+- unregistered dependencies;
+- development-only assumptions.
+
+## Phase 4 — Business workflow discovery
+
+Identify at least three major workflows or mainflows that currently exist in the code.
+
+Do not invent workflows based only on the project description.
+
+Possible workflows may include:
+
+- user authentication;
+- document upload;
+- document indexing;
+- chatbot question answering;
+- SignalR real-time chat;
+- chat history;
+- subject or chapter management;
+- RAG retrieval;
+- AI model comparison;
+- benchmark execution.
+
+For every confirmed workflow, document:
+
+1. Workflow name.
+2. User or system actor.
+3. Starting UI, route, API, or Hub method.
+4. Controller or Hub involved.
+5. Request model.
+6. Service interface.
+7. Service implementation.
+8. Repository or DbContext access.
+9. External service or AI call.
+10. Response model.
+11. Data written or read.
+12. Error handling.
+13. Current status:
+    - working;
+    - partially implemented;
+    - mocked;
+    - unused;
+    - broken;
+    - uncertain.
+
+Show each workflow as an end-to-end sequence.
+
+Example format:
+
+Browser/UI
+→ JavaScript client
+→ SignalR Hub or Controller
+→ application service
+→ retrieval/indexing service
+→ AI provider
+→ database
+→ response returned to UI
+
+Also produce a Mermaid sequence diagram for the most important chatbot workflow.
+
+## Phase 5 — Controller audit
+
+Inspect every Controller.
+
+For each Controller, provide a table containing:
+
+- Controller name;
+- file path;
+- route prefix;
+- constructor dependencies;
+- actions/endpoints;
+- HTTP method;
+- request parameters;
+- request DTO or ViewModel;
+- response type or returned View;
+- authorization requirements;
+- called Services;
+- main responsibility;
+- side effects;
+- error-handling approach;
+- whether the Controller appears active, incomplete, duplicated, or unused.
+
+Then explain each Controller in beginner-friendly language.
+
+For example:
+
+“This Controller receives document upload requests. It validates the uploaded file, then delegates parsing and indexing to the document service. It does not perform embedding directly.”
+
+Clearly separate:
+
+- MVC Controllers returning Views;
+- API Controllers returning JSON;
+- authentication Controllers;
+- administrative Controllers;
+- chatbot Controllers;
+- document Controllers;
+- research or benchmark Controllers.
+
+Flag Controllers that:
+
+- contain too much business logic;
+- directly access DbContext;
+- directly call AI APIs;
+- duplicate Service logic;
+- expose sensitive data;
+- appear disconnected from routes or views.
+
+## Phase 6 — Service audit
+
+Inspect every Service and Service interface.
+
+For each Service, provide:
+
+- Service name;
+- interface name;
+- implementation name;
+- file paths;
+- dependency-injection lifetime;
+- injected dependencies;
+- public methods;
+- calling Controllers, Hubs, or other Services;
+- database operations;
+- external API operations;
+- AI operations;
+- primary business responsibility;
+- returned data;
+- exception behavior;
+- current implementation status.
+
+Explain the boundary between Controller and Service.
+
+Identify whether each Service is mainly responsible for:
+
+- orchestration;
+- business rules;
+- file parsing;
+- document processing;
+- chunking;
+- embedding;
+- vector search;
+- prompt construction;
+- AI completion;
+- chat history;
+- user management;
+- database access;
+- benchmarking;
+- SignalR notification.
+
+Flag Services that:
+
+- are registered but never called;
+- are called but not registered;
+- duplicate another Service;
+- have misleading names;
+- perform several unrelated responsibilities;
+- contain hard-coded configuration;
+- contain direct secrets;
+- appear incomplete or mocked.
+
+Also produce a dependency map:
+
+Controller or Hub
+→ Interface
+→ Implementation
+→ Repository/DbContext/external provider
+
+## Phase 7 — SignalR audit
+
+Audit SignalR in detail.
+
+Locate:
+
+- Hub classes;
+- Hub interfaces;
+- `AddSignalR`;
+- `MapHub`;
+- JavaScript or .NET SignalR clients;
+- connection creation;
+- Hub URL;
+- client event handlers;
+- server-to-client event names;
+- client-to-server Hub method names;
+- group or room management;
+- user mapping;
+- authentication;
+- reconnection handling;
+- streaming, if present.
+
+Explain:
+
+1. Why SignalR is used in this application.
+2. Whether it powers the real chatbot flow or only UI notifications.
+3. How the client creates a connection.
+4. Which Hub method is called when a user sends a message.
+5. Which Service the Hub calls.
+6. Which event returns data to the browser.
+7. Whether messages are broadcast to all clients, a user, a group, or only the caller.
+8. Whether chat history is persisted.
+9. What happens when the connection disconnects.
+10. Whether duplicate messages or race conditions are possible.
+
+Provide a SignalR event matrix:
+
+| Direction | Method/Event | Sender | Receiver | Payload | Purpose |
+
+Provide an exact real-time message flow using file and method names.
+
+Flag risks such as:
+
+- anonymous Hub access;
+- missing authorization;
+- shared messages between users;
+- no group isolation;
+- no reconnect handling;
+- long AI requests blocking Hub calls;
+- exception details sent to clients;
+- client event-name mismatch;
+- Hub and Controller implementing duplicated chat flows.
+
+## Phase 8 — AI provider and API key audit
+
+This is a critical part of the audit.
+
+Locate every AI-related reference, including:
+
+- OpenAI;
+- Azure OpenAI;
+- Gemini;
+- Google Generative AI;
+- Hugging Face;
+- Ollama;
+- Semantic Kernel;
+- LangChain;
+- custom HTTP clients;
+- embedding endpoints;
+- completion/chat endpoints;
+- model names;
+- prompt templates;
+- API keys;
+- endpoints;
+- deployment names;
+- temperature;
+- token limits.
+
+Explain the complete AI call flow:
+
+User question
+→ Controller or SignalR Hub
+→ Service
+→ prompt or retrieval construction
+→ AI client
+→ AI provider
+→ response parsing
+→ returned answer
+→ history persistence
+
+For each AI call, report:
+
+- calling class and method;
+- provider;
+- SDK or raw HTTP;
+- endpoint;
+- model;
+- request type;
+- system prompt;
+- user prompt;
+- retrieved context;
+- conversation history;
+- temperature;
+- token settings;
+- timeout;
+- retry behavior;
+- cancellation-token support;
+- response parsing;
+- error handling;
+- logging.
+
+API key audit requirements:
+
+- Identify where the key name is referenced.
+- Identify configuration hierarchy, for example:
+  `appsettings.json → environment variable → options class → service registration → AI client`.
+- Never print the complete secret value.
+- Mask values, for example: `sk-****abcd`.
+- Report whether a real key appears committed to the repository.
+- Report whether the key is loaded securely.
+- Report whether the key can accidentally reach the browser.
+- Report whether it is logged.
+- Report whether different environments use different configuration.
+- Report whether startup fails clearly when the key is missing.
+
+Search for likely names such as:
+
+- API_KEY;
+- OPENAI_API_KEY;
+- OpenAI;
+- Gemini;
+- GoogleAI;
+- AzureOpenAI;
+- HuggingFace;
+- Bearer;
+- Authorization;
+- ApiKey;
+- Secret;
+- Token.
+
+Do not call the external AI provider during this audit.
+
+## Phase 9 — RAG and document-processing audit
+
+Determine whether the current project contains a real RAG pipeline.
+
+Do not classify the system as RAG merely because document text is placed in a prompt.
+
+Inspect for:
+
+- document upload;
+- file-type validation;
+- storage;
+- text extraction;
+- OCR;
+- text normalization;
+- chunk creation;
+- chunk overlap;
+- metadata;
+- embedding generation;
+- vector storage;
+- similarity search;
+- top-k selection;
+- score threshold;
+- reranking;
+- prompt context assembly;
+- source citation;
+- fallback when no relevant source exists.
+
+Trace the full document lifecycle:
+
+Uploaded file
+→ stored file
+→ extracted text
+→ chunks
+→ embeddings
+→ index/vector store
+→ query embedding
+→ similarity search
+→ selected context
+→ AI prompt
+→ answer and citations
+
+For each stage, report:
+
+- actual class and method;
+- input;
+- output;
+- storage location;
+- database table or file;
+- external provider;
+- current implementation status;
+- important limitations.
+
+Explicitly conclude whether the system is currently:
+
+- true embedding-based RAG;
+- keyword or full-text retrieval;
+- database text lookup;
+- entire-document prompt injection;
+- pure chatbot without retrieval;
+- partially implemented RAG;
+- unclear due to missing code.
+
+Check whether citations are:
+
+- generated from actual retrieved chunks;
+- added manually;
+- fabricated by the model;
+- not implemented.
+
+Check whether multiple embedding or chunking strategies are currently supported.
+
+## Phase 10 — Database and persistence audit
+
+Inspect:
+
+- DbContext;
+- entities;
+- relationships;
+- migrations;
+- repositories;
+- database configuration;
+- data access from Controllers and Services.
+
+Produce an entity table:
+
+| Entity | Purpose | Important fields | Relationships | Written by | Read by |
+
+Explain how the following are stored, when applicable:
+
+- users;
+- roles;
+- documents;
+- subjects;
+- chapters;
+- chunks;
+- embeddings;
+- chat sessions;
+- chat messages;
+- citations;
+- benchmark results;
+- model configurations.
+
+Identify:
+
+- tables defined but unused;
+- missing relationships;
+- cascade-delete risks;
+- inconsistent naming;
+- serialized vector storage;
+- migrations not aligned with entities;
+- in-memory data that disappears after restart.
+
+Provide a Mermaid ER diagram based only on confirmed relationships.
+
+## Phase 11 — UI and client-side audit
+
+Identify how the frontend interacts with the backend.
+
+Inspect:
+
+- MVC Views;
+- Razor files;
+- JavaScript;
+- fetch/AJAX;
+- forms;
+- SignalR client;
+- route links;
+- static assets;
+- frontend validation.
+
+For each important page, report:
+
+- route;
+- View file;
+- Controller action;
+- scripts loaded;
+- APIs or Hub methods called;
+- main user actions;
+- data rendered;
+- current working status.
+
+Explain how the chatbot page works from the user clicking Send until the answer is displayed.
+
+## Phase 12 — Authentication, authorization, and security
+
+Inspect:
+
+- authentication mechanism;
+- cookie/JWT/Identity configuration;
+- role handling;
+- Controller authorization;
+- Hub authorization;
+- file upload validation;
+- ownership checks;
+- anti-forgery protection;
+- CORS;
+- secrets management;
+- error pages;
+- logging of sensitive information.
+
+Report only issues supported by code evidence.
+
+Do not perform penetration testing.
+
+Important areas:
+
+- Can one user read another user's chat?
+- Can uploaded files be accessed publicly?
+- Is the SignalR Hub anonymous?
+- Are file extensions and actual content checked?
+- Are upload sizes limited?
+- Are AI keys server-side only?
+- Can arbitrary prompt content override system instructions?
+- Are retrieved documents filtered by user, subject, or ownership?
+- Can users request documents outside their permitted scope?
+
+## Phase 13 — Requirement coverage
+
+Compare the current implementation against the expected course-project scope.
+
+Use the following status values only:
+
+- Implemented
+- Partially implemented
+- Present but unused
+- Mocked
+- Missing
+- Unclear
+
+Create a coverage matrix for:
+
+- PDF upload;
+- DOCX upload;
+- slide upload;
+- document chunking;
+- embedding;
+- indexing;
+- subject/chapter management;
+- indexed-document listing;
+- contextual chat;
+- document-based retrieval;
+- answer restriction to source documents;
+- source citation;
+- chat history;
+- SignalR real-time communication;
+- RAG implementation;
+- fine-tuned model integration;
+- multiple chunking strategies;
+- multiple embedding models;
+- model comparison;
+- RAGAS benchmark;
+- test question and ground-truth dataset.
+
+For each item, provide:
+
+- status;
+- evidence;
+- relevant files;
+- brief explanation;
+- what is missing, when incomplete.
+
+Do not claim a feature works only because a class or method exists.
+
+Check whether it is actually connected to the active flow.
+
+## Phase 14 — Build and test verification
+
+When safe, run:
+
+- `dotnet restore`;
+- `dotnet build`;
+- existing automated tests.
+
+Do not modify source code to make the build pass.
+
+Report:
+
+- commands executed;
+- result;
+- warnings;
+- errors;
+- failing projects;
+- failing tests;
+- whether the application can likely start;
+- external dependencies required to run;
+- missing environment variables;
+- required database;
+- required AI provider configuration.
+
+Do not call paid AI APIs or modify a real database.
+
+# REQUIRED OUTPUT FORMAT
+
+Create one comprehensive Markdown audit report in your final response.
+
+Do not create an audit file unless I later request one.
+
+Use this exact structure:
+
+# Complete Project Audit
+
+## 1. Executive Summary
+
+Explain in beginner-friendly language:
+
+- what the project is;
+- what currently works;
+- the main architecture;
+- whether SignalR is central to the system;
+- whether real RAG exists;
+- which AI provider is used;
+- the project's overall level of completion;
+- the most important things a new developer must know.
+
+## 2. Current Business Capabilities
+
+Describe what users can currently do.
+
+Separate confirmed working capabilities from partial or missing capabilities.
+
+## 3. Technology Stack
+
+Use a table:
+
+| Area | Technology | Version/Package | Evidence | Purpose |
+
+## 4. Solution and Folder Structure
+
+Show a compact important-file tree and explain the responsibility of each layer.
+
+## 5. Application Startup and Runtime Flow
+
+Explain configuration, dependency injection, middleware, routes, Controllers, Hubs, and Views.
+
+## 6. High-Level Architecture
+
+Provide a Mermaid architecture diagram.
+
+## 7. Main Business Workflows
+
+Document at least three confirmed workflows.
+
+For each workflow include:
+
+- actor;
+- entry point;
+- end-to-end sequence;
+- involved files;
+- database effects;
+- external calls;
+- status;
+- possible failure points.
+
+## 8. Chatbot End-to-End Flow
+
+Explain the exact chatbot process from UI input to displayed response.
+
+Include a Mermaid sequence diagram.
+
+## 9. Controller Inventory
+
+Use a detailed table.
+
+After the table, explain each Controller's main job in simple language.
+
+## 10. Service Inventory
+
+Use a detailed table.
+
+After the table, explain the main Service relationships.
+
+## 11. Controller-to-Service Dependency Map
+
+Show:
+
+Controller/Hub
+→ interface
+→ implementation
+→ data/external dependency
+
+## 12. SignalR Audit
+
+Include:
+
+- server setup;
+- client setup;
+- Hub methods;
+- client events;
+- payloads;
+- groups/users;
+- authentication;
+- message flow;
+- persistence;
+- reconnection;
+- risks.
+
+Include the SignalR event matrix.
+
+## 13. AI and API Key Audit
+
+Include:
+
+- provider;
+- SDK;
+- models;
+- calling files and methods;
+- configuration flow;
+- prompt flow;
+- history/context handling;
+- API key handling;
+- masked secret findings;
+- failures and risks.
+
+Do not reveal complete secrets.
+
+## 14. RAG and Document Pipeline Audit
+
+Explain every confirmed stage from upload to answer.
+
+State clearly whether this is real RAG.
+
+## 15. Database and Persistence
+
+Include:
+
+- DbContext;
+- entity table;
+- relationships;
+- migrations;
+- persistence behavior;
+- Mermaid ER diagram.
+
+## 16. UI, Routes, and Client Communication
+
+Map pages to Controller actions, APIs, and SignalR calls.
+
+## 17. Authentication and Security Findings
+
+Separate confirmed facts from risks.
+
+Use severity:
+
+- Critical
+- High
+- Medium
+- Low
+- Informational
+
+## 18. Requirement Coverage Matrix
+
+Use the required status values.
+
+## 19. Build and Test Results
+
+Report commands and exact results.
+
+## 20. Implemented, Partial, Missing, and Dead Code
+
+Separate:
+
+- active working code;
+- partially connected code;
+- unused code;
+- duplicate code;
+- mocked code;
+- likely obsolete code.
+
+Do not include `commit.md`.
+
+## 21. Important Configuration Needed to Run the Project
+
+Provide a sanitized configuration checklist.
+
+Example:
+
+| Setting | Required | Used by | Purpose | Secret? |
+
+Do not print real secret values.
+
+## 22. Risks and Technical Debt
+
+Prioritize findings by impact on continued development.
+
+## 23. Recommended Development Order
+
+Provide a safe step-by-step order for continuing the project.
+
+Do not implement these steps.
+
+## 24. New Developer Reading Guide
+
+List the files a new developer should read first, in order, and explain why.
+
+## 25. Open Questions for the Previous Developer or Team
+
+Only include questions that cannot be answered from the repository.
+
+# EVIDENCE REQUIREMENTS
+
+For all important findings:
+
+- include exact relative file paths;
+- include class names;
+- include method names;
+- include route names;
+- include relevant line ranges when possible;
+- distinguish confirmed behavior from inference;
+- write “Not found in the inspected repository” when no evidence exists;
+- do not invent missing code;
+- do not assume that an unused class is active;
+- trace actual call sites before marking a feature as implemented.
+
+When something is uncertain, use this format:
+
+- Confirmed:
+- Inference:
+- Missing evidence:
+- How to verify:
+
+# FINAL QUALITY REQUIREMENTS
+
+The audit must be understandable to someone who has just received the project.
+
+Do not only list classes and files.
+
+Explain:
+
+- why each major component exists;
+- who calls it;
+- what it calls;
+- what data enters;
+- what data leaves;
+- where the data is stored;
+- what the main business responsibility is;
+- whether it is part of the active runtime flow.
+
+Be especially detailed about:
+
+- SignalR;
+- chatbot processing;
+- AI API calls;
+- AI key configuration;
+- document upload;
+- chunking;
+- embedding;
+- retrieval;
+- citations;
+- chat history;
+- Controller and Service responsibilities.
+
+Stop after producing the audit report.
+
+Do not modify the project.
+You are working inside an existing .NET project that I have just received from another developer.
+
+This is a LARGE READ-ONLY PROJECT AUDIT.
+
+Your job is to help a new developer understand the entire project well enough to continue development safely.
+
+DO NOT implement new features.
+DO NOT modify source code.
+DO NOT refactor.
+DO NOT format files.
+DO NOT rename or move files.
+DO NOT create new files.
+DO NOT install or upgrade packages.
+DO NOT run database migrations.
+DO NOT seed, delete, or modify database data.
+DO NOT make destructive API calls.
+DO NOT expose secrets or print complete API keys.
+DO NOT treat `commit.md` as project documentation.
+
+Important:
+- The repository contains a file named `commit.md`.
+- This file is unnecessary and not relevant to the audit.
+- Ignore `commit.md` completely.
+- Do not read it, summarize it, or use it as evidence.
+
+You may safely inspect the repository, configuration files, source files, project files, package references, migrations, tests, and documentation.
+
+You may run safe read-only verification commands such as:
+- listing files and folders;
+- `dotnet --info`;
+- `dotnet restore`, if dependencies are already configured and this does not modify source code;
+- `dotnet build`;
+- existing test commands;
+- static searches through the codebase.
+
+Do not start making fixes even when issues are found.
+
+# PROJECT CONTEXT
+
+The project is a course project related to an educational chatbot.
+
+Expected business direction:
+
+1. Document management
+   - Upload PDF, DOCX, or lecture slides.
+   - Automatically split documents into chunks.
+   - Embed and index document content.
+   - Organize documents by subject or chapter.
+   - Show indexed documents.
+
+2. Chat and question answering
+   - Natural conversation using conversation context.
+   - Retrieve answers from uploaded documents.
+   - Limit answers to the information available in the documents.
+   - Cite the source used for an answer.
+   - Save chat history.
+
+3. AI/RAG research
+   - Compare RAG with a fine-tuned model.
+   - Experiment with multiple chunking strategies.
+   - Experiment with multiple embedding models.
+   - Save or present benchmark results.
+   - Possible embedding model references include:
+     - multilingual-e5-base
+     - text-embedding-3-small
+     - PhoBERT-base
+     - bge-m3
+
+4. Main expected deliverables
+   - Web chatbot.
+   - Source code.
+   - Test question set and ground-truth answers.
+   - Model comparison report.
+   - RAGAS benchmark data.
+
+The project is known to use:
+- .NET MVC, or a closely related ASP.NET architecture;
+- SignalR.
+
+Do not assume the exact .NET version or architecture. Determine the actual stack from the repository.
+
+# PRIMARY AUDIT OBJECTIVES
+
+Audit the entire project and explain:
+
+1. What the application currently does.
+2. What technologies and packages it actually uses.
+3. How the application starts and how requests travel through the system.
+4. What the main business workflows are.
+5. What each Controller is responsible for.
+6. What each Service is responsible for.
+7. How Controllers and Services interact.
+8. How SignalR is configured and used.
+9. How the AI provider is called.
+10. How AI keys and configuration are loaded and used.
+11. Whether the project currently implements real RAG, simple prompt-based chat, or another AI approach.
+12. How files are uploaded, parsed, chunked, embedded, indexed, searched, and cited.
+13. How chat sessions and chat history are stored.
+14. What data is stored in the database.
+15. Which project requirements are complete, partial, missing, mocked, or unclear.
+16. What a new developer should understand before changing the project.
+
+Every important conclusion must be supported by concrete code evidence.
+
+# AUDIT PROCESS
+
+## Phase 1 — Repository and solution structure
+
+Inspect the complete repository structure.
+
+Identify:
+
+- solution files;
+- project files;
+- startup project;
+- application layers;
+- Controllers;
+- Services;
+- Interfaces;
+- Repositories;
+- Models;
+- Entities;
+- DTOs;
+- ViewModels;
+- Views;
+- Razor pages, if present;
+- SignalR Hubs;
+- middleware;
+- filters;
+- background services;
+- database context;
+- migrations;
+- static files;
+- frontend scripts;
+- tests;
+- utility/helper classes;
+- AI-related files;
+- document-processing files;
+- configuration files;
+- environment variable usage;
+- Docker or deployment files.
+
+Determine whether this is:
+
+- classic ASP.NET MVC;
+- ASP.NET Core MVC;
+- Razor Pages;
+- Web API;
+- Blazor;
+- a hybrid architecture;
+- a multi-project solution.
+
+Provide a compact repository tree containing only important files and folders.
+
+Do not dump the entire repository tree without explanation.
+
+## Phase 2 — Technology stack
+
+Determine the exact technologies actually used.
+
+Inspect:
+
+- `.sln`;
+- `.csproj`;
+- `Program.cs`;
+- `Startup.cs`, if present;
+- package references;
+- JavaScript package files, if present;
+- database configuration;
+- SignalR registration;
+- AI SDK registration;
+- document-processing packages;
+- authentication packages.
+
+Report:
+
+- .NET SDK and target framework;
+- ASP.NET application model;
+- Entity Framework version;
+- database provider;
+- frontend technology;
+- UI libraries;
+- dependency injection approach;
+- SignalR version and package;
+- authentication and authorization;
+- AI provider and AI SDK;
+- PDF/DOCX/PPTX parsing libraries;
+- embedding provider;
+- vector database or vector-search mechanism;
+- logging;
+- caching;
+- object mapping;
+- validation;
+- test frameworks;
+- deployment/runtime dependencies.
+
+Do not list a technology unless it is proven by the repository.
+
+## Phase 3 — Application startup and dependency injection
+
+Trace application startup from the entry point.
+
+Explain:
+
+- which file contains the entry point;
+- which services are registered;
+- which interfaces map to which implementations;
+- how MVC, APIs, Razor, SignalR, database, authentication, sessions, CORS, static files, and AI clients are registered;
+- middleware order;
+- route configuration;
+- SignalR endpoint mapping;
+- database initialization behavior;
+- environment-specific behavior;
+- configuration sources.
+
+Produce a startup flow such as:
+
+Application entry
+→ configuration loading
+→ dependency registration
+→ middleware pipeline
+→ route mapping
+→ Controller or Hub execution
+
+Identify any startup risks, including:
+
+- missing configuration;
+- incorrect middleware order;
+- duplicate registrations;
+- service lifetime problems;
+- unregistered dependencies;
+- development-only assumptions.
+
+## Phase 4 — Business workflow discovery
+
+Identify at least three major workflows or mainflows that currently exist in the code.
+
+Do not invent workflows based only on the project description.
+
+Possible workflows may include:
+
+- user authentication;
+- document upload;
+- document indexing;
+- chatbot question answering;
+- SignalR real-time chat;
+- chat history;
+- subject or chapter management;
+- RAG retrieval;
+- AI model comparison;
+- benchmark execution.
+
+For every confirmed workflow, document:
+
+1. Workflow name.
+2. User or system actor.
+3. Starting UI, route, API, or Hub method.
+4. Controller or Hub involved.
+5. Request model.
+6. Service interface.
+7. Service implementation.
+8. Repository or DbContext access.
+9. External service or AI call.
+10. Response model.
+11. Data written or read.
+12. Error handling.
+13. Current status:
+    - working;
+    - partially implemented;
+    - mocked;
+    - unused;
+    - broken;
+    - uncertain.
+
+Show each workflow as an end-to-end sequence.
+
+Example format:
+
+Browser/UI
+→ JavaScript client
+→ SignalR Hub or Controller
+→ application service
+→ retrieval/indexing service
+→ AI provider
+→ database
+→ response returned to UI
+
+Also produce a Mermaid sequence diagram for the most important chatbot workflow.
+
+## Phase 5 — Controller audit
+
+Inspect every Controller.
+
+For each Controller, provide a table containing:
+
+- Controller name;
+- file path;
+- route prefix;
+- constructor dependencies;
+- actions/endpoints;
+- HTTP method;
+- request parameters;
+- request DTO or ViewModel;
+- response type or returned View;
+- authorization requirements;
+- called Services;
+- main responsibility;
+- side effects;
+- error-handling approach;
+- whether the Controller appears active, incomplete, duplicated, or unused.
+
+Then explain each Controller in beginner-friendly language.
+
+For example:
+
+“This Controller receives document upload requests. It validates the uploaded file, then delegates parsing and indexing to the document service. It does not perform embedding directly.”
+
+Clearly separate:
+
+- MVC Controllers returning Views;
+- API Controllers returning JSON;
+- authentication Controllers;
+- administrative Controllers;
+- chatbot Controllers;
+- document Controllers;
+- research or benchmark Controllers.
+
+Flag Controllers that:
+
+- contain too much business logic;
+- directly access DbContext;
+- directly call AI APIs;
+- duplicate Service logic;
+- expose sensitive data;
+- appear disconnected from routes or views.
+
+## Phase 6 — Service audit
+
+Inspect every Service and Service interface.
+
+For each Service, provide:
+
+- Service name;
+- interface name;
+- implementation name;
+- file paths;
+- dependency-injection lifetime;
+- injected dependencies;
+- public methods;
+- calling Controllers, Hubs, or other Services;
+- database operations;
+- external API operations;
+- AI operations;
+- primary business responsibility;
+- returned data;
+- exception behavior;
+- current implementation status.
+
+Explain the boundary between Controller and Service.
+
+Identify whether each Service is mainly responsible for:
+
+- orchestration;
+- business rules;
+- file parsing;
+- document processing;
+- chunking;
+- embedding;
+- vector search;
+- prompt construction;
+- AI completion;
+- chat history;
+- user management;
+- database access;
+- benchmarking;
+- SignalR notification.
+
+Flag Services that:
+
+- are registered but never called;
+- are called but not registered;
+- duplicate another Service;
+- have misleading names;
+- perform several unrelated responsibilities;
+- contain hard-coded configuration;
+- contain direct secrets;
+- appear incomplete or mocked.
+
+Also produce a dependency map:
+
+Controller or Hub
+→ Interface
+→ Implementation
+→ Repository/DbContext/external provider
+
+## Phase 7 — SignalR audit
+
+Audit SignalR in detail.
+
+Locate:
+
+- Hub classes;
+- Hub interfaces;
+- `AddSignalR`;
+- `MapHub`;
+- JavaScript or .NET SignalR clients;
+- connection creation;
+- Hub URL;
+- client event handlers;
+- server-to-client event names;
+- client-to-server Hub method names;
+- group or room management;
+- user mapping;
+- authentication;
+- reconnection handling;
+- streaming, if present.
+
+Explain:
+
+1. Why SignalR is used in this application.
+2. Whether it powers the real chatbot flow or only UI notifications.
+3. How the client creates a connection.
+4. Which Hub method is called when a user sends a message.
+5. Which Service the Hub calls.
+6. Which event returns data to the browser.
+7. Whether messages are broadcast to all clients, a user, a group, or only the caller.
+8. Whether chat history is persisted.
+9. What happens when the connection disconnects.
+10. Whether duplicate messages or race conditions are possible.
+
+Provide a SignalR event matrix:
+
+| Direction | Method/Event | Sender | Receiver | Payload | Purpose |
+
+Provide an exact real-time message flow using file and method names.
+
+Flag risks such as:
+
+- anonymous Hub access;
+- missing authorization;
+- shared messages between users;
+- no group isolation;
+- no reconnect handling;
+- long AI requests blocking Hub calls;
+- exception details sent to clients;
+- client event-name mismatch;
+- Hub and Controller implementing duplicated chat flows.
+
+## Phase 8 — AI provider and API key audit
+
+This is a critical part of the audit.
+
+Locate every AI-related reference, including:
+
+- OpenAI;
+- Azure OpenAI;
+- Gemini;
+- Google Generative AI;
+- Hugging Face;
+- Ollama;
+- Semantic Kernel;
+- LangChain;
+- custom HTTP clients;
+- embedding endpoints;
+- completion/chat endpoints;
+- model names;
+- prompt templates;
+- API keys;
+- endpoints;
+- deployment names;
+- temperature;
+- token limits.
+
+Explain the complete AI call flow:
+
+User question
+→ Controller or SignalR Hub
+→ Service
+→ prompt or retrieval construction
+→ AI client
+→ AI provider
+→ response parsing
+→ returned answer
+→ history persistence
+
+For each AI call, report:
+
+- calling class and method;
+- provider;
+- SDK or raw HTTP;
+- endpoint;
+- model;
+- request type;
+- system prompt;
+- user prompt;
+- retrieved context;
+- conversation history;
+- temperature;
+- token settings;
+- timeout;
+- retry behavior;
+- cancellation-token support;
+- response parsing;
+- error handling;
+- logging.
+
+API key audit requirements:
+
+- Identify where the key name is referenced.
+- Identify configuration hierarchy, for example:
+  `appsettings.json → environment variable → options class → service registration → AI client`.
+- Never print the complete secret value.
+- Mask values, for example: `sk-****abcd`.
+- Report whether a real key appears committed to the repository.
+- Report whether the key is loaded securely.
+- Report whether the key can accidentally reach the browser.
+- Report whether it is logged.
+- Report whether different environments use different configuration.
+- Report whether startup fails clearly when the key is missing.
+
+Search for likely names such as:
+
+- API_KEY;
+- OPENAI_API_KEY;
+- OpenAI;
+- Gemini;
+- GoogleAI;
+- AzureOpenAI;
+- HuggingFace;
+- Bearer;
+- Authorization;
+- ApiKey;
+- Secret;
+- Token.
+
+Do not call the external AI provider during this audit.
+
+## Phase 9 — RAG and document-processing audit
+
+Determine whether the current project contains a real RAG pipeline.
+
+Do not classify the system as RAG merely because document text is placed in a prompt.
+
+Inspect for:
+
+- document upload;
+- file-type validation;
+- storage;
+- text extraction;
+- OCR;
+- text normalization;
+- chunk creation;
+- chunk overlap;
+- metadata;
+- embedding generation;
+- vector storage;
+- similarity search;
+- top-k selection;
+- score threshold;
+- reranking;
+- prompt context assembly;
+- source citation;
+- fallback when no relevant source exists.
+
+Trace the full document lifecycle:
+
+Uploaded file
+→ stored file
+→ extracted text
+→ chunks
+→ embeddings
+→ index/vector store
+→ query embedding
+→ similarity search
+→ selected context
+→ AI prompt
+→ answer and citations
+
+For each stage, report:
+
+- actual class and method;
+- input;
+- output;
+- storage location;
+- database table or file;
+- external provider;
+- current implementation status;
+- important limitations.
+
+Explicitly conclude whether the system is currently:
+
+- true embedding-based RAG;
+- keyword or full-text retrieval;
+- database text lookup;
+- entire-document prompt injection;
+- pure chatbot without retrieval;
+- partially implemented RAG;
+- unclear due to missing code.
+
+Check whether citations are:
+
+- generated from actual retrieved chunks;
+- added manually;
+- fabricated by the model;
+- not implemented.
+
+Check whether multiple embedding or chunking strategies are currently supported.
+
+## Phase 10 — Database and persistence audit
+
+Inspect:
+
+- DbContext;
+- entities;
+- relationships;
+- migrations;
+- repositories;
+- database configuration;
+- data access from Controllers and Services.
+
+Produce an entity table:
+
+| Entity | Purpose | Important fields | Relationships | Written by | Read by |
+
+Explain how the following are stored, when applicable:
+
+- users;
+- roles;
+- documents;
+- subjects;
+- chapters;
+- chunks;
+- embeddings;
+- chat sessions;
+- chat messages;
+- citations;
+- benchmark results;
+- model configurations.
+
+Identify:
+
+- tables defined but unused;
+- missing relationships;
+- cascade-delete risks;
+- inconsistent naming;
+- serialized vector storage;
+- migrations not aligned with entities;
+- in-memory data that disappears after restart.
+
+Provide a Mermaid ER diagram based only on confirmed relationships.
+
+## Phase 11 — UI and client-side audit
+
+Identify how the frontend interacts with the backend.
+
+Inspect:
+
+- MVC Views;
+- Razor files;
+- JavaScript;
+- fetch/AJAX;
+- forms;
+- SignalR client;
+- route links;
+- static assets;
+- frontend validation.
+
+For each important page, report:
+
+- route;
+- View file;
+- Controller action;
+- scripts loaded;
+- APIs or Hub methods called;
+- main user actions;
+- data rendered;
+- current working status.
+
+Explain how the chatbot page works from the user clicking Send until the answer is displayed.
+
+## Phase 12 — Authentication, authorization, and security
+
+Inspect:
+
+- authentication mechanism;
+- cookie/JWT/Identity configuration;
+- role handling;
+- Controller authorization;
+- Hub authorization;
+- file upload validation;
+- ownership checks;
+- anti-forgery protection;
+- CORS;
+- secrets management;
+- error pages;
+- logging of sensitive information.
+
+Report only issues supported by code evidence.
+
+Do not perform penetration testing.
+
+Important areas:
+
+- Can one user read another user's chat?
+- Can uploaded files be accessed publicly?
+- Is the SignalR Hub anonymous?
+- Are file extensions and actual content checked?
+- Are upload sizes limited?
+- Are AI keys server-side only?
+- Can arbitrary prompt content override system instructions?
+- Are retrieved documents filtered by user, subject, or ownership?
+- Can users request documents outside their permitted scope?
+
+## Phase 13 — Requirement coverage
+
+Compare the current implementation against the expected course-project scope.
+
+Use the following status values only:
+
+- Implemented
+- Partially implemented
+- Present but unused
+- Mocked
+- Missing
+- Unclear
+
+Create a coverage matrix for:
+
+- PDF upload;
+- DOCX upload;
+- slide upload;
+- document chunking;
+- embedding;
+- indexing;
+- subject/chapter management;
+- indexed-document listing;
+- contextual chat;
+- document-based retrieval;
+- answer restriction to source documents;
+- source citation;
+- chat history;
+- SignalR real-time communication;
+- RAG implementation;
+- fine-tuned model integration;
+- multiple chunking strategies;
+- multiple embedding models;
+- model comparison;
+- RAGAS benchmark;
+- test question and ground-truth dataset.
+
+For each item, provide:
+
+- status;
+- evidence;
+- relevant files;
+- brief explanation;
+- what is missing, when incomplete.
+
+Do not claim a feature works only because a class or method exists.
+
+Check whether it is actually connected to the active flow.
+
+## Phase 14 — Build and test verification
+
+When safe, run:
+
+- `dotnet restore`;
+- `dotnet build`;
+- existing automated tests.
+
+Do not modify source code to make the build pass.
+
+Report:
+
+- commands executed;
+- result;
+- warnings;
+- errors;
+- failing projects;
+- failing tests;
+- whether the application can likely start;
+- external dependencies required to run;
+- missing environment variables;
+- required database;
+- required AI provider configuration.
+
+Do not call paid AI APIs or modify a real database.
+
+# REQUIRED OUTPUT FORMAT
+
+Create one comprehensive Markdown audit report in your final response.
+
+Do not create an audit file unless I later request one.
+
+Use this exact structure:
+
+# Complete Project Audit
+
+## 1. Executive Summary
+
+Explain in beginner-friendly language:
+
+- what the project is;
+- what currently works;
+- the main architecture;
+- whether SignalR is central to the system;
+- whether real RAG exists;
+- which AI provider is used;
+- the project's overall level of completion;
+- the most important things a new developer must know.
+
+## 2. Current Business Capabilities
+
+Describe what users can currently do.
+
+Separate confirmed working capabilities from partial or missing capabilities.
+
+## 3. Technology Stack
+
+Use a table:
+
+| Area | Technology | Version/Package | Evidence | Purpose |
+
+## 4. Solution and Folder Structure
+
+Show a compact important-file tree and explain the responsibility of each layer.
+
+## 5. Application Startup and Runtime Flow
+
+Explain configuration, dependency injection, middleware, routes, Controllers, Hubs, and Views.
+
+## 6. High-Level Architecture
+
+Provide a Mermaid architecture diagram.
+
+## 7. Main Business Workflows
+
+Document at least three confirmed workflows.
+
+For each workflow include:
+
+- actor;
+- entry point;
+- end-to-end sequence;
+- involved files;
+- database effects;
+- external calls;
+- status;
+- possible failure points.
+
+## 8. Chatbot End-to-End Flow
+
+Explain the exact chatbot process from UI input to displayed response.
+
+Include a Mermaid sequence diagram.
+
+## 9. Controller Inventory
+
+Use a detailed table.
+
+After the table, explain each Controller's main job in simple language.
+
+## 10. Service Inventory
+
+Use a detailed table.
+
+After the table, explain the main Service relationships.
+
+## 11. Controller-to-Service Dependency Map
+
+Show:
+
+Controller/Hub
+→ interface
+→ implementation
+→ data/external dependency
+
+## 12. SignalR Audit
+
+Include:
+
+- server setup;
+- client setup;
+- Hub methods;
+- client events;
+- payloads;
+- groups/users;
+- authentication;
+- message flow;
+- persistence;
+- reconnection;
+- risks.
+
+Include the SignalR event matrix.
+
+## 13. AI and API Key Audit
+
+Include:
+
+- provider;
+- SDK;
+- models;
+- calling files and methods;
+- configuration flow;
+- prompt flow;
+- history/context handling;
+- API key handling;
+- masked secret findings;
+- failures and risks.
+
+Do not reveal complete secrets.
+
+## 14. RAG and Document Pipeline Audit
+
+Explain every confirmed stage from upload to answer.
+
+State clearly whether this is real RAG.
+
+## 15. Database and Persistence
+
+Include:
+
+- DbContext;
+- entity table;
+- relationships;
+- migrations;
+- persistence behavior;
+- Mermaid ER diagram.
+
+## 16. UI, Routes, and Client Communication
+
+Map pages to Controller actions, APIs, and SignalR calls.
+
+## 17. Authentication and Security Findings
+
+Separate confirmed facts from risks.
+
+Use severity:
+
+- Critical
+- High
+- Medium
+- Low
+- Informational
+
+## 18. Requirement Coverage Matrix
+
+Use the required status values.
+
+## 19. Build and Test Results
+
+Report commands and exact results.
+
+## 20. Implemented, Partial, Missing, and Dead Code
+
+Separate:
+
+- active working code;
+- partially connected code;
+- unused code;
+- duplicate code;
+- mocked code;
+- likely obsolete code.
+
+Do not include `commit.md`.
+
+## 21. Important Configuration Needed to Run the Project
+
+Provide a sanitized configuration checklist.
+
+Example:
+
+| Setting | Required | Used by | Purpose | Secret? |
+
+Do not print real secret values.
+
+## 22. Risks and Technical Debt
+
+Prioritize findings by impact on continued development.
+
+## 23. Recommended Development Order
+
+Provide a safe step-by-step order for continuing the project.
+
+Do not implement these steps.
+
+## 24. New Developer Reading Guide
+
+List the files a new developer should read first, in order, and explain why.
+
+## 25. Open Questions for the Previous Developer or Team
+
+Only include questions that cannot be answered from the repository.
+
+# EVIDENCE REQUIREMENTS
+
+For all important findings:
+
+- include exact relative file paths;
+- include class names;
+- include method names;
+- include route names;
+- include relevant line ranges when possible;
+- distinguish confirmed behavior from inference;
+- write “Not found in the inspected repository” when no evidence exists;
+- do not invent missing code;
+- do not assume that an unused class is active;
+- trace actual call sites before marking a feature as implemented.
+
+When something is uncertain, use this format:
+
+- Confirmed:
+- Inference:
+- Missing evidence:
+- How to verify:
+
+# FINAL QUALITY REQUIREMENTS
+
+The audit must be understandable to someone who has just received the project.
+
+Do not only list classes and files.
+
+Explain:
+
+- why each major component exists;
+- who calls it;
+- what it calls;
+- what data enters;
+- what data leaves;
+- where the data is stored;
+- what the main business responsibility is;
+- whether it is part of the active runtime flow.
+
+Be especially detailed about:
+
+- SignalR;
+- chatbot processing;
+- AI API calls;
+- AI key configuration;
+- document upload;
+- chunking;
+- embedding;
+- retrieval;
+- citations;
+- chat history;
+- Controller and Service responsibilities.
+
+Stop after producing the audit report.
+
+Do not modify the project.
+
+You are working inside an existing .NET project that I have just received from another developer.
+
+This is a LARGE READ-ONLY PROJECT AUDIT.
+
+Your job is to help a new developer understand the entire project well enough to continue development safely.
+
+DO NOT implement new features.
+DO NOT modify source code.
+DO NOT refactor.
+DO NOT format files.
+DO NOT rename or move files.
+DO NOT create new files.
+DO NOT install or upgrade packages.
+DO NOT run database migrations.
+DO NOT seed, delete, or modify database data.
+DO NOT make destructive API calls.
+DO NOT expose secrets or print complete API keys.
+DO NOT treat `commit.md` as project documentation.
+
+Important:
+- The repository contains a file named `commit.md`.
+- This file is unnecessary and not relevant to the audit.
+- Ignore `commit.md` completely.
+- Do not read it, summarize it, or use it as evidence.
+
+You may safely inspect the repository, configuration files, source files, project files, package references, migrations, tests, and documentation.
+
+You may run safe read-only verification commands such as:
+- listing files and folders;
+- `dotnet --info`;
+- `dotnet restore`, if dependencies are already configured and this does not modify source code;
+- `dotnet build`;
+- existing test commands;
+- static searches through the codebase.
+
+Do not start making fixes even when issues are found.
+
+# PROJECT CONTEXT
+
+The project is a course project related to an educational chatbot.
+
+Expected business direction:
+
+1. Document management
+   - Upload PDF, DOCX, or lecture slides.
+   - Automatically split documents into chunks.
+   - Embed and index document content.
+   - Organize documents by subject or chapter.
+   - Show indexed documents.
+
+2. Chat and question answering
+   - Natural conversation using conversation context.
+   - Retrieve answers from uploaded documents.
+   - Limit answers to the information available in the documents.
+   - Cite the source used for an answer.
+   - Save chat history.
+
+3. AI/RAG research
+   - Compare RAG with a fine-tuned model.
+   - Experiment with multiple chunking strategies.
+   - Experiment with multiple embedding models.
+   - Save or present benchmark results.
+   - Possible embedding model references include:
+     - multilingual-e5-base
+     - text-embedding-3-small
+     - PhoBERT-base
+     - bge-m3
+
+4. Main expected deliverables
+   - Web chatbot.
+   - Source code.
+   - Test question set and ground-truth answers.
+   - Model comparison report.
+   - RAGAS benchmark data.
+
+The project is known to use:
+- .NET MVC, or a closely related ASP.NET architecture;
+- SignalR.
+
+Do not assume the exact .NET version or architecture. Determine the actual stack from the repository.
+
+# PRIMARY AUDIT OBJECTIVES
+
+Audit the entire project and explain:
+
+1. What the application currently does.
+2. What technologies and packages it actually uses.
+3. How the application starts and how requests travel through the system.
+4. What the main business workflows are.
+5. What each Controller is responsible for.
+6. What each Service is responsible for.
+7. How Controllers and Services interact.
+8. How SignalR is configured and used.
+9. How the AI provider is called.
+10. How AI keys and configuration are loaded and used.
+11. Whether the project currently implements real RAG, simple prompt-based chat, or another AI approach.
+12. How files are uploaded, parsed, chunked, embedded, indexed, searched, and cited.
+13. How chat sessions and chat history are stored.
+14. What data is stored in the database.
+15. Which project requirements are complete, partial, missing, mocked, or unclear.
+16. What a new developer should understand before changing the project.
+
+Every important conclusion must be supported by concrete code evidence.
+
+# AUDIT PROCESS
+
+## Phase 1 — Repository and solution structure
+
+Inspect the complete repository structure.
+
+Identify:
+
+- solution files;
+- project files;
+- startup project;
+- application layers;
+- Controllers;
+- Services;
+- Interfaces;
+- Repositories;
+- Models;
+- Entities;
+- DTOs;
+- ViewModels;
+- Views;
+- Razor pages, if present;
+- SignalR Hubs;
+- middleware;
+- filters;
+- background services;
+- database context;
+- migrations;
+- static files;
+- frontend scripts;
+- tests;
+- utility/helper classes;
+- AI-related files;
+- document-processing files;
+- configuration files;
+- environment variable usage;
+- Docker or deployment files.
+
+Determine whether this is:
+
+- classic ASP.NET MVC;
+- ASP.NET Core MVC;
+- Razor Pages;
+- Web API;
+- Blazor;
+- a hybrid architecture;
+- a multi-project solution.
+
+Provide a compact repository tree containing only important files and folders.
+
+Do not dump the entire repository tree without explanation.
+
+## Phase 2 — Technology stack
+
+Determine the exact technologies actually used.
+
+Inspect:
+
+- `.sln`;
+- `.csproj`;
+- `Program.cs`;
+- `Startup.cs`, if present;
+- package references;
+- JavaScript package files, if present;
+- database configuration;
+- SignalR registration;
+- AI SDK registration;
+- document-processing packages;
+- authentication packages.
+
+Report:
+
+- .NET SDK and target framework;
+- ASP.NET application model;
+- Entity Framework version;
+- database provider;
+- frontend technology;
+- UI libraries;
+- dependency injection approach;
+- SignalR version and package;
+- authentication and authorization;
+- AI provider and AI SDK;
+- PDF/DOCX/PPTX parsing libraries;
+- embedding provider;
+- vector database or vector-search mechanism;
+- logging;
+- caching;
+- object mapping;
+- validation;
+- test frameworks;
+- deployment/runtime dependencies.
+
+Do not list a technology unless it is proven by the repository.
+
+## Phase 3 — Application startup and dependency injection
+
+Trace application startup from the entry point.
+
+Explain:
+
+- which file contains the entry point;
+- which services are registered;
+- which interfaces map to which implementations;
+- how MVC, APIs, Razor, SignalR, database, authentication, sessions, CORS, static files, and AI clients are registered;
+- middleware order;
+- route configuration;
+- SignalR endpoint mapping;
+- database initialization behavior;
+- environment-specific behavior;
+- configuration sources.
+
+Produce a startup flow such as:
+
+Application entry
+→ configuration loading
+→ dependency registration
+→ middleware pipeline
+→ route mapping
+→ Controller or Hub execution
+
+Identify any startup risks, including:
+
+- missing configuration;
+- incorrect middleware order;
+- duplicate registrations;
+- service lifetime problems;
+- unregistered dependencies;
+- development-only assumptions.
+
+## Phase 4 — Business workflow discovery
+
+Identify at least three major workflows or mainflows that currently exist in the code.
+
+Do not invent workflows based only on the project description.
+
+Possible workflows may include:
+
+- user authentication;
+- document upload;
+- document indexing;
+- chatbot question answering;
+- SignalR real-time chat;
+- chat history;
+- subject or chapter management;
+- RAG retrieval;
+- AI model comparison;
+- benchmark execution.
+
+For every confirmed workflow, document:
+
+1. Workflow name.
+2. User or system actor.
+3. Starting UI, route, API, or Hub method.
+4. Controller or Hub involved.
+5. Request model.
+6. Service interface.
+7. Service implementation.
+8. Repository or DbContext access.
+9. External service or AI call.
+10. Response model.
+11. Data written or read.
+12. Error handling.
+13. Current status:
+    - working;
+    - partially implemented;
+    - mocked;
+    - unused;
+    - broken;
+    - uncertain.
+
+Show each workflow as an end-to-end sequence.
+
+Example format:
+
+Browser/UI
+→ JavaScript client
+→ SignalR Hub or Controller
+→ application service
+→ retrieval/indexing service
+→ AI provider
+→ database
+→ response returned to UI
+
+Also produce a Mermaid sequence diagram for the most important chatbot workflow.
+
+## Phase 5 — Controller audit
+
+Inspect every Controller.
+
+For each Controller, provide a table containing:
+
+- Controller name;
+- file path;
+- route prefix;
+- constructor dependencies;
+- actions/endpoints;
+- HTTP method;
+- request parameters;
+- request DTO or ViewModel;
+- response type or returned View;
+- authorization requirements;
+- called Services;
+- main responsibility;
+- side effects;
+- error-handling approach;
+- whether the Controller appears active, incomplete, duplicated, or unused.
+
+Then explain each Controller in beginner-friendly language.
+
+For example:
+
+“This Controller receives document upload requests. It validates the uploaded file, then delegates parsing and indexing to the document service. It does not perform embedding directly.”
+
+Clearly separate:
+
+- MVC Controllers returning Views;
+- API Controllers returning JSON;
+- authentication Controllers;
+- administrative Controllers;
+- chatbot Controllers;
+- document Controllers;
+- research or benchmark Controllers.
+
+Flag Controllers that:
+
+- contain too much business logic;
+- directly access DbContext;
+- directly call AI APIs;
+- duplicate Service logic;
+- expose sensitive data;
+- appear disconnected from routes or views.
+
+## Phase 6 — Service audit
+
+Inspect every Service and Service interface.
+
+For each Service, provide:
+
+- Service name;
+- interface name;
+- implementation name;
+- file paths;
+- dependency-injection lifetime;
+- injected dependencies;
+- public methods;
+- calling Controllers, Hubs, or other Services;
+- database operations;
+- external API operations;
+- AI operations;
+- primary business responsibility;
+- returned data;
+- exception behavior;
+- current implementation status.
+
+Explain the boundary between Controller and Service.
+
+Identify whether each Service is mainly responsible for:
+
+- orchestration;
+- business rules;
+- file parsing;
+- document processing;
+- chunking;
+- embedding;
+- vector search;
+- prompt construction;
+- AI completion;
+- chat history;
+- user management;
+- database access;
+- benchmarking;
+- SignalR notification.
+
+Flag Services that:
+
+- are registered but never called;
+- are called but not registered;
+- duplicate another Service;
+- have misleading names;
+- perform several unrelated responsibilities;
+- contain hard-coded configuration;
+- contain direct secrets;
+- appear incomplete or mocked.
+
+Also produce a dependency map:
+
+Controller or Hub
+→ Interface
+→ Implementation
+→ Repository/DbContext/external provider
+
+## Phase 7 — SignalR audit
+
+Audit SignalR in detail.
+
+Locate:
+
+- Hub classes;
+- Hub interfaces;
+- `AddSignalR`;
+- `MapHub`;
+- JavaScript or .NET SignalR clients;
+- Report whether different environments use different configuration.
+- Report whether startup fails clearly when the key is missing.
+
+Search for likely names such as:
+
+- API_KEY;
+- OPENAI_API_KEY;
+- OpenAI;
+- Gemini;
+- GoogleAI;
+- AzureOpenAI;
+- HuggingFace;
+- Bearer;
+- Authorization;
+- ApiKey;
+- Secret;
+- Token.
+
+Do not call the external AI provider during this audit.
+
+## Phase 9 — RAG and document-processing audit
+
+Determine whether the current project contains a real RAG pipeline.
+
+Do not classify the system as RAG merely because document text is placed in a prompt.
+
+Inspect for:
+
+- document upload;
+- file-type validation;
+- storage;
+- text extraction;
+- OCR;
+- text normalization;
+- chunk creation;
+- chunk overlap;
+- metadata;
+- embedding generation;
+- vector storage;
+- similarity search;
+- top-k selection;
+- score threshold;
+- reranking;
+- prompt context assembly;
+- source citation;
+- fallback when no relevant source exists.
+
+Trace the full document lifecycle:
+
+Uploaded file
+→ stored file
+→ extracted text
+→ chunks
+→ embeddings
+→ index/vector store
+→ query embedding
+→ similarity search
+→ selected context
+→ AI prompt
+→ answer and citations
+
+For each stage, report:
+
+- actual class and method;
+- input;
+- output;
+- storage location;
+- database table or file;
+- external provider;
+- current implementation status;
+- important limitations.
+
+Explicitly conclude whether the system is currently:
+
+- true embedding-based RAG;
+- keyword or full-text retrieval;
+- database text lookup;
+- entire-document prompt injection;
+- pure chatbot without retrieval;
+- partially implemented RAG;
+- unclear due to missing code.
+
+Check whether citations are:
+
+- generated from actual retrieved chunks;
+- added manually;
+- fabricated by the model;
+- not implemented.
+
+Check whether multiple embedding or chunking strategies are currently supported.
+
+## Phase 10 — Database and persistence audit
+
+Inspect:
+
+- DbContext;
+- entities;
+- relationships;
+- migrations;
+- repositories;
+- database configuration;
+- data access from Controllers and Services.
+
+Produce an entity table:
+
+| Entity | Purpose | Important fields | Relationships | Written by | Read by |
+
+Explain how the following are stored, when applicable:
+
+- users;
+- roles;
+- documents;
+- subjects;
+- chapters;
+- chunks;
+- embeddings;
+- chat sessions;
+- chat messages;
+- citations;
+- benchmark results;
+- model configurations.
+
+Identify:
+
+- tables defined but unused;
+- missing relationships;
+- cascade-delete risks;
+- inconsistent naming;
+- serialized vector storage;
+- migrations not aligned with entities;
+- in-memory data that disappears after restart.
+
+Provide a Mermaid ER diagram based only on confirmed relationships.
+
+## Phase 11 — UI and client-side audit
+
+Identify how the frontend interacts with the backend.
+
+Inspect:
+
+- MVC Views;
+- Razor files;
+- JavaScript;
+- fetch/AJAX;
+- forms;
+- SignalR client;
+- route links;
+- static assets;
+- frontend validation.
+
+For each important page, report:
+
+- route;
+- View file;
+- Controller action;
+- scripts loaded;
+- APIs or Hub methods called;
+- main user actions;
+- data rendered;
+- current working status.
+
+Explain how the chatbot page works from the user clicking Send until the answer is displayed.
+
+## Phase 12 — Authentication, authorization, and security
+
+Inspect:
+
+- authentication mechanism;
+- cookie/JWT/Identity configuration;
+- role handling;
+- Controller authorization;
+- Hub authorization;
+- file upload validation;
+- ownership checks;
+- anti-forgery protection;
+- CORS;
+- secrets management;
+- error pages;
+- logging of sensitive information.
+
+Report only issues supported by code evidence.
+
+Do not perform penetration testing.
+
+Important areas:
+
+- Can one user read another user's chat?
+- Can uploaded files be accessed publicly?
+- Is the SignalR Hub anonymous?
+- Are file extensions and actual content checked?
+- Are upload sizes limited?
+- Are AI keys server-side only?
+- Can arbitrary prompt content override system instructions?
+- Are retrieved documents filtered by user, subject, or ownership?
+- Can users request documents outside their permitted scope?
+
+## Phase 13 — Requirement coverage
+
+Compare the current implementation against the expected course-project scope.
+
+Use the following status values only:
+
+- Implemented
+- Partially implemented
+- Present but unused
+- Mocked
+- Missing
+- Unclear
+
+Create a coverage matrix for:
+
+- PDF upload;
+- DOCX upload;
+- slide upload;
+- document chunking;
+- embedding;
+- indexing;
+- subject/chapter management;
+- indexed-document listing;
+- contextual chat;
+- document-based retrieval;
+- answer restriction to source documents;
+- source citation;
+- chat history;
+- SignalR real-time communication;
+- RAG implementation;
+- fine-tuned model integration;
+- multiple chunking strategies;
+- multiple embedding models;
+- model comparison;
+- RAGAS benchmark;
+- test question and ground-truth dataset.
+
+For each item, provide:
+
+- status;
+- evidence;
+- relevant files;
+- brief explanation;
+- what is missing, when incomplete.
+
+Do not claim a feature works only because a class or method exists.
+
+Check whether it is actually connected to the active flow.
+
+## Phase 14 — Build and test verification
+
+When safe, run:
+
+- `dotnet restore`;
+- `dotnet build`;
+- existing automated tests.
+
+Do not modify source code to make the build pass.
+
+Report:
+
+- commands executed;
+- result;
+- warnings;
+- errors;
+- failing projects;
+- failing tests;
+- whether the application can likely start;
+- external dependencies required to run;
+- missing environment variables;
+- required database;
+- required AI provider configuration.
+
+Do not call paid AI APIs or modify a real database.
+
+# REQUIRED OUTPUT FORMAT
+
+Create one comprehensive Markdown audit report in your final response.
+
+Do not create an audit file unless I later request one.
+
+Use this exact structure:
+
+# Complete Project Audit
+
+## 1. Executive Summary
+
+Explain in beginner-friendly language:
+
+- what the project is;
+- what currently works;
+- the main architecture;
+- whether SignalR is central to the system;
+- whether real RAG exists;
+- which AI provider is used;
+- the project's overall level of completion;
+- the most important things a new developer must know.
+
+## 2. Current Business Capabilities
+
+Describe what users can currently do.
+
+Separate confirmed working capabilities from partial or missing capabilities.
+
+## 3. Technology Stack
+
+Use a table:
+
+| Area | Technology | Version/Package | Evidence | Purpose |
+
+## 4. Solution and Folder Structure
+
+Show a compact important-file tree and explain the responsibility of each layer.
+
+## 5. Application Startup and Runtime Flow
+
+Explain configuration, dependency injection, middleware, routes, Controllers, Hubs, and Views.
+
+## 6. High-Level Architecture
+
+Provide a Mermaid architecture diagram.
+
+## 7. Main Business Workflows
+
+Document at least three confirmed workflows.
+
+For each workflow include:
+
+- actor;
+- entry point;
+- end-to-end sequence;
+- involved files;
+- database effects;
+- external calls;
+- status;
+- possible failure points.
+
+## 8. Chatbot End-to-End Flow
+
+Explain the exact chatbot process from UI input to displayed response.
+
+Include a Mermaid sequence diagram.
+
+## 9. Controller Inventory
+
+Use a detailed table.
+
+After the table, explain each Controller's main job in simple language.
+
+## 10. Service Inventory
+
+Use a detailed table.
+
+After the table, explain the main Service relationships.
+
+## 11. Controller-to-Service Dependency Map
+
+Show:
+
+Controller/Hub
+→ interface
+→ implementation
+→ data/external dependency
+
+## 12. SignalR Audit
+
+Include:
+
+- server setup;
+- client setup;
+- Hub methods;
+- client events;
+- payloads;
+- groups/users;
+- authentication;
+- message flow;
+- persistence;
+- reconnection;
+- risks.
+
+Include the SignalR event matrix.
+
+## 13. AI and API Key Audit
+
+Include:
+
+- provider;
+- SDK;
+- models;
+- calling files and methods;
+- configuration flow;
+- prompt flow;
+- history/context handling;
+- API key handling;
+- masked secret findings;
+- failures and risks.
+
+Do not reveal complete secrets.
+
+## 14. RAG and Document Pipeline Audit
+
+Explain every confirmed stage from upload to answer.
+
+State clearly whether this is real RAG.
+
+## 15. Database and Persistence
+
+Include:
+
+- DbContext;
+- entity table;
+- relationships;
+- migrations;
+- persistence behavior;
+- Mermaid ER diagram.
+
+## 16. UI, Routes, and Client Communication
+
+Map pages to Controller actions, APIs, and SignalR calls.
+
+## 17. Authentication and Security Findings
+
+Separate confirmed facts from risks.
+
+Use severity:
+
+- Critical
+- High
+- Medium
+- Low
+- Informational
+
+## 18. Requirement Coverage Matrix
+
+Use the required status values.
+
+## 19. Build and Test Results
+
+Report commands and exact results.
+
+## 20. Implemented, Partial, Missing, and Dead Code
+
+Separate:
+
+- active working code;
+- partially connected code;
+- unused code;
+- duplicate code;
+- mocked code;
+- likely obsolete code.
+
+Do not include `commit.md`.
+
+## 21. Important Configuration Needed to Run the Project
+
+Provide a sanitized configuration checklist.
+
+Example:
+
+| Setting | Required | Used by | Purpose | Secret? |
+
+Do not print real secret values.
+
+## 22. Risks and Technical Debt
+
+Prioritize findings by impact on continued development.
+
+## 23. Recommended Development Order
+
+Provide a safe step-by-step order for continuing the project.
+
+Do not implement these steps.
+
+## 24. New Developer Reading Guide
+
+List the files a new developer should read first, in order, and explain why.
+
+## 25. Open Questions for the Previous Developer or Team
+
+Only include questions that cannot be answered from the repository.
+
+# EVIDENCE REQUIREMENTS
+
+For all important findings:
+
+- include exact relative file paths;
+- include class names;
+- include method names;
+- include route names;
+- include relevant line ranges when possible;
+- distinguish confirmed behavior from inference;
+- write “Not found in the inspected repository” when no evidence exists;
+- do not invent missing code;
+- do not assume that an unused class is active;
+- trace actual call sites before marking a feature as implemented.
+
+When something is uncertain, use this format:
+
+- Confirmed:
+- Inference:
+- Missing evidence:
+- How to verify:
+
+# FINAL QUALITY REQUIREMENTS
+
+The audit must be understandable to someone who has just received the project.
+
+Do not only list classes and files.
+
+Explain:
+
+- why each major component exists;
+- who calls it;
+- what it calls;
+- what data enters;
+- what data leaves;
+- where the data is stored;
+- what the main business responsibility is;
+- whether it is part of the active runtime flow.
+
+Be especially detailed about:
+
+- SignalR;
+- chatbot processing;
+- AI API calls;
+- AI key configuration;
+- document upload;
+- chunking;
+- embedding;
+- retrieval;
+- citations;
+- chat history;
+- Controller and Service responsibilities.
+
+Stop after producing the audit report.
+
+Do not modify the project.
