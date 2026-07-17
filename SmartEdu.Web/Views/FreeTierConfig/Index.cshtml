@@ -48,6 +48,62 @@
         border-left: 3px solid var(--danger);
     }
 
+    /* ===== Bộ lọc trạng thái ===== */
+    .status-filter {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+        .status-filter .filter-label {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate);
+            margin-right: 0.25rem;
+        }
+
+    .filter-pill {
+        border: 1px solid #e3e6ef;
+        background: #fff;
+        color: #12162b;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.45rem 1.1rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+        .filter-pill:hover {
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+        }
+
+        .filter-pill.active-success {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+            box-shadow: 0 8px 18px -10px rgba(31, 174, 99, 0.7);
+        }
+
+        .filter-pill.active-neutral {
+            background: var(--ink-navy);
+            border-color: var(--ink-navy);
+            color: #fff;
+            box-shadow: 0 8px 18px -10px rgba(11, 17, 32, 0.6);
+        }
+
+    .empty-row td {
+        text-align: center;
+        color: var(--slate);
+        padding: 1.5rem 1rem !important;
+    }
+
     .table-card {
         background: #fff;
         border-radius: 16px;
@@ -114,12 +170,19 @@
         </div>
     }
 
+    <div class="status-filter">
+        <span class="filter-label">Lọc theo trạng thái</span>
+        <button type="button" class="filter-pill" data-filter="active">✅ Đang dùng</button>
+        <button type="button" class="filter-pill" data-filter="replaced">🔁 Đã thay thế</button>
+        <button type="button" class="filter-pill" data-filter="all">Tất cả</button>
+    </div>
+
     <div class="table-card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="configTable">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        @* <th>#</th> *@
                         <th>Token / cửa sổ</th>
                         <th>Độ dài cửa sổ</th>
                         <th>Trạng thái</th>
@@ -130,8 +193,8 @@
                 <tbody>
                     @foreach (var c in Model.OrderByDescending(c => c.IsActive).ThenByDescending(c => c.CreatedAt))
                     {
-                        <tr>
-                            <td>@c.Id</td>
+                        <tr data-status="@(c.IsActive ? "active" : "replaced")">
+                            @* <td>@c.Id</td> *@
                             <td>@c.TokensPerWindow.ToString("N0")</td>
                             <td>@c.WindowHours giờ</td>
                             <td>
@@ -148,8 +211,49 @@
                             <td>@c.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</td>
                         </tr>
                     }
+                    <tr class="empty-row" id="emptyRow" style="display: none;">
+                        <td colspan="6">Không có cấu hình nào ở trạng thái này.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const pills = document.querySelectorAll('.filter-pill');
+            const rows = document.querySelectorAll('#configTable tbody tr[data-status]');
+            const emptyRow = document.getElementById('emptyRow');
+
+            function applyFilter(filter) {
+                let visibleCount = 0;
+
+                rows.forEach(function (row) {
+                    const show = (filter === 'all') || (row.dataset.status === filter);
+                    row.style.display = show ? '' : 'none';
+                    if (show) visibleCount++;
+                });
+
+                emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+
+                pills.forEach(function (pill) {
+                    pill.classList.remove('active-success', 'active-neutral');
+                    if (pill.dataset.filter === filter) {
+                        pill.classList.add(filter === 'active' ? 'active-success' : 'active-neutral');
+                    }
+                });
+            }
+
+            pills.forEach(function (pill) {
+                pill.addEventListener('click', function () {
+                    applyFilter(pill.dataset.filter);
+                });
+            });
+
+            // Mặc định khi vào trang: chỉ hiển thị các cấu hình đang dùng
+            applyFilter('active');
+        })();
+    </script>
+}

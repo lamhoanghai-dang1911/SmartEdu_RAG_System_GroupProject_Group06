@@ -17,6 +17,8 @@ namespace SmartEdu.Shared.Entities
 
         public bool IsActive { get; set; } = true;
 
+        public double? NearDuplicateThreshold { get; set; }
+
         public int UpdatedByUserId { get; set; }
         public User UpdatedByUser { get; set; } = null!;
     }

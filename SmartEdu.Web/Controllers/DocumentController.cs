@@ -196,8 +196,16 @@ public class DocumentController : Controller
 
         var docs = await _documentService.GetAllByUserIdAsync(userId, isAdmin, isLecturer, subjectId);
 
+        // Luôn khởi tạo, KHÔNG để null lọt xuống View trong bất kỳ trường hợp nào (Admin/Student/Lecturer)
+        HashSet<int> leaderSubjectIds = new HashSet<int>();
+        if (isLecturer && !isAdmin)
+        {
+            leaderSubjectIds = await _subjectService.GetLeaderSubjectIdsAsync(userId);
+        }
+
         ViewBag.Subjects = new SelectList(subjects, "Id", "Name", subjectId);
         ViewBag.SelectedSubjectId = subjectId;
+        ViewBag.LeaderSubjectIds = leaderSubjectIds;   // luôn có giá trị, không bao giờ null
 
         return View(docs);
     }
@@ -303,7 +311,7 @@ public class DocumentController : Controller
                     isEmbeddingReady = dupCheck.IsEmbeddingReady,
                     message = dupCheck.MatchType == DuplicateMatchType.Exact
                         ? $"Tài liệu đã tồn tại: {dupCheck.DuplicateTitle}"
-                        : $"Tài liệu này có vẻ giống {dupCheck.SimilarityPercent}% với tài liệu \"{dupCheck.DuplicateTitle}\" đã tải lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy HH:mm}."
+                        : $"Tài liệu này có vẻ giống {dupCheck.SimilarityPercent}% với tài liệu \"{dupCheck.DuplicateTitle}\" đã tải lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy}."
                 });
             }
 

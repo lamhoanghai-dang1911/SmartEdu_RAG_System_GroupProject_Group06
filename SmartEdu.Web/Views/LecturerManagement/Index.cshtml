@@ -11,10 +11,10 @@
 
 <div class="row">
     <div class="col-md-6">
-        <form asp-action="Assign" method="post">
+        <form asp-action="Assign" method="post" id="assignForm">
             <div class="form-group mb-2">
                 <label>Giảng viên</label>
-                <select class="form-control" name="LecturerId">
+                <select class="form-control" name="LecturerId" id="lecturerSelect">
                     <option value="">-- Chọn giảng viên --</option>
                     @foreach (var l in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Lecturers)
                     {
@@ -24,7 +24,7 @@
             </div>
             <div class="form-group mb-2">
                 <label>Môn học</label>
-                <select class="form-control" name="SubjectId">
+                <select class="form-control" name="SubjectId" id="subjectSelect">
                     <option value="">-- Chọn môn học --</option>
                     @foreach (var s in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Subjects)
                     {
@@ -67,7 +67,10 @@
                                 </form>
                                 @if (!a.IsLeader)
                                 {
-                                    <form asp-action="SetLeader" method="post" style="display:inline; margin-left:6px;">
+                                    <form class="d-inline set-leader-form" style="display:inline; margin-left:6px;"
+                                          data-lecturer-id="@a.LecturerId" data-subject-id="@a.SubjectId"
+                                          data-lecturer-name="@a.Lecturer?.FullName" data-subject-name="@a.Subject?.Name"
+                                          asp-action="SetLeader" method="post">
                                         <input type="hidden" name="lecturerId" value="@a.LecturerId" />
                                         <input type="hidden" name="subjectId" value="@a.SubjectId" />
                                         <button class="btn btn-sm btn-success" type="submit">Đặt trưởng</button>
@@ -81,3 +84,90 @@
         </table>
     </div>
 </div>
+
+<!-- Modal xác nhận đổi trưởng môn -->
+<div class="modal fade" id="confirmLeaderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">⚠️ Xác nhận đổi trưởng môn</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmLeaderMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning" id="confirmLeaderBtn">Xác nhận đổi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let pendingForm = null;
+        const confirmModal = new bootstrap.Modal(document.getElementById('confirmLeaderModal'));
+
+        // ===== Trường hợp 1: form Assign (tick checkbox "Đặt làm trưởng môn") =====
+        document.getElementById('assignForm').addEventListener('submit', async function(e) {
+            const isLeaderChecked = document.getElementById('IsLeader').checked;
+            const subjectId = document.getElementById('subjectSelect').value;
+            const lecturerSelect = document.getElementById('lecturerSelect');
+            const newLecturerName = lecturerSelect.options[lecturerSelect.selectedIndex]?.text || '';
+
+            if (!isLeaderChecked || !subjectId) return; // không tick trưởng môn -> submit bình thường
+
+            e.preventDefault();
+            pendingForm = this;
+
+            try {
+                const resp = await fetch(`/LecturerManagement/GetCurrentLeader?subjectId=${subjectId}`);
+                const data = await resp.json();
+
+                if (data.hasLeader && data.leaderId != lecturerSelect.value) {
+                    document.getElementById('confirmLeaderMessage').textContent =
+                        `Môn học này đã có trưởng môn là "${data.leaderName}". Bạn có chắc chắn muốn đặt "${newLecturerName}" làm trưởng môn mới không? "${data.leaderName}" sẽ bị hạ chức.`;
+                    confirmModal.show();
+                } else {
+                    pendingForm.submit();
+                }
+            } catch (err) {
+                console.error('Không thể kiểm tra trưởng môn hiện tại:', err);
+                pendingForm.submit(); // fallback: nếu lỗi kiểm tra, vẫn cho submit bình thường
+            }
+        });
+
+        // ===== Trường hợp 2: nút "Đặt trưởng" trong bảng danh sách =====
+        document.querySelectorAll('.set-leader-form').forEach(form => {
+            form.addEventListener('submit', async function(e) {
+                const subjectId = this.getAttribute('data-subject-id');
+                const newLecturerName = this.getAttribute('data-lecturer-name');
+
+                e.preventDefault();
+                pendingForm = this;
+
+                try {
+                    const resp = await fetch(`/LecturerManagement/GetCurrentLeader?subjectId=${subjectId}`);
+                    const data = await resp.json();
+
+                    if (data.hasLeader) {
+                        document.getElementById('confirmLeaderMessage').textContent =
+                            `Môn học này đã có trưởng môn là "${data.leaderName}". Bạn có chắc chắn muốn đặt "${newLecturerName}" làm trưởng môn mới không? "${data.leaderName}" sẽ bị hạ chức.`;
+                        confirmModal.show();
+                    } else {
+                        pendingForm.submit();
+                    }
+                } catch (err) {
+                    console.error('Không thể kiểm tra trưởng môn hiện tại:', err);
+                    pendingForm.submit();
+                }
+            });
+        });
+
+        document.getElementById('confirmLeaderBtn').addEventListener('click', function() {
+            confirmModal.hide();
+            if (pendingForm) pendingForm.submit();
+        });
+    </script>
+}

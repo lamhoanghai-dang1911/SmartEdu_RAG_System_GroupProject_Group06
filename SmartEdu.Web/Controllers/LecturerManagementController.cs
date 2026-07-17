@@ -64,4 +64,25 @@ public class LecturerManagementController : Controller
         TempData["Success"] = "Đã đặt trưởng môn.";
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetCurrentLeader(int subjectId)
+    {
+        var assignments = await _uow.LecturerSubjects.GetAllWithIncludeAsync(
+            ls => ls.SubjectId == subjectId && ls.IsLeader,
+            ls => ls.Lecturer);
+
+        var currentLeader = assignments.FirstOrDefault();
+        if (currentLeader == null)
+        {
+            return Json(new { hasLeader = false });
+        }
+
+        return Json(new
+        {
+            hasLeader = true,
+            leaderName = currentLeader.Lecturer?.FullName,
+            leaderId = currentLeader.LecturerId
+        });
+    }
 }

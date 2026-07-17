@@ -12,5 +12,6 @@ namespace SmartEdu.Business.Interfaces
         Task<IEnumerable<UploadConfigDto>> GetAllAsync();
         Task<int> ResolveMaxFileSizeMBAsync(int subjectId, string fileType);
         Task CreateAsync(UploadConfigSaveDto dto, int userId);
+        Task<double> ResolveNearDuplicateThresholdAsync();
     }
 }

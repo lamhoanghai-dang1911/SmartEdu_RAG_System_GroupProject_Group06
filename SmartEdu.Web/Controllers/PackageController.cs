@@ -40,8 +40,6 @@ namespace SmartEdu.Web.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if (!int.TryParse(userIdClaim, out var userId))
                 return RedirectToAction("Login", "Account");
-
-            // === Chặn mua gói mới khi đang có gói còn hạn + còn token (Phương án A) ===
             bool hasUsable = await _subscriptionService.HasUsableActiveSubscriptionAsync(userId);
             if (hasUsable)
             {
@@ -65,9 +63,6 @@ namespace SmartEdu.Web.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if (!int.TryParse(userIdClaim, out var userId))
                 return RedirectToAction("Login", "Account");
-
-            // === Chặn lần nữa ở bước xác nhận, phòng trường hợp user mở 2 tab
-            // hoặc bấm nút quá nhanh trước khi trang Buy kịp redirect ===
             bool hasUsable = await _subscriptionService.HasUsableActiveSubscriptionAsync(userId);
             if (hasUsable)
             {

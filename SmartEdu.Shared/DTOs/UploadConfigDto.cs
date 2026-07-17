@@ -14,6 +14,7 @@ namespace SmartEdu.Shared.DTOs
         public int? SubjectId { get; set; }
         public string? SubjectName { get; set; }
         public bool IsActive { get; set; }
+        public double? NearDuplicateThreshold { get; set; }
         public string UpdatedByUserName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
@@ -23,5 +24,6 @@ namespace SmartEdu.Shared.DTOs
         public int MaxFileSizeMB { get; set; }
         public string? FileType { get; set; }
         public int? SubjectId { get; set; }
+        public double? NearDuplicateThreshold { get; set; }
     }
 }

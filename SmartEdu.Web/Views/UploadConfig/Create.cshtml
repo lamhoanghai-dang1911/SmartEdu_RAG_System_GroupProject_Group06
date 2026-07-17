@@ -64,6 +64,10 @@
         color: #fff;
         background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
     }
+
+    #thresholdGroup {
+        transition: opacity 0.2s ease;
+    }
 </style>
 
 <div class="container mt-4">
@@ -96,7 +100,7 @@
 
             <div class="col-md-6">
                 <label class="form-label">Loại file</label>
-                <select asp-for="FileType" class="form-select">
+                <select asp-for="FileType" id="fileTypeSelect" class="form-select">
                     <option value="">🗂️ Áp dụng cho mọi loại file</option>
                     <option value="pdf">📕 PDF</option>
                     <option value="docx">📘 DOCX</option>
@@ -106,9 +110,15 @@
 
             <div class="col-md-6">
                 <label class="form-label">Môn học</label>
-                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
+                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" id="subjectSelect" class="form-select">
                     <option value="">🌐 Áp dụng cho mọi môn học</option>
                 </select>
+            </div>
+
+            <div class="col-md-6" id="thresholdGroup" style="display:none;">
+                <label class="form-label">Ngưỡng phát hiện gần giống</label>
+                <input asp-for="NearDuplicateThreshold" type="number" step="0.01" class="form-control" min="0.5" max="1.0" placeholder="Mặc định: 0.90" />
+                <div class="form-text">Chỉ áp dụng khi cấu hình phạm vi toàn hệ thống. Từ 0.5 đến 1.0 — càng cao, hệ thống càng ít cảnh báo trùng lặp (chỉ bắt các trường hợp rất giống nhau). Để trống sẽ dùng mặc định 0.90.</div>
             </div>
 
             <div class="col-12">
@@ -117,3 +127,22 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const subjectSelect = document.getElementById('subjectSelect');
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const thresholdGroup = document.getElementById('thresholdGroup');
+
+            function toggleThresholdVisibility() {
+                const isGlobal = (!subjectSelect.value) && (!fileTypeSelect.value);
+                thresholdGroup.style.display = isGlobal ? '' : 'none';
+            }
+
+            subjectSelect.addEventListener('change', toggleThresholdVisibility);
+            fileTypeSelect.addEventListener('change', toggleThresholdVisibility);
+            toggleThresholdVisibility();
+        });
+    </script>
+}

@@ -120,5 +120,28 @@ namespace SmartEdu.Web.Realtime
             await _notifyHub.Clients.Group(NotificationHub.UserGroup(lecturerId))
                 .SendAsync("SubjectUnassigned", new { subjectId });
         }
+
+        public async Task SendDocumentUpdatedAsync(DocumentDto document)
+        {
+            // Notify both the document list viewers and viewers of the specific document
+            try
+            {
+                await _docHub.Clients.Group(DocumentProcessingHub.ListGroupName)
+                    .SendAsync("DocumentUpdated", document);
+
+                await _docHub.Clients.Group(DocumentProcessingHub.GroupName(document.Id))
+                    .SendAsync("DocumentUpdated", document);
+            }
+            catch
+            {
+                // swallow to avoid affecting caller; logging can be added if needed
+            }
+        }
+
+        public async Task SendChatProgressAsync(string sessionId, string stage, string message)
+        {
+            await _chatHub.Clients.Group(ChatHub.SessionGroup(sessionId))
+                .SendAsync("ReceiveProgress", new { stage, message });
+        }
     }
 }

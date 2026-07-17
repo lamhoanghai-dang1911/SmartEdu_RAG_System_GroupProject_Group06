@@ -697,7 +697,7 @@
 
                 <div class="chat-input-area p-2 bg-white border-top">
                     <div id="typingIndicator" class="text-muted small mb-1 d-none">
-                        🤖 Đang trả lời...
+                        <span id="typingText">🤖 Đang trả lời...</span>
                     </div>
 
                     <div class="input-group">
@@ -743,6 +743,17 @@
         const sendBtn     = document.getElementById("sendBtn");
         const typing      = document.getElementById("typingIndicator");
         const emptyMsg    = document.getElementById("emptyMsg");
+        const typingText = document.getElementById("typingText");
+
+        function setTypingStatus(message) {
+            if (typingText) typingText.textContent = message || "🤖 Đang trả lời...";
+            typing.classList.remove("d-none");
+        }
+
+        function hideTyping() {
+            typing.classList.add("d-none");
+            if (typingText) typingText.textContent = "🤖 Đang trả lời...";
+        }
 
         function scrollBottom() {
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -827,60 +838,60 @@
         }
 
         async function sendMessage() {
-        const questionRaw = input.value;
-        const question = questionRaw.trim();
-        if (!question) return;
+            const questionRaw = input.value;
+            const question = questionRaw.trim();
+            if (!question) return;
 
-        const subjectId = document.getElementById("subjectSelect").value;
+            const subjectId = document.getElementById("subjectSelect").value;
 
-        input.value = "";
-        autosizeTextarea(input);
-        sendBtn.disabled = true;
-        appendMessage("user", questionRaw);
-        typing.classList.remove("d-none");
+            input.value = "";
+            autosizeTextarea(input);
+            sendBtn.disabled = true;
+            appendMessage("user", questionRaw);
+            setTypingStatus("🤖 Đang trả lời...");   // <-- thay cho: typing.classList.remove("d-none");
 
-        try {
-        await chatHubReady;
+            try {
+                await chatHubReady;
 
-        const res = await fetch("/Chat/Ask", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-        sessionId,
-        question,
-        subjectId: subjectId ? parseInt(subjectId) : null,
-        connectionId: chatHubConnection.connectionId
-        })
-        });
+                const res = await fetch("/Chat/Ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        sessionId,
+                        question,
+                        subjectId: subjectId ? parseInt(subjectId) : null,
+                        connectionId: chatHubConnection.connectionId
+                    })
+                });
 
-        const data = await res.json();
-        typing.classList.add("d-none");
+                const data = await res.json();
+                hideTyping();   // <-- chỗ 1
 
-        if (res.ok) {
-        const assistantBubble = appendMessage("assistant", data.answer);
-        appendCitationBlock(assistantBubble, data.citations);
+                if (res.ok) {
+                    const assistantBubble = appendMessage("assistant", data.answer);
+                    appendCitationBlock(assistantBubble, data.citations);
 
-        if (data.remainingTokenQuota !== undefined && data.remainingTokenQuota !== null) {
-        const tokenSpan = document.getElementById("remainingTokens");
-        if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
-        }
-        } else {
-        appendMessage("assistant", "❌ Lỗi: " + data.error);
-        if (data.error && (data.error.includes("token") || data.error.includes("gói"))) {
-        const btnDiv = document.createElement("div");
-        btnDiv.className = "text-center my-2";
-        btnDiv.innerHTML = '<a href="/Package/List" class="btn btn-sm btn-warning">💳 Mua gói dịch vụ</a>';
-        chatBox.appendChild(btnDiv);
-        scrollBottom();
-        }
-        }
-        } catch (err) {
-        typing.classList.add("d-none");
-        console.error("Chat request failed:", err);
-        } finally {
-        sendBtn.disabled = false;
-        input.focus();
-        }
+                    if (data.remainingTokenQuota !== undefined && data.remainingTokenQuota !== null) {
+                        const tokenSpan = document.getElementById("remainingTokens");
+                        if (tokenSpan) tokenSpan.textContent = data.remainingTokenQuota.toLocaleString();
+                    }
+                } else {
+                    appendMessage("assistant", "❌ Lỗi: " + data.error);
+                    if (data.error && (data.error.includes("token") || data.error.includes("gói"))) {
+                        const btnDiv = document.createElement("div");
+                        btnDiv.className = "text-center my-2";
+                        btnDiv.innerHTML = '<a href="/Package/List" class="btn btn-sm btn-warning">💳 Mua gói dịch vụ</a>';
+                        chatBox.appendChild(btnDiv);
+                        scrollBottom();
+                    }
+                }
+            } catch (err) {
+                hideTyping();   // <-- chỗ 2
+                console.error("Chat request failed:", err);
+            } finally {
+                sendBtn.disabled = false;
+                input.focus();
+            }
         }
 
         sendBtn.addEventListener("click", sendMessage);
@@ -1081,13 +1092,18 @@
         .withAutomaticReconnect()
         .build();
 
+        chatHubConnection.on("ReceiveProgress", (data) => {
+            setTypingStatus(data.message);
+        });
+
         chatHubConnection.on("ReceiveMessage", (msg) => {
-        if (msg.role === "assistant") {
-        const bubble = appendMessage("assistant", msg.content);
-        appendCitationBlock(bubble, msg.citations);
-        } else {
-        appendMessage(msg.role, msg.content);
-        }
+            if (msg.role === "assistant") {
+                hideTyping();
+                const bubble = appendMessage("assistant", msg.content);
+                appendCitationBlock(bubble, msg.citations);
+            } else {
+                appendMessage(msg.role, msg.content);
+            }
         });
 
         const chatHubReady = chatHubConnection.start()

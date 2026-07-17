@@ -20,5 +20,6 @@ namespace SmartEdu.Business.Interfaces
         Task<bool> CanUploadDocument(int lecturerId, int subjectId);
         Task RemoveLecturerFromSubject(int lecturerId, int subjectId);
         Task<bool> IsLecturerAssignedToSubject(int lecturerId, int subjectId);
+        Task<HashSet<int>> GetLeaderSubjectIdsAsync(int lecturerId);
     }
 }

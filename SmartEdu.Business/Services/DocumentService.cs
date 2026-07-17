@@ -32,7 +32,6 @@ public class DocumentService : IDocumentService
     private readonly IRepository<Subject> _subjectRepo;
     private readonly IRealtimeNotifier _realtime;
     private readonly IUploadConfigService _uploadConfigService;
-    private const double NearDuplicateThreshold = 0.90;
     private const int MaxChunksForDuplicateCheck = 10;
 
     public DocumentService(
@@ -609,6 +608,28 @@ public class DocumentService : IDocumentService
 
         _docRepo.Update(doc);
         await _docRepo.SaveChangesAsync();
+        try
+        {
+            // Notify clients that document metadata (title) changed
+            var dto = new SmartEdu.Shared.DTOs.DocumentDto
+            {
+                Id = doc.Id,
+                Title = doc.Title,
+                FileName = doc.FileName,
+                FileType = doc.FileType,
+                FileSize = doc.FileSize,
+                SubjectId = doc.SubjectId,
+                Status = doc.Status,
+                CreatedAt = doc.CreatedAt,
+                SubjectName = doc.Subject?.Name
+            };
+            await _realtime.SendDocumentUpdatedAsync(dto);
+        }
+        catch (Exception ex)
+        {
+            // avoid breaking the update flow when realtime fails
+            Console.WriteLine($"Failed to send document updated via SignalR: {ex}");
+        }
     }
 
     public async Task<DocumentDownloadDto?> GetFileForDownloadAsync(int id)
@@ -672,7 +693,7 @@ public class DocumentService : IDocumentService
             };
         }
 
-        // === Bước 2: check gần giống (similarity >= 80%) ===
+        // === Bước 2: check gần giống ===
         try
         {
             var newDocVector = await ComputeDocumentVectorFromFileAsync(filePath, fileExt, subjectId);
@@ -710,8 +731,8 @@ public class DocumentService : IDocumentService
                     bestMatch = new DocumentDto { Id = candidate.Id, Title = candidate.Title, CreatedAt = candidate.CreatedAt, Status = candidate.Status };
                 }
             }
-
-            if (bestMatch != null && bestScore >= NearDuplicateThreshold)
+            var nearDuplicateThreshold = await _uploadConfigService.ResolveNearDuplicateThresholdAsync();
+            if (bestMatch != null && bestScore >= nearDuplicateThreshold)
             {
                 return new DuplicateCheckDto
                 {
