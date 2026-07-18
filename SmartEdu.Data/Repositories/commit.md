@@ -58760,1977 +58760,4189 @@ DO NOT install or upgrade packages.
 DO NOT run database migrations.
 DO NOT seed, delete, or modify database data.
 DO NOT make destructive API calls.
-DO NOT expose secrets or print complete API keys.
-DO NOT treat `commit.md` as project documentation.
-
-Important:
-- The repository contains a file named `commit.md`.
-- This file is unnecessary and not relevant to the audit.
-- Ignore `commit.md` completely.
-- Do not read it, summarize it, or use it as evidence.
-
-You may safely inspect the repository, configuration files, source files, project files, package references, migrations, tests, and documentation.
-
-You may run safe read-only verification commands such as:
-- listing files and folders;
-- `dotnet --info`;
-- `dotnet restore`, if dependencies are already configured and this does not modify source code;
-- `dotnet build`;
-- existing test commands;
-- static searches through the codebase.
-
-Do not start making fixes even when issues are found.
-
-# PROJECT CONTEXT
-
-The project is a course project related to an educational chatbot.
-
-Expected business direction:
-
-1. Document management
-   - Upload PDF, DOCX, or lecture slides.
-   - Automatically split documents into chunks.
-   - Embed and index document content.
-   - Organize documents by subject or chapter.
-   - Show indexed documents.
-
-2. Chat and question answering
-   - Natural conversation using conversation context.
-   - Retrieve answers from uploaded documents.
-   - Limit answers to the information available in the documents.
-   - Cite the source used for an answer.
-   - Save chat history.
-
-3. AI/RAG research
-   - Compare RAG with a fine-tuned model.
-   - Experiment with multiple chunking strategies.
-   - Experiment with multiple embedding models.
-   - Save or present benchmark results.
-   - Possible embedding model references include:
-     - multilingual-e5-base
-     - text-embedding-3-small
-     - PhoBERT-base
-     - bge-m3
-
-4. Main expected deliverables
-   - Web chatbot.
-   - Source code.
-   - Test question set and ground-truth answers.
-   - Model comparison report.
-   - RAGAS benchmark data.
-
-The project is known to use:
-- .NET MVC, or a closely related ASP.NET architecture;
-- SignalR.
-
-Do not assume the exact .NET version or architecture. Determine the actual stack from the repository.
-
-# PRIMARY AUDIT OBJECTIVES
-
-Audit the entire project and explain:
-
-1. What the application currently does.
-2. What technologies and packages it actually uses.
-3. How the application starts and how requests travel through the system.
-4. What the main business workflows are.
-5. What each Controller is responsible for.
-6. What each Service is responsible for.
-7. How Controllers and Services interact.
-8. How SignalR is configured and used.
-9. How the AI provider is called.
-10. How AI keys and configuration are loaded and used.
-11. Whether the project currently implements real RAG, simple prompt-based chat, or another AI approach.
-12. How files are uploaded, parsed, chunked, embedded, indexed, searched, and cited.
-13. How chat sessions and chat history are stored.
-14. What data is stored in the database.
-15. Which project requirements are complete, partial, missing, mocked, or unclear.
-16. What a new developer should understand before changing the project.
-
-Every important conclusion must be supported by concrete code evidence.
-
-# AUDIT PROCESS
-
-## Phase 1 — Repository and solution structure
-
-Inspect the complete repository structure.
-
-Identify:
-
-- solution files;
-- project files;
-- startup project;
-- application layers;
-- Controllers;
-- Services;
-- Interfaces;
-- Repositories;
-- Models;
-- Entities;
-- DTOs;
-- ViewModels;
-- Views;
-- Razor pages, if present;
-- SignalR Hubs;
-- middleware;
-- filters;
-- background services;
-- database context;
-- migrations;
-- static files;
-- frontend scripts;
-- tests;
-- utility/helper classes;
-- AI-related files;
-- document-processing files;
-- configuration files;
-- environment variable usage;
-- Docker or deployment files.
-
-Determine whether this is:
-
-- classic ASP.NET MVC;
-- ASP.NET Core MVC;
-- Razor Pages;
-- Web API;
-- Blazor;
-- a hybrid architecture;
-- a multi-project solution.
-
-Provide a compact repository tree containing only important files and folders.
-
-Do not dump the entire repository tree without explanation.
-
-## Phase 2 — Technology stack
-
-Determine the exact technologies actually used.
-
-Inspect:
-
-- `.sln`;
-- `.csproj`;
-- `Program.cs`;
-- `Startup.cs`, if present;
-- package references;
-- JavaScript package files, if present;
-- database configuration;
-- SignalR registration;
-- AI SDK registration;
-- document-processing packages;
-- authentication packages.
-
-Report:
-
-- .NET SDK and target framework;
-- ASP.NET application model;
-- Entity Framework version;
-- database provider;
-- frontend technology;
-- UI libraries;
-- dependency injection approach;
-- SignalR version and package;
-- authentication and authorization;
-- AI provider and AI SDK;
-- PDF/DOCX/PPTX parsing libraries;
-- embedding provider;
-- vector database or vector-search mechanism;
-- logging;
-- caching;
-- object mapping;
-- validation;
-- test frameworks;
-- deployment/runtime dependencies.
-
-Do not list a technology unless it is proven by the repository.
-
-## Phase 3 — Application startup and dependency injection
-
-Trace application startup from the entry point.
-
-Explain:
-
-- which file contains the entry point;
-- which services are registered;
-- which interfaces map to which implementations;
-- how MVC, APIs, Razor, SignalR, database, authentication, sessions, CORS, static files, and AI clients are registered;
-- middleware order;
-- route configuration;
-- SignalR endpoint mapping;
-- database initialization behavior;
-- environment-specific behavior;
-- configuration sources.
-
-Produce a startup flow such as:
-
-Application entry
-→ configuration loading
-→ dependency registration
-→ middleware pipeline
-→ route mapping
-→ Controller or Hub execution
-
-Identify any startup risks, including:
-
-- missing configuration;
-- incorrect middleware order;
-- duplicate registrations;
-- service lifetime problems;
-- unregistered dependencies;
-- development-only assumptions.
-
-## Phase 4 — Business workflow discovery
-
-Identify at least three major workflows or mainflows that currently exist in the code.
-
-Do not invent workflows based only on the project description.
-
-Possible workflows may include:
-
-- user authentication;
-- document upload;
-- document indexing;
-- chatbot question answering;
-- SignalR real-time chat;
-- chat history;
-- subject or chapter management;
-- RAG retrieval;
-- AI model comparison;
-- benchmark execution.
-
-For every confirmed workflow, document:
-
-1. Workflow name.
-2. User or system actor.
-3. Starting UI, route, API, or Hub method.
-4. Controller or Hub involved.
-5. Request model.
-6. Service interface.
-7. Service implementation.
-8. Repository or DbContext access.
-9. External service or AI call.
-10. Response model.
-11. Data written or read.
-12. Error handling.
-13. Current status:
-    - working;
-    - partially implemented;
-    - mocked;
-    - unused;
-    - broken;
-    - uncertain.
-
-Show each workflow as an end-to-end sequence.
-
-Example format:
-
-Browser/UI
-→ JavaScript client
-→ SignalR Hub or Controller
-→ application service
-→ retrieval/indexing service
-→ AI provider
-→ database
-→ response returned to UI
-
-Also produce a Mermaid sequence diagram for the most important chatbot workflow.
-
-## Phase 5 — Controller audit
-
-Inspect every Controller.
-
-For each Controller, provide a table containing:
-
-- Controller name;
-- file path;
-- route prefix;
-- constructor dependencies;
-- actions/endpoints;
-- HTTP method;
-- request parameters;
-- request DTO or ViewModel;
-- response type or returned View;
-- authorization requirements;
-- called Services;
-- main responsibility;
-- side effects;
-- error-handling approach;
-- whether the Controller appears active, incomplete, duplicated, or unused.
-
-Then explain each Controller in beginner-friendly language.
-
-For example:
-
-“This Controller receives document upload requests. It validates the uploaded file, then delegates parsing and indexing to the document service. It does not perform embedding directly.”
-
-Clearly separate:
-
-- MVC Controllers returning Views;
-- API Controllers returning JSON;
-- authentication Controllers;
-- administrative Controllers;
-- chatbot Controllers;
-- document Controllers;
-- research or benchmark Controllers.
-
-Flag Controllers that:
-
-- contain too much business logic;
-- directly access DbContext;
-- directly call AI APIs;
-- duplicate Service logic;
-- expose sensitive data;
-- appear disconnected from routes or views.
-
-## Phase 6 — Service audit
-
-Inspect every Service and Service interface.
-
-For each Service, provide:
-
-- Service name;
-- interface name;
-- implementation name;
-- file paths;
-- dependency-injection lifetime;
-- injected dependencies;
-- public methods;
-- calling Controllers, Hubs, or other Services;
-- database operations;
-- external API operations;
-- AI operations;
-- primary business responsibility;
-- returned data;
-- exception behavior;
-- current implementation status.
-
-Explain the boundary between Controller and Service.
-
-Identify whether each Service is mainly responsible for:
-
-- orchestration;
-- business rules;
-- file parsing;
-- document processing;
-- chunking;
-- embedding;
-- vector search;
-- prompt construction;
-- AI completion;
-- chat history;
-- user management;
-- database access;
-- benchmarking;
-- SignalR notification.
-
-Flag Services that:
-
-- are registered but never called;
-- are called but not registered;
-- duplicate another Service;
-- have misleading names;
-- perform several unrelated responsibilities;
-- contain hard-coded configuration;
-- contain direct secrets;
-- appear incomplete or mocked.
-
-Also produce a dependency map:
-
-Controller or Hub
-→ Interface
-→ Implementation
-→ Repository/DbContext/external provider
-
-## Phase 7 — SignalR audit
-
-Audit SignalR in detail.
-
-Locate:
-
-- Hub classes;
-- Hub interfaces;
-- `AddSignalR`;
-- `MapHub`;
-- JavaScript or .NET SignalR clients;
-- connection creation;
-- Hub URL;
-- client event handlers;
-- server-to-client event names;
-- client-to-server Hub method names;
-- group or room management;
-- user mapping;
-- authentication;
-- reconnection handling;
-- streaming, if present.
-
-Explain:
-
-1. Why SignalR is used in this application.
-2. Whether it powers the real chatbot flow or only UI notifications.
-3. How the client creates a connection.
-4. Which Hub method is called when a user sends a message.
-5. Which Service the Hub calls.
-6. Which event returns data to the browser.
-7. Whether messages are broadcast to all clients, a user, a group, or only the caller.
-8. Whether chat history is persisted.
-9. What happens when the connection disconnects.
-10. Whether duplicate messages or race conditions are possible.
-
-Provide a SignalR event matrix:
-
-| Direction | Method/Event | Sender | Receiver | Payload | Purpose |
-
-Provide an exact real-time message flow using file and method names.
-
-Flag risks such as:
-
-- anonymous Hub access;
-- missing authorization;
-- shared messages between users;
-- no group isolation;
-- no reconnect handling;
-- long AI requests blocking Hub calls;
-- exception details sent to clients;
-- client event-name mismatch;
-- Hub and Controller implementing duplicated chat flows.
-
-## Phase 8 — AI provider and API key audit
-
-This is a critical part of the audit.
-
-Locate every AI-related reference, including:
-
-- OpenAI;
-- Azure OpenAI;
-- Gemini;
-- Google Generative AI;
-- Hugging Face;
-- Ollama;
-- Semantic Kernel;
-- LangChain;
-- custom HTTP clients;
-- embedding endpoints;
-- completion/chat endpoints;
-- model names;
-- prompt templates;
-- API keys;
-- endpoints;
-- deployment names;
-- temperature;
-- token limits.
-
-Explain the complete AI call flow:
-
-User question
-→ Controller or SignalR Hub
-→ Service
-→ prompt or retrieval construction
-→ AI client
-→ AI provider
-→ response parsing
-→ returned answer
-→ history persistence
-
-For each AI call, report:
-
-- calling class and method;
-- provider;
-- SDK or raw HTTP;
-- endpoint;
-- model;
-- request type;
-- system prompt;
-- user prompt;
-- retrieved context;
-- conversation history;
-- temperature;
-- token settings;
-- timeout;
-- retry behavior;
-- cancellation-token support;
-- response parsing;
-- error handling;
-- logging.
-
-API key audit requirements:
-
-- Identify where the key name is referenced.
-- Identify configuration hierarchy, for example:
-  `appsettings.json → environment variable → options class → service registration → AI client`.
-- Never print the complete secret value.
-- Mask values, for example: `sk-****abcd`.
-- Report whether a real key appears committed to the repository.
-- Report whether the key is loaded securely.
-- Report whether the key can accidentally reach the browser.
-- Report whether it is logged.
-- Report whether different environments use different configuration.
-- Report whether startup fails clearly when the key is missing.
-
-Search for likely names such as:
-
-- API_KEY;
-- OPENAI_API_KEY;
-- OpenAI;
-- Gemini;
-- GoogleAI;
-- AzureOpenAI;
-- HuggingFace;
-- Bearer;
-- Authorization;
-- ApiKey;
-- Secret;
-- Token.
-
-Do not call the external AI provider during this audit.
-
-## Phase 9 — RAG and document-processing audit
-
-Determine whether the current project contains a real RAG pipeline.
-
-Do not classify the system as RAG merely because document text is placed in a prompt.
-
-Inspect for:
-
-- document upload;
-- file-type validation;
-- storage;
-- text extraction;
-- OCR;
-- text normalization;
-- chunk creation;
-- chunk overlap;
-- metadata;
-- embedding generation;
-- vector storage;
-- similarity search;
-- top-k selection;
-- score threshold;
-- reranking;
-- prompt context assembly;
-- source citation;
-- fallback when no relevant source exists.
-
-Trace the full document lifecycle:
-
-Uploaded file
-→ stored file
-→ extracted text
-→ chunks
-→ embeddings
-→ index/vector store
-→ query embedding
-→ similarity search
-→ selected context
-→ AI prompt
-→ answer and citations
-
-For each stage, report:
-
-- actual class and method;
-- input;
-- output;
-- storage location;
-- database table or file;
-- external provider;
-- current implementation status;
-- important limitations.
-
-Explicitly conclude whether the system is currently:
-
-- true embedding-based RAG;
-- keyword or full-text retrieval;
-- database text lookup;
-- entire-document prompt injection;
-- pure chatbot without retrieval;
-- partially implemented RAG;
-- unclear due to missing code.
-
-Check whether citations are:
-
-- generated from actual retrieved chunks;
-- added manually;
-- fabricated by the model;
-- not implemented.
-
-Check whether multiple embedding or chunking strategies are currently supported.
-
-## Phase 10 — Database and persistence audit
-
-Inspect:
-
-- DbContext;
-- entities;
-- relationships;
-- migrations;
-- repositories;
-- database configuration;
-- data access from Controllers and Services.
-
-Produce an entity table:
-
-| Entity | Purpose | Important fields | Relationships | Written by | Read by |
-
-Explain how the following are stored, when applicable:
-
-- users;
-- roles;
-- documents;
-- subjects;
-- chapters;
-- chunks;
-- embeddings;
-- chat sessions;
-- chat messages;
-- citations;
-- benchmark results;
-- model configurations.
-
-Identify:
-
-- tables defined but unused;
-- missing relationships;
-- cascade-delete risks;
-- inconsistent naming;
-- serialized vector storage;
-- migrations not aligned with entities;
-- in-memory data that disappears after restart.
-
-Provide a Mermaid ER diagram based only on confirmed relationships.
-
-## Phase 11 — UI and client-side audit
-
-Identify how the frontend interacts with the backend.
-
-Inspect:
-
-- MVC Views;
-- Razor files;
-- JavaScript;
-- fetch/AJAX;
-- forms;
-- SignalR client;
-- route links;
-- static assets;
-- frontend validation.
-
-For each important page, report:
-
-- route;
-- View file;
-- Controller action;
-- scripts loaded;
-- APIs or Hub methods called;
-- main user actions;
-- data rendered;
-- current working status.
-
-Explain how the chatbot page works from the user clicking Send until the answer is displayed.
-
-## Phase 12 — Authentication, authorization, and security
-
-Inspect:
-
-- authentication mechanism;
-- cookie/JWT/Identity configuration;
-- role handling;
-- Controller authorization;
-- Hub authorization;
-- file upload validation;
-- ownership checks;
-- anti-forgery protection;
-- CORS;
-- secrets management;
-- error pages;
-- logging of sensitive information.
-
-Report only issues supported by code evidence.
-
-Do not perform penetration testing.
-
-Important areas:
-
-- Can one user read another user's chat?
-- Can uploaded files be accessed publicly?
-- Is the SignalR Hub anonymous?
-- Are file extensions and actual content checked?
-- Are upload sizes limited?
-- Are AI keys server-side only?
-- Can arbitrary prompt content override system instructions?
-- Are retrieved documents filtered by user, subject, or ownership?
-- Can users request documents outside their permitted scope?
-
-## Phase 13 — Requirement coverage
-
-Compare the current implementation against the expected course-project scope.
-
-Use the following status values only:
-
-- Implemented
-- Partially implemented
-- Present but unused
-- Mocked
-- Missing
-- Unclear
-
-Create a coverage matrix for:
-
-- PDF upload;
-- DOCX upload;
-- slide upload;
-- document chunking;
-- embedding;
-- indexing;
-- subject/chapter management;
-- indexed-document listing;
-- contextual chat;
-- document-based retrieval;
-- answer restriction to source documents;
-- source citation;
-- chat history;
-- SignalR real-time communication;
-- RAG implementation;
-- fine-tuned model integration;
-- multiple chunking strategies;
-- multiple embedding models;
-- model comparison;
-- RAGAS benchmark;
-- test question and ground-truth dataset.
-
-For each item, provide:
-
-- status;
-- evidence;
-- relevant files;
-- brief explanation;
-- what is missing, when incomplete.
-
-Do not claim a feature works only because a class or method exists.
-
-Check whether it is actually connected to the active flow.
-
-## Phase 14 — Build and test verification
-
-When safe, run:
-
-- `dotnet restore`;
-- `dotnet build`;
-- existing automated tests.
-
-Do not modify source code to make the build pass.
-
-Report:
-
-- commands executed;
-- result;
-- warnings;
-- errors;
-- failing projects;
-- failing tests;
-- whether the application can likely start;
-- external dependencies required to run;
-- missing environment variables;
-- required database;
-- required AI provider configuration.
-
-Do not call paid AI APIs or modify a real database.
-
-# REQUIRED OUTPUT FORMAT
-
-Create one comprehensive Markdown audit report in your final response.
-
-Do not create an audit file unless I later request one.
-
-Use this exact structure:
-
-# Complete Project Audit
-
-## 1. Executive Summary
-
-Explain in beginner-friendly language:
-
-- what the project is;
-- what currently works;
-- the main architecture;
-- whether SignalR is central to the system;
-- whether real RAG exists;
-- which AI provider is used;
-- the project's overall level of completion;
-- the most important things a new developer must know.
-
-## 2. Current Business Capabilities
-
-Describe what users can currently do.
-
-Separate confirmed working capabilities from partial or missing capabilities.
-
-## 3. Technology Stack
-
-Use a table:
-
-| Area | Technology | Version/Package | Evidence | Purpose |
-
-## 4. Solution and Folder Structure
-
-Show a compact important-file tree and explain the responsibility of each layer.
-
-## 5. Application Startup and Runtime Flow
-
-Explain configuration, dependency injection, middleware, routes, Controllers, Hubs, and Views.
-
-## 6. High-Level Architecture
-
-Provide a Mermaid architecture diagram.
-
-## 7. Main Business Workflows
-
-Document at least three confirmed workflows.
-
-For each workflow include:
-
-- actor;
-- entry point;
-- end-to-end sequence;
-- involved files;
-- database effects;
-- external calls;
-- status;
-- possible failure points.
-
-## 8. Chatbot End-to-End Flow
-
-Explain the exact chatbot process from UI input to displayed response.
-
-Include a Mermaid sequence diagram.
-
-## 9. Controller Inventory
-
-Use a detailed table.
-
-After the table, explain each Controller's main job in simple language.
-
-## 10. Service Inventory
-
-Use a detailed table.
-
-After the table, explain the main Service relationships.
-
-## 11. Controller-to-Service Dependency Map
-
-Show:
-
-Controller/Hub
-→ interface
-→ implementation
-→ data/external dependency
-
-## 12. SignalR Audit
+DO NOT expose secrets or print 
+
+# Phân tích toàn bộ luồng 7.3 – Quản lý môn học và phân công
+
+## 1. Kết luận tổng quan
+
+Luồng 7.3 hiện được chia giữa ba thành phần chính:
+
+```text
+SubjectController
+→ quản lý môn học, sinh viên và import Excel
+
+LecturerManagementController
+→ hiển thị và tiếp nhận thao tác phân công giảng viên
+
+SubjectService
+→ xử lý phần lớn nghiệp vụ môn học, sinh viên và giảng viên
+```
+
+Luồng đầy đủ:
+
+```text
+Razor View
+→ HTTP Request
+→ Controller
+→ ISubjectService
+→ SubjectService
+→ Repository / UnitOfWork
+→ Entity Framework Core
+→ SQL Server
+→ SignalR / Email
+→ Redirect về View
+```
+
+`SubjectService` là trung tâm nghiệp vụ, nhưng không xử lý toàn bộ hệ thống. Controller vẫn chịu trách nhiệm về routing, phân quyền, chống CSRF, đọc file Excel và chuẩn bị dữ liệu cho View. Riêng `LecturerManagementController` còn truy cập trực tiếp `IUnitOfWork`, nên ranh giới Controller–Service chưa hoàn toàn sạch.
+
+---
+
+# 2. Các công nghệ được dùng trong luồng
+
+| Công nghệ                              | Chức năng trong luồng                          |
+| -------------------------------------- | ---------------------------------------------- |
+| ASP.NET Core MVC                       | Controller, routing, authorization, ModelState |
+| Razor View                             | Hiển thị danh sách môn, form và dropdown       |
+| Cookie Authentication                  | Xác định tài khoản hiện tại                    |
+| Role-based Authorization               | Phân quyền Admin và Lecturer                   |
+| Anti-forgery Token                     | Chống request POST giả mạo                     |
+| Dependency Injection                   | Inject `ISubjectService`, `IUnitOfWork`        |
+| Entity Framework Core                  | Truy vấn và cập nhật database                  |
+| Repository Pattern                     | Thao tác với từng Entity                       |
+| Unit of Work                           | Gom repository và quản lý transaction          |
+| SQL Server                             | Lưu môn, người dùng và phân công               |
+| ExcelDataReader                        | Đọc file `.xlsx`                               |
+| BCrypt                                 | Băm mật khẩu sinh viên mới                     |
+| MailKit/SMTP thông qua `IEmailService` | Gửi tài khoản và thông báo nhập học            |
+| SignalR thông qua `IRealtimeNotifier`  | Cập nhật môn học theo thời gian thực           |
+| `SelectList`                           | Tạo dropdown môn và giảng viên                 |
+
+---
+
+# 3. Các Entity tham gia
+
+## 3.1. `Subject`
+
+Đại diện cho môn học.
+
+Các trường được dùng trong code:
+
+```text
+Id
+Name
+Description
+CreatedAt
+UpdatedAt
+IsDeleted
+```
+
+Môn học đang dùng **soft delete**:
+
+```csharp
+subject.IsDeleted = true;
+```
+
+Tức là bản ghi vẫn tồn tại trong database nhưng không được hiển thị ở các truy vấn thông thường.
+
+---
+
+## 3.2. `User`
+
+Đại diện chung cho:
+
+* Admin
+* Lecturer
+* Student
+
+Các trường được sử dụng trong luồng:
+
+```text
+Id
+Username
+FullName
+Email
+StudentCode
+Role
+PasswordHash
+RequirePasswordChange
+IsDeleted
+```
+
+Không có bảng `Lecturer` hoặc `Student` riêng. Vai trò của người dùng được xác định bằng `User.Role`.
+
+---
+
+## 3.3. `LecturerSubject`
+
+Bảng trung gian phân công giảng viên vào môn:
+
+```text
+LecturerId
+SubjectId
+IsLeader
+```
+
+Quan hệ:
+
+```text
+Một môn có nhiều giảng viên
+Một giảng viên có nhiều môn
+```
+
+`IsLeader` thể hiện giảng viên phụ trách chính của môn.
+
+---
+
+## 3.4. `StudentSubject`
+
+Bảng trung gian ghi danh sinh viên:
+
+```text
+StudentId
+SubjectId
+IsDeleted
+```
+
+Quan hệ này dùng soft delete. Khi sinh viên bị gỡ khỏi môn, bản ghi không bị xóa mà chỉ đổi:
+
+```csharp
+IsDeleted = true;
+```
+
+---
+
+# 4. Phân quyền tổng thể
+
+## `SubjectController`
+
+Controller có attribute:
+
+```csharp
+[Authorize(Roles = "Admin, Lecturer")]
+```
+
+Do đó chỉ Admin và Lecturer được truy cập Controller này. 
+
+| Chức năng                  | Admin |               Lecturer | Student |
+| -------------------------- | ----: | ---------------------: | ------: |
+| Xem danh sách môn          |    Có |                     Có |   Không |
+| Tạo môn                    |    Có |                  Không |   Không |
+| Sửa môn                    |    Có |                  Không |   Không |
+| Xóa môn                    |    Có |                  Không |   Không |
+| Quản lý sinh viên thủ công |    Có |                  Không |   Không |
+| Import Excel               |    Có | Có, nếu được phân công |   Không |
+
+## `LecturerManagementController`
+
+Controller này chỉ dành cho Admin:
+
+```csharp
+[Authorize(Roles = "Admin")]
+```
+
+
+
+Do đó chỉ Admin có thể:
+
+* Phân công giảng viên.
+* Hủy phân công.
+* Đặt giảng viên làm leader.
+
+---
+
+# 5. Phân tích `ISubjectService`
+
+Interface quy định các nghiệp vụ mà Controller được phép gọi:
+
+```csharp
+Task<IEnumerable<SubjectDto>> GetAllAsync();
+Task<SubjectDto?> GetByIdAsync(int id);
+Task<SubjectDto> CreateAsync(SubjectCreateDto dto);
+Task UpdateAsync(SubjectUpdateDto dto);
+Task DeleteAsync(int id);
+
+Task<IEnumerable<SubjectDto>> GetSubjectsByUserIdAsync(int userId);
+Task<IEnumerable<SubjectDto>> GetSubjectsByLecturerIdAsync(int lecturerId);
+
+Task AssignStudentToSubject(int studentId, int subjectId);
+Task RemoveStudentFromSubject(int studentId, int subjectId);
+Task<(IEnumerable<UserDto> Enrolled,
+      IEnumerable<UserDto> NotEnrolled)>
+    GetStudentEnrollmentStatus(int subjectId);
+Task ImportStudentsAsync(
+    int subjectId,
+    List<StudentImportDto> importedStudents);
+
+Task AssignLecturerToSubject(AssignLecturerDto dto);
+Task RemoveLecturerFromSubject(int lecturerId, int subjectId);
+Task<bool> IsLecturerAssignedToSubject(
+    int lecturerId,
+    int subjectId);
+Task<bool> CanUploadDocument(
+    int lecturerId,
+    int subjectId);
+```
+
+Interface này cho thấy `SubjectService` đang gộp ba nhóm nghiệp vụ:
+
+1. Quản lý môn học.
+2. Quản lý sinh viên trong môn.
+3. Quản lý giảng viên trong môn.
+
+
+
+---
+
+# 6. Phân tích `SubjectController`
+
+## 6.1. Constructor
+
+```csharp
+private readonly ISubjectService _subjectService;
+
+public SubjectController(ISubjectService subjectService)
+{
+    _subjectService = subjectService;
+}
+```
+
+Controller không khởi tạo `SubjectService` trực tiếp. ASP.NET Core Dependency Injection sẽ truyền implementation vào.
+
+Ý nghĩa:
+
+```text
+SubjectController
+→ chỉ phụ thuộc ISubjectService
+→ không phụ thuộc trực tiếp SubjectService
+```
+
+Điều này hỗ trợ thay implementation và viết unit test dễ hơn.
+
+---
+
+## 6.2. `Index()`
+
+```csharp
+public async Task<IActionResult> Index()
+```
+
+### Mục đích
+
+Hiển thị danh sách môn theo vai trò người dùng.
+
+### Luồng xử lý
+
+```text
+Người dùng mở /Subject
+→ SubjectController.Index
+→ kiểm tra role
+→ gọi phương thức Service phù hợp
+→ trả danh sách về View
+```
+
+### Với Admin
+
+```csharp
+if (User.IsInRole("Admin"))
+{
+    return View(await _subjectService.GetAllAsync());
+}
+```
+
+Admin xem tất cả môn chưa bị xóa.
+
+### Với Lecturer
+
+```csharp
+var mySubjects =
+    await _subjectService.GetSubjectsByLecturerIdAsync(userId);
+```
+
+Lecturer chỉ xem những môn đã được phân công.
+
+### Nhánh Student
+
+```csharp
+var enrolledSubjects =
+    await _subjectService.GetSubjectsByUserIdAsync(userId);
+```
+
+Nhánh này hiện không thể chạy vì Controller đã giới hạn:
+
+```csharp
+[Authorize(Roles = "Admin, Lecturer")]
+```
+
+Student sẽ bị middleware Authorization chặn trước khi vào `Index()`. Vì vậy đây là **dead branch**. 
+
+### Vấn đề
+
+Nên chọn một trong hai cách:
+
+* Thêm Student vào authorization nếu Student cần xem môn tại đây.
+* Xóa nhánh Student nếu Student dùng Controller khác.
+
+---
+
+## 6.3. `Create()` GET
+
+```csharp
+[HttpGet]
+[Authorize(Roles = "Admin")]
+public IActionResult Create() => View();
+```
+
+### Nhiệm vụ
+
+Chỉ mở form tạo môn.
+
+Không truy cập database và không gọi Service.
+
+---
+
+## 6.4. `Create(SubjectCreateDto dto)` POST
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> Create(SubjectCreateDto dto)
+```
+
+### Luồng
+
+```text
+Admin gửi form
+→ ASP.NET model binding tạo SubjectCreateDto
+→ kiểm tra ModelState
+→ SubjectService.CreateAsync
+→ lưu database
+→ TempData Success
+→ Redirect về Index
+```
+
+### Validation hiện có
+
+```csharp
+if (!ModelState.IsValid)
+    return View(dto);
+```
+
+`ModelState` chỉ kiểm tra các validation attribute nằm trong DTO, ví dụ `[Required]`, `[StringLength]` nếu DTO có khai báo.
+
+### Chưa có validation trùng môn
+
+Controller không kiểm tra:
+
+```text
+Tên môn đã tồn tại chưa?
+Tên có trùng khi bỏ khoảng trắng không?
+Tên có trùng không phân biệt hoa thường không?
+```
+
+Service cũng không kiểm tra, vì vậy hiện có khả năng tạo nhiều môn cùng tên.
+
+
+
+---
+
+## 6.5. `Edit(int id)` GET
+
+```csharp
+public async Task<IActionResult> Edit(int id)
+```
+
+### Luồng
+
+```text
+Admin nhấn Sửa
+→ GET /Subject/Edit/{id}
+→ GetByIdAsync(id)
+→ không tìm thấy thì 404
+→ chuyển SubjectDto thành SubjectUpdateDto
+→ trả View
+```
+
+Controller thực hiện mapping thủ công:
+
+```csharp
+var dto = new SubjectUpdateDto
+{
+    Id = subject.Id,
+    Name = subject.Name,
+    Description = subject.Description
+};
+```
+
+
+
+---
+
+## 6.6. `Edit(SubjectUpdateDto dto)` POST
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+```
+
+### Luồng
+
+```text
+Admin sửa form
+→ kiểm tra ModelState
+→ SubjectService.UpdateAsync
+→ TempData
+→ Redirect Index
+```
+
+### Điểm thiếu
+
+Không kiểm tra trùng tên khi đổi tên môn.
+
+Ngoài ra, nếu Service ném `InvalidOperationException`, action không bắt lỗi. Exception sẽ đi lên middleware xử lý lỗi chung.
+
+
+
+---
+
+## 6.7. `Delete(int id)`
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+```
+
+### Luồng
+
+```text
+Admin nhấn Xóa
+→ POST /Subject/Delete
+→ SubjectService.DeleteAsync(id)
+→ thông báo thành công
+→ Redirect Index
+```
+
+Controller luôn hiển thị:
+
+```text
+Xóa môn học thành công!
+```
+
+Ngay cả khi Service không tìm thấy môn, vì `DeleteAsync` chỉ `return` mà không báo lỗi.
+
+Nghiêm trọng hơn, `DeleteAsync` có thể nuốt exception bên trong, khiến Controller vẫn báo thành công dù database save thất bại. Phần này được phân tích kỹ ở dưới. 
+
+---
+
+## 6.8. `ManageStudents(int id)`
+
+```csharp
+[HttpGet]
+[Authorize(Roles = "Admin")]
+```
+
+### Mục đích
+
+Hiển thị hai danh sách:
+
+* Sinh viên đã thuộc môn.
+* Sinh viên chưa thuộc môn.
+
+### Luồng
+
+```text
+Admin mở quản lý sinh viên
+→ tìm Subject theo id
+→ lấy enrollment status
+→ đưa Subject vào ViewBag
+→ đưa tuple Enrolled/NotEnrolled vào Model
+→ render View
+```
+
+Controller dùng:
+
+```csharp
+ViewBag.Subject = subjectDto;
+```
+
+và model:
+
+```csharp
+(Enrolled: enrolled, NotEnrolled: notEnrolled)
+```
+
+Cách này chạy được nhưng không mạnh về type safety. Một ViewModel riêng sẽ rõ hơn, ví dụ:
+
+```csharp
+public class ManageStudentsViewModel
+{
+    public SubjectDto Subject { get; set; }
+    public IEnumerable<UserDto> Enrolled { get; set; }
+    public IEnumerable<UserDto> NotEnrolled { get; set; }
+}
+```
+
+
+
+---
+
+## 6.9. `AssignStudent`
+
+```csharp
+public async Task<IActionResult> AssignStudent(
+    int subjectId,
+    int studentId)
+```
+
+### Luồng
+
+```text
+Admin chọn sinh viên
+→ POST AssignStudent
+→ Service.AssignStudentToSubject
+→ Redirect ManageStudents
+```
+
+Controller không kiểm tra:
+
+* Subject có tồn tại không.
+* User có tồn tại không.
+* User có role Student không.
+* Sinh viên đã thuộc môn chưa.
+
+Các kiểm tra này đáng lẽ phải nằm trong Service, nhưng Service hiện cũng chưa kiểm tra đầy đủ. 
+
+---
+
+## 6.10. `RemoveStudent`
+
+Luồng tương tự:
+
+```text
+Admin nhấn xóa sinh viên khỏi môn
+→ Service.RemoveStudentFromSubject
+→ soft delete StudentSubject
+→ Redirect
+```
+
+Controller không kiểm tra kết quả. Nếu quan hệ không tồn tại, Service không làm gì nhưng Controller vẫn báo thành công. 
+
+---
+
+## 6.11. `ImportStudents`
+
+Đây là action phức tạp nhất của `SubjectController`.
+
+### Bước 1: Kiểm tra quyền Lecturer
+
+Nếu người dùng là Lecturer:
+
+```csharp
+bool isAssigned =
+    await _subjectService.IsLecturerAssignedToSubject(
+        lecturerId,
+        id);
+```
+
+Lecturer chỉ được import vào môn đã được phân công.
+
+Điểm đáng chú ý: Lecturer không cần là leader. Chỉ cần tồn tại quan hệ `LecturerSubject`. 
+
+### Bước 2: Kiểm tra file
+
+```csharp
+if (file == null || file.Length == 0)
+```
+
+và:
+
+```csharp
+if (!file.FileName.EndsWith(".xlsx"))
+```
+
+Hệ thống chỉ kiểm tra tên file, chưa kiểm tra:
+
+* MIME type.
+* Nội dung file thật.
+* Kích thước tối đa.
+* File độc hại.
+* Extension viết hoa `.XLSX`.
+
+`EndsWith(".xlsx")` mặc định phân biệt hoa thường, nên `.XLSX` có thể bị từ chối.
+
+### Bước 3: Đọc Excel
+
+Hệ thống dùng `ExcelDataReader`:
+
+```csharp
+ExcelReaderFactory.CreateReader(stream)
+```
+
+và sử dụng dòng đầu làm header:
+
+```csharp
+UseHeaderRow = true
+```
+
+### Bước 4: Tìm cột
+
+Yêu cầu chính xác ba header:
+
+```text
+Student Code
+Full Name
+Email
+```
+
+Header được trim và chuyển lowercase, nên khác biệt hoa thường không ảnh hưởng.
+
+### Bước 5: Chuyển từng dòng thành DTO
+
+```csharp
+studentList.Add(new StudentImportDto
+{
+    StudentCode = ...,
+    FullName = ...,
+    Email = ...
+});
+```
+
+Controller không loại:
+
+* Dòng trống.
+* Dòng thiếu email.
+* Dòng thiếu mã sinh viên.
+* Dòng trùng nhau.
+
+### Bước 6: Gọi Service
+
+```csharp
+await _subjectService.ImportStudentsAsync(id, studentList);
+```
+
+### Bước 7: Thông báo
+
+Controller báo:
+
+```csharp
+Import thành công {studentList.Count} sinh viên.
+```
+
+Con số này là số dòng Excel, không phải số sinh viên thật sự được tạo hoặc được ghi danh. Vì vậy thông báo có thể sai.
+
+### Bước 8: Xử lý lỗi
+
+```csharp
+TempData["Error"] =
+    "Lỗi khi xử lý file: " + ex.Message;
+```
+
+Việc hiển thị trực tiếp `ex.Message` có thể làm lộ thông tin kỹ thuật hoặc thông tin database. 
+
+---
+
+# 7. Phân tích `LecturerManagementController`
+
+## 7.1. Dependencies
+
+```csharp
+private readonly ISubjectService _subjectService;
+private readonly IUnitOfWork _uow;
+```
+
+Controller vừa gọi Service, vừa truy cập trực tiếp Unit of Work.
+
+Đây là dấu hiệu phân tầng chưa sạch:
+
+```text
+Nên là:
+Controller → Service → Repository
+
+Hiện tại:
+Controller → Service
+Controller → UnitOfWork → Repository
+```
+
+
+
+---
+
+## 7.2. `Index()`
+
+Action chuẩn bị ba nhóm dữ liệu.
+
+### Danh sách môn
+
+```csharp
+var subjects = await _subjectService.GetAllAsync();
+ViewBag.Subjects =
+    new SelectList(subjects, "Id", "Name");
+```
+
+Dùng cho dropdown môn học.
+
+### Danh sách giảng viên
+
+```csharp
+var lecturers = await _uow.Users.GetAllAsync(
+    u => u.Role == UserRole.Lecturer &&
+         !u.IsDeleted);
+```
+
+Đây chính là nơi hệ thống chọn người để phân công.
+
+Chỉ những User thỏa mãn:
+
+```text
+Role = Lecturer
+IsDeleted = false
+```
+
+mới xuất hiện trong dropdown.
+
+### Danh sách phân công hiện có
+
+```csharp
+_uow.LecturerSubjects.GetAllWithIncludeAsync(...)
+```
 
 Include:
 
-- server setup;
-- client setup;
-- Hub methods;
-- client events;
-- payloads;
-- groups/users;
-- authentication;
-- message flow;
-- persistence;
-- reconnection;
-- risks.
+* `Lecturer`
+* `Subject`
 
-Include the SignalR event matrix.
+và loại bỏ những môn hoặc giảng viên đã soft delete.
 
-## 13. AI and API Key Audit
+### Output
+
+Các danh sách được đặt vào `ViewBag`, sau đó trả View.
+
+
+
+### Hạn chế
+
+* Controller truy cập database trực tiếp.
+* Không có ViewModel mạnh kiểu.
+* Không phân trang.
+* Có thể tải toàn bộ phân công vào bộ nhớ.
+* Logic lấy Lecturer nên được chuyển vào Service.
+
+---
+
+## 7.3. `Assign(AssignLecturerDto dto)`
+
+### Input
+
+DTO chứa tối thiểu:
+
+```text
+LecturerId
+SubjectId
+IsLeader
+```
+
+### Luồng
+
+```text
+Admin chọn môn và giảng viên
+→ POST /LecturerManagement/Assign
+→ ModelState
+→ AssignLecturerToSubject(dto)
+→ lưu phân công
+→ Redirect Index
+```
+
+Nếu ModelState không hợp lệ, Controller chỉ redirect, không lưu thông báo lỗi. Người dùng có thể không biết vì sao thao tác thất bại. 
+
+---
+
+## 7.4. `Unassign`
+
+```csharp
+await _subjectService.RemoveLecturerFromSubject(
+    lecturerId,
+    subjectId);
+```
+
+Service xóa vật lý bản ghi `LecturerSubject`.
+
+Controller không xác nhận:
+
+* Phân công có tồn tại không.
+* Người đang bị xóa có phải leader không.
+* Sau khi xóa môn còn leader hay không.
+
+Dù không tìm thấy phân công, Controller vẫn báo thành công. 
+
+---
+
+## 7.5. `SetLeader`
+
+Controller tái sử dụng `AssignLecturerToSubject`:
+
+```csharp
+var dto = new AssignLecturerDto
+{
+    LecturerId = lecturerId,
+    SubjectId = subjectId,
+    IsLeader = true
+};
+```
+
+Sau đó gọi:
+
+```csharp
+await _subjectService.AssignLecturerToSubject(dto);
+```
+
+Đây là cách tái sử dụng nghiệp vụ hợp lý. Service sẽ:
+
+* Tạo quan hệ nếu chưa tồn tại.
+* Đặt giảng viên thành leader.
+* Hạ leader cũ xuống.
+
+
+
+---
+
+# 8. Phân tích các dependency của `SubjectService`
+
+```csharp
+IRepository<Subject> _repo;
+IRepository<StudentSubject> _studentSubjectRepo;
+IRepository<User> _userRepo;
+IEmailService _emailService;
+IUnitOfWork _uow;
+IRealtimeNotifier _realtime;
+```
+
+
+
+## Vai trò
+
+| Dependency            | Trách nhiệm                              |
+| --------------------- | ---------------------------------------- |
+| `_repo`               | CRUD trực tiếp với `Subject`             |
+| `_studentSubjectRepo` | Quản lý quan hệ sinh viên–môn            |
+| `_userRepo`           | Lấy danh sách sinh viên                  |
+| `_uow`                | Truy cập nhiều repository và transaction |
+| `_emailService`       | Gửi email                                |
+| `_realtime`           | Gửi thông báo SignalR                    |
+
+### Nhận xét kiến trúc
+
+Service đang dùng cả:
+
+```text
+Repository riêng lẻ
+và
+UnitOfWork chứa repository
+```
+
+Ví dụ:
+
+```text
+_repo
+_studentSubjectRepo
+_userRepo
+```
+
+đồng thời:
+
+```text
+_uow.Subjects
+_uow.Users
+_uow.StudentSubjects
+_uow.LecturerSubjects
+```
+
+Điều này thiếu nhất quán. Nên chọn một hướng:
+
+```text
+SubjectService → IUnitOfWork
+```
+
+hoặc inject các repository riêng, nhưng không nên trộn cả hai nếu không có lý do rõ ràng.
+
+---
+
+# 9. Phân tích từng phương thức của `SubjectService`
+
+## 9.1. `AssignLecturerToSubject`
+
+```csharp
+public async Task AssignLecturerToSubject(
+    AssignLecturerDto dto)
+```
+
+Đây là phương thức chính cho cả:
+
+* Phân công giảng viên.
+* Cập nhật trạng thái leader.
+* Đặt leader từ `SetLeader`.
+
+## Bước 1: Kiểm tra DTO
+
+```csharp
+if (dto == null)
+    throw new ArgumentNullException(nameof(dto));
+```
+
+Chỉ kiểm tra DTO null.
+
+## Bước 2: Kiểm tra môn
+
+```csharp
+var subject =
+    await _uow.Subjects.GetByIdAsync(dto.SubjectId);
+
+if (subject == null || subject.IsDeleted)
+    throw new InvalidOperationException(
+        "Không tìm thấy môn học.");
+```
+
+Môn phải tồn tại và chưa bị xóa.
+
+## Bước 3: Bắt đầu transaction
+
+```csharp
+await _uow.BeginTransactionAsync();
+```
+
+Transaction cần thiết vì có thể cập nhật nhiều `LecturerSubject`:
+
+* Giảng viên đang chọn.
+* Các leader cũ.
+
+## Bước 4: Tìm phân công hiện tại
+
+```csharp
+var existing =
+    await _uow.LecturerSubjects.GetAllAsync();
+
+var item = existing.FirstOrDefault(...);
+```
+
+Phương thức tải toàn bộ bảng phân công rồi lọc trong bộ nhớ.
+
+Nên thay bằng truy vấn có điều kiện:
+
+```csharp
+await repository.FirstOrDefaultAsync(
+    x => x.LecturerId == dto.LecturerId &&
+         x.SubjectId == dto.SubjectId);
+```
+
+## Bước 5: Tạo hoặc cập nhật
+
+Nếu chưa có:
+
+```csharp
+await AddAsync(new LecturerSubject { ... });
+```
+
+Nếu đã có:
+
+```csharp
+item.IsLeader = dto.IsLeader;
+Update(item);
+```
+
+Điều này có nghĩa hệ thống không tạo duplicate assignment. Nếu cặp giảng viên–môn đã tồn tại, nó cập nhật `IsLeader`.
+
+## Bước 6: Đảm bảo một leader
+
+Nếu `dto.IsLeader == true`:
+
+```csharp
+var leaders = existing.Where(
+    ls => ls.SubjectId == dto.SubjectId &&
+          ls.IsLeader &&
+          ls.LecturerId != dto.LecturerId);
+```
+
+Mọi leader cũ được đặt:
+
+```csharp
+l.IsLeader = false;
+```
+
+Như vậy ở tầng ứng dụng, mỗi môn chỉ có một leader.
+
+## Bước 7: Lưu và commit
+
+```csharp
+await _uow.SaveChangesAsync();
+await _uow.CommitTransactionAsync();
+```
+
+Nếu lỗi:
+
+```csharp
+await _uow.RollbackTransactionAsync();
+throw;
+```
+
+Đây là xử lý transaction đúng hướng.
+
+## Bước 8: Gửi SignalR
+
+Sau khi commit:
+
+```csharp
+await _realtime
+    .SendSubjectAssignedToLecturerAsync(
+        dto.LecturerId,
+        subjectDto);
+```
+
+SignalR lỗi không làm rollback database.
+
+
+
+## Những validation đang thiếu
+
+Phương thức chưa kiểm tra:
+
+* `LecturerId` có tồn tại không.
+* User có `Role == Lecturer` không.
+* User có bị soft delete không.
+* Có unique constraint ở database không.
+* `SubjectId` hoặc `LecturerId` có giá trị hợp lệ không.
+
+Dropdown UI chỉ hiển thị Lecturer hợp lệ, nhưng request có thể bị chỉnh sửa thủ công. Service không nên tin hoàn toàn input từ UI.
+
+---
+
+## 9.2. `CanUploadDocument`
+
+```csharp
+public async Task<bool> CanUploadDocument(
+    int lecturerId,
+    int subjectId)
+```
+
+Kiểm tra tồn tại phân công:
+
+```text
+LecturerId đúng
+SubjectId đúng
+IsLeader = true
+```
+
+Chỉ leader mới được upload tài liệu.
+
+Tuy nhiên phương thức tải toàn bộ `LecturerSubjects` rồi lọc trong memory. Ngoài ra nó không kiểm tra:
+
+* Subject có bị xóa không.
+* Lecturer có bị xóa không.
+
+
+
+---
+
+## 9.3. `GetSubjectsByLecturerIdAsync`
+
+```csharp
+GetAllWithIncludeAsync(
+    ls => ls.LecturerId == lecturerId,
+    ls => ls.Subject)
+```
+
+Luồng:
+
+```text
+Lấy các LecturerSubject của giảng viên
+→ Include Subject
+→ loại Subject null hoặc IsDeleted
+→ Distinct
+→ map thành SubjectDto
+```
+
+`Distinct()` tránh một môn xuất hiện nhiều lần, dù bình thường composite key đã ngăn quan hệ trùng. 
+
+---
+
+## 9.4. `RemoveLecturerFromSubject`
+
+```csharp
+public async Task RemoveLecturerFromSubject(
+    int lecturerId,
+    int subjectId)
+```
+
+Luồng:
+
+```text
+Tải các phân công
+→ tìm cặp LecturerId + SubjectId
+→ không có thì return
+→ Delete quan hệ
+→ SaveChanges
+→ SignalR Unassigned
+```
+
+Đây là **hard delete** của bảng trung gian.
+
+Khác với `StudentSubject`, quan hệ giảng viên không dùng soft delete.
+
+### Điểm thiếu
+
+* Không transaction.
+* Không kiểm tra giảng viên có phải leader không.
+* Không buộc chọn leader mới.
+* Không trả kết quả thành công/thất bại.
+* Tải toàn bộ bảng rồi lọc.
+* Không kiểm tra Subject hoặc Lecturer active.
+
+
+
+---
+
+## 9.5. `GetAllAsync`
+
+```csharp
+var all = await _repo.GetAllAsync();
+
+return all
+    .Where(s => !s.IsDeleted)
+    .Select(...);
+```
+
+Phương thức lấy toàn bộ môn rồi lọc `IsDeleted` trong bộ nhớ.
+
+Nếu repository hỗ trợ predicate, nên lọc ở database:
+
+```csharp
+_repo.GetAllAsync(s => !s.IsDeleted)
+```
+
+Output là `SubjectDto`, không trả Entity trực tiếp cho tầng Web. Đây là điểm tốt. 
+
+---
+
+## 9.6. `GetByIdAsync`
+
+Luồng:
+
+```text
+Repository.GetByIdAsync
+→ null hoặc IsDeleted thì return null
+→ map SubjectDto
+```
+
+Đây là truy vấn read đơn giản và đúng trách nhiệm. 
+
+---
+
+## 9.7. `CreateAsync`
+
+Phương thức tạo Entity:
+
+```csharp
+var subject = new Subject
+{
+    Name = dto.Name,
+    Description = dto.Description,
+    CreatedAt = DateTime.UtcNow,
+    IsDeleted = false
+};
+```
+
+Sau đó:
+
+```text
+AddAsync
+→ SaveChangesAsync
+→ map SubjectDto
+→ gửi SignalR SubjectCreated
+```
+
+### Thiếu validation quan trọng
+
+Không có:
+
+```text
+Trim tên môn
+Kiểm tra tên rỗng ở Service
+Kiểm tra trùng tên
+Chuẩn hóa hoa/thường
+Kiểm tra unique constraint
+```
+
+Vì vậy các tên sau có thể được coi là khác nhau:
+
+```text
+Lập trình C#
+lập trình c#
+ Lập trình C#
+```
+
+nếu database không có constraint phù hợp.
+
+
+
+---
+
+## 9.8. `UpdateAsync`
+
+Luồng:
+
+```text
+Tìm Subject
+→ kiểm tra tồn tại và chưa xóa
+→ cập nhật Name, Description, UpdatedAt
+→ SaveChanges
+→ lấy Lecturer + Student liên quan
+→ gửi SignalR cho các user bị ảnh hưởng
+```
+
+Affected users được tính bằng:
+
+```csharp
+lecturerIds
+.Concat(studentIds)
+.Distinct()
+```
+
+Điều này hợp lý vì khi tên hoặc mô tả môn thay đổi, tất cả người tham gia môn cần được cập nhật.
+
+### Điểm thiếu
+
+* Không kiểm tra trùng tên với môn khác.
+* Không trim dữ liệu.
+* Không transaction, dù phần database chỉ cập nhật một Entity.
+* Nếu SignalR lỗi, database vẫn thành công; exception realtime được log và bỏ qua, hợp lý.
+
+
+
+---
+
+## 9.9. `DeleteAsync`
+
+Đây là phương thức có vấn đề đáng chú ý.
+
+### Luồng
+
+```text
+Tìm Subject
+→ không tồn tại thì return
+→ Subject.IsDeleted = true
+→ lấy LecturerSubject và StudentSubject
+→ lấy affected user IDs
+→ hard delete các LecturerSubject
+→ SaveChanges
+→ SignalR SubjectDeleted
+```
+
+Môn bị soft delete, nhưng các phân công giảng viên bị hard delete.
+
+Các `StudentSubject` không bị xóa hoặc soft delete tại đây. Chúng còn trong database nhưng các truy vấn thường loại môn đã xóa.
+
+### Vấn đề nghiêm trọng: nuốt lỗi database
+
+Toàn bộ đoạn sau nằm trong `try`:
+
+```csharp
+await _repo.SaveChangesAsync();
+await _realtime.SendSubjectDeletedAsync(...);
+```
+
+và `catch` chỉ:
+
+```csharp
+Console.WriteLine(...);
+```
+
+không `throw`.
+
+Điều đó có nghĩa nếu `SaveChangesAsync()` thất bại:
+
+```text
+Service bắt lỗi
+→ không báo lại Controller
+→ Controller vẫn đặt TempData "Xóa môn học thành công"
+```
+
+Đây là lỗi logic quan trọng.
+
+### Vấn đề transaction
+
+Quá trình gồm:
+
+* Soft delete Subject.
+* Xóa nhiều LecturerSubject.
+
+Nhưng không có transaction rõ ràng. Nên bao toàn bộ thao tác database trong transaction, rồi gửi SignalR sau commit.
+
+
+
+---
+
+## 9.10. `GetSubjectsByUserIdAsync`
+
+Dùng cho sinh viên:
+
+```text
+Lấy StudentSubject active theo StudentId
+→ Include Subject
+→ loại Subject null hoặc bị xóa
+→ Distinct
+→ map SubjectDto
+```
+
+Phương thức đúng về mặt nghiệp vụ, nhưng hiện nhánh gọi nó trong `SubjectController.Index` không thể chạy vì Student bị chặn. Phương thức có thể đang được Controller khác sử dụng. 
+
+---
+
+## 9.11. `AssignStudentToSubject`
+
+Luồng:
+
+```text
+Tìm StudentSubject theo StudentId + SubjectId
+→ chưa có: tạo mới
+→ đã có nhưng IsDeleted: kích hoạt lại
+→ đã active: không thay đổi
+→ SaveChanges
+```
+
+Đây là cơ chế tránh duplicate khá hợp lý cho thao tác thêm thủ công.
+
+### Validation thiếu
+
+Không kiểm tra:
+
+* Subject tồn tại hay chưa.
+* Subject có bị xóa không.
+* User tồn tại không.
+* User có role Student không.
+* User có bị xóa không.
+
+Một request giả có thể gửi ID của Lecturer hoặc Admin làm `studentId`.
+
+Ngoài ra phương thức tải toàn bộ `StudentSubject` trước khi lọc. 
+
+---
+
+## 9.12. `RemoveStudentFromSubject`
+
+Tìm quan hệ active rồi đặt:
+
+```csharp
+item.IsDeleted = true;
+```
+
+Đây là soft delete.
+
+Nếu không tìm thấy, phương thức im lặng và không trả kết quả. Controller vẫn báo đã xóa thành công.
+
+Không có email hoặc SignalR khi sinh viên bị gỡ khỏi môn. 
+
+---
+
+## 9.13. `GetStudentEnrollmentStatus`
+
+### Mục đích
+
+Chuẩn bị hai danh sách cho màn `ManageStudents`.
+
+### Bước 1: Lấy toàn bộ Student active
+
+```csharp
+_userRepo.GetAllAsync(
+    u => u.Role == UserRole.Student &&
+         !u.IsDeleted);
+```
+
+### Bước 2: Lấy enrollment active của môn
+
+```csharp
+_studentSubjectRepo.GetAllWithIncludeAsync(
+    ss => ss.SubjectId == subjectId &&
+          !ss.IsDeleted,
+    ss => ss.User);
+```
+
+### Bước 3: Chia hai nhóm
+
+```text
+Enrolled
+→ các User đang có StudentSubject active
+
+NotEnrolled
+→ các Student không nằm trong enrolledIds
+```
+
+Output dạng tuple.
+
+### Điểm thiếu
+
+Không kiểm tra Subject tồn tại. Controller đã kiểm tra trước, nhưng Service vẫn nên có thể tự bảo vệ khi được gọi từ nơi khác.
+
+
+
+---
+
+## 9.14. `ImportStudentsAsync`
+
+Đây là nghiệp vụ phức tạp nhất toàn Service.
+
+## Bước 1: Kiểm tra danh sách
+
+```csharp
+if (importedStudents == null ||
+    !importedStudents.Any())
+    return;
+```
+
+Nếu danh sách rỗng, im lặng kết thúc.
+
+## Bước 2: Kiểm tra môn
+
+Subject phải tồn tại và chưa bị xóa.
+
+## Bước 3: Bắt đầu transaction
+
+Các thao tác tạo User và StudentSubject được thực hiện trong cùng transaction.
+
+## Bước 4: Chuẩn hóa dữ liệu import
+
+```csharp
+Email.Trim().ToLower()
+StudentCode.Trim().ToUpper()
+```
+
+Điều này giúp so sánh không phân biệt hoa thường.
+
+## Bước 5: Tìm User hiện có
+
+Hệ thống tìm User có:
+
+```text
+Email trùng
+HOẶC
+StudentCode trùng
+```
+
+và chưa bị xóa.
+
+## Bước 6: Tạo User mới
+
+Nếu cả email và mã sinh viên chưa tồn tại:
+
+```text
+GenerateUsername
+GenerateRandomPassword(15)
+BCrypt.HashPassword
+Role = Student
+RequirePasswordChange = true
+```
+
+Đây là cách xử lý tốt về mật khẩu:
+
+* Không lưu password plain text vào database.
+* Sinh viên buộc đổi password khi đăng nhập.
+
+## Bước 7: Lưu User mới
+
+Service lưu User trước để lấy `Id`.
+
+## Bước 8: Ghi danh vào môn
+
+Gộp ID:
+
+```text
+Existing users
++
+New users
+```
+
+Sau đó tạo `StudentSubject` nếu chưa có.
+
+## Bước 9: Commit transaction
+
+Chỉ sau khi lưu User và enrollment thành công mới commit.
+
+## Bước 10: Gửi email sau commit
+
+Hai loại email:
+
+1. Welcome email cho tài khoản mới.
+2. Enrollment notification cho sinh viên vừa được thêm.
+
+Email lỗi không rollback database, đây là cách xử lý hợp lý.
+
+
+
+---
+
+# 10. Các lỗi tiềm ẩn trong `ImportStudentsAsync`
+
+## 10.1. Trùng trong chính file Excel
+
+`existingEmails` và `existingCodes` chỉ được tạo từ database trước import:
+
+```csharp
+var existingEmails = existingUsers...
+var existingCodes = existingUsers...
+```
+
+Khi thêm một User mới vào `newUsersToInsert`, hai HashSet này không được cập nhật.
+
+Ví dụ file có hai dòng cùng email:
+
+```text
+SV001 | Nguyễn A | a@gmail.com
+SV001 | Nguyễn A | a@gmail.com
+```
+
+Cả hai dòng có thể cùng được coi là chưa tồn tại và tạo hai `User`.
+
+Database unique constraint có thể chặn, nhưng transaction sẽ lỗi toàn bộ. Nếu database không có unique constraint, dữ liệu trùng có thể được lưu.
+
+---
+
+## 10.2. User hiện có không được kiểm tra role
+
+Truy vấn `existingUsers` không yêu cầu:
+
+```csharp
+u.Role == UserRole.Student
+```
+
+Nếu email trong Excel trùng với Lecturer hoặc Admin, User đó có thể bị đưa vào `StudentSubject`.
+
+Đây là lỗi validation nghiệp vụ.
+
+---
+
+## 10.3. Quan hệ soft-deleted không được phục hồi
+
+Code lấy:
+
+```csharp
+var currentEnrollments =
+    await _uow.StudentSubjects.GetAllAsync(
+        ss => ss.SubjectId == subjectId);
+```
+
+Nó bao gồm cả các bản ghi `IsDeleted = true`.
+
+Sau đó:
+
+```csharp
+var enrolledStudentIds =
+    currentEnrollments
+        .Select(ss => ss.StudentId)
+        .ToHashSet();
+```
+
+Nếu sinh viên từng bị gỡ khỏi môn:
+
+```text
+StudentSubject tồn tại
+IsDeleted = true
+```
+
+ID vẫn nằm trong HashSet. Code sẽ không tạo mới và cũng không đặt `IsDeleted = false`.
+
+Kết quả: import lại nhưng sinh viên vẫn không được ghi danh.
+
+---
+
+## 10.4. Không validate dòng trống
+
+Controller thêm tất cả các dòng vào `studentList`, kể cả:
+
+```text
+StudentCode = ""
+FullName = ""
+Email = ""
+```
+
+Service có thể cố tạo tài khoản từ dữ liệu trống.
+
+---
+
+## 10.5. Xung đột email và mã sinh viên
+
+Ví dụ:
+
+```text
+Email thuộc User A
+StudentCode thuộc User B
+```
+
+Truy vấn dùng điều kiện `OR`, nên có thể trả về cả hai User. Sau đó cả hai ID có thể được thêm vào môn, dù file chỉ có một dòng.
+
+Cần validation để xác định xung đột và báo lỗi rõ ràng.
+
+---
+
+## 10.6. Thông báo số lượng không chính xác
+
+Controller hiển thị:
+
+```csharp
+studentList.Count
+```
+
+nhưng đây chỉ là số dòng, không phải:
+
+* Số tài khoản mới.
+* Số sinh viên đã tồn tại.
+* Số sinh viên mới được ghi danh.
+* Số dòng lỗi.
+
+Service nên trả về một result DTO:
+
+```csharp
+public class ImportStudentsResult
+{
+    public int TotalRows { get; set; }
+    public int CreatedAccounts { get; set; }
+    public int EnrolledStudents { get; set; }
+    public int SkippedRows { get; set; }
+    public List<string> Errors { get; set; }
+}
+```
+
+---
+
+# 11. `IsLecturerAssignedToSubject`
+
+```csharp
+var rels =
+    await _uow.LecturerSubjects.GetAllAsync(
+        ls => ls.LecturerId == lecturerId &&
+              ls.SubjectId == subjectId);
+
+return rels.Any();
+```
+
+Phương thức được `ImportStudents` dùng để kiểm tra Lecturer có quyền import vào môn không.
+
+### Thiếu kiểm tra
+
+* Subject có active không.
+* Lecturer có active không.
+* User có đúng role Lecturer không.
+* Lecturer có cần `IsLeader` không.
+
+Hiện chỉ cần có quan hệ phân công là được import. 
+
+---
+
+# 12. Các luồng nghiệp vụ hoàn chỉnh
+
+## 12.1. Xem danh sách môn
+
+```text
+Browser
+→ GET /Subject
+→ SubjectController.Index
+→ kiểm tra role
+
+Admin
+→ SubjectService.GetAllAsync
+→ Subject Repository
+→ SubjectDto[]
+→ View
+
+Lecturer
+→ GetSubjectsByLecturerIdAsync
+→ LecturerSubject + Subject
+→ SubjectDto[]
+→ View
+```
+
+---
+
+## 12.2. Tạo môn
+
+```text
+Admin mở Create
+→ GET Subject/Create
+→ View
+
+Admin submit
+→ POST Subject/Create
+→ AntiForgery
+→ ModelState
+→ SubjectService.CreateAsync
+→ INSERT Subject
+→ SaveChanges
+→ SignalR SubjectCreated
+→ Redirect Subject/Index
+```
+
+### Hiện chưa có
+
+```text
+Kiểm tra tên môn trùng
+Unique validation
+Trim/normalize tên
+```
+
+---
+
+## 12.3. Sửa môn
+
+```text
+GET Edit/{id}
+→ GetByIdAsync
+→ SubjectUpdateDto
+→ View
+
+POST Edit
+→ ModelState
+→ UpdateAsync
+→ UPDATE Subject
+→ lấy giảng viên và sinh viên bị ảnh hưởng
+→ SignalR SubjectUpdated
+→ Redirect
+```
+
+---
+
+## 12.4. Xóa môn
+
+```text
+POST Delete
+→ DeleteAsync
+→ IsDeleted = true
+→ xóa LecturerSubject
+→ SaveChanges
+→ SignalR SubjectDeleted
+→ Redirect
+```
+
+### Vấn đề
+
+```text
+Không transaction
+Không xử lý StudentSubject
+Nuốt exception SaveChanges
+Controller có thể báo thành công giả
+```
+
+---
+
+## 12.5. Phân công giảng viên
+
+```text
+Admin mở LecturerManagement
+→ lấy danh sách môn
+→ lấy User role Lecturer
+→ lấy phân công hiện tại
+→ render dropdown và bảng
+
+Admin submit Assign
+→ AssignLecturerToSubject
+→ kiểm tra Subject
+→ BeginTransaction
+→ tạo/cập nhật LecturerSubject
+→ nếu IsLeader thì hạ leader cũ
+→ SaveChanges
+→ Commit
+→ SignalR gửi cho Lecturer
+→ Redirect
+```
+
+---
+
+## 12.6. Hủy phân công
+
+```text
+Admin POST Unassign
+→ RemoveLecturerFromSubject
+→ tìm LecturerSubject
+→ hard delete
+→ SaveChanges
+→ SignalR Unassigned
+→ Redirect
+```
+
+---
+
+## 12.7. Đặt trưởng môn
+
+```text
+Admin POST SetLeader
+→ tạo AssignLecturerDto IsLeader=true
+→ dùng lại AssignLecturerToSubject
+→ đặt leader mới
+→ hạ leader cũ
+→ Commit
+→ SignalR
+```
+
+---
+
+## 12.8. Thêm sinh viên thủ công
+
+```text
+Admin mở ManageStudents
+→ GetStudentEnrollmentStatus
+→ Enrolled + NotEnrolled
+
+Admin chọn Add
+→ AssignStudentToSubject
+→ tạo mới hoặc restore StudentSubject
+→ SaveChanges
+→ Redirect
+```
+
+---
+
+## 12.9. Import sinh viên Excel
+
+```text
+Admin/Lecturer upload .xlsx
+→ Controller kiểm tra Lecturer đã được phân công
+→ kiểm tra extension
+→ ExcelDataReader đọc sheet đầu tiên
+→ tìm header
+→ tạo List<StudentImportDto>
+→ ImportStudentsAsync
+→ BeginTransaction
+→ tìm User theo email/code
+→ tạo tài khoản mới
+→ BCrypt password
+→ tạo StudentSubject
+→ Commit
+→ gửi welcome email
+→ gửi enrollment email
+→ Redirect
+```
+
+---
+
+# 13. Ma trận validation hiện tại
+
+| Validation                                              | Trạng thái                                             |
+| ------------------------------------------------------- | ------------------------------------------------------ |
+| Chỉ Admin được CRUD môn                                 | Có                                                     |
+| Chỉ Admin được phân công giảng viên                     | Có                                                     |
+| Lecturer chỉ import môn được phân công                  | Có                                                     |
+| Anti-forgery cho POST                                   | Có                                                     |
+| ModelState cho tạo/sửa/phân công                        | Có                                                     |
+| Kiểm tra Subject tồn tại khi phân công Lecturer         | Có                                                     |
+| Chống duplicate LecturerSubject                         | Có, bằng cập nhật quan hệ hiện tại                     |
+| Đảm bảo một leader trong Service                        | Có                                                     |
+| Kiểm tra User được phân công đúng role Lecturer         | Không                                                  |
+| Kiểm tra tên môn trùng                                  | Không                                                  |
+| Kiểm tra User thêm vào môn đúng role Student            | Không                                                  |
+| Kiểm tra Subject tồn tại khi thêm Student               | Không                                                  |
+| Khôi phục StudentSubject soft-deleted khi thêm thủ công | Có                                                     |
+| Khôi phục StudentSubject khi import                     | Không, có lỗi                                          |
+| Chống trùng trong cùng file Excel                       | Chưa đầy đủ                                            |
+| Validate dòng Excel rỗng                                | Không                                                  |
+| Validate MIME/nội dung file                             | Không                                                  |
+| Giới hạn kích thước Excel                               | Không thấy                                             |
+| Transaction khi phân công giảng viên                    | Có                                                     |
+| Transaction khi import                                  | Có                                                     |
+| Transaction khi xóa môn                                 | Không                                                  |
+| SignalR sau commit                                      | Có ở assign/import database; import không gửi realtime |
+| Email sau commit                                        | Có                                                     |
+
+---
+
+# 14. Các vấn đề cần ưu tiên sửa
+
+## Mức cao
+
+### 1. `DeleteAsync` nuốt lỗi database
+
+Cần tách database và realtime:
+
+```csharp
+await _uow.BeginTransactionAsync();
+
+try
+{
+    // cập nhật Subject và xóa relation
+    await _uow.SaveChangesAsync();
+    await _uow.CommitTransactionAsync();
+}
+catch
+{
+    await _uow.RollbackTransactionAsync();
+    throw;
+}
+
+try
+{
+    await _realtime.SendSubjectDeletedAsync(...);
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, ...);
+}
+```
+
+### 2. Import có thể ghi danh User không phải Student
+
+Phải kiểm tra role của existing user.
+
+### 3. Import không restore enrollment đã soft delete
+
+Phải đặt `IsDeleted = false` khi quan hệ tồn tại nhưng đã bị xóa.
+
+### 4. Không kiểm tra trùng tên môn
+
+Cần kiểm tra ở Service và unique index ở database.
+
+---
+
+## Mức trung bình
+
+### 5. Không kiểm tra `LecturerId` đúng role Lecturer
+
+Service cần xác minh trực tiếp.
+
+### 6. Student branch trong `Index` không thể chạy
+
+Cần sửa authorization hoặc xóa code thừa.
+
+### 7. Tải toàn bộ bảng rồi lọc trong memory
+
+Xuất hiện tại:
+
+* `AssignLecturerToSubject`.
+* `CanUploadDocument`.
+* `RemoveLecturerFromSubject`.
+* `AssignStudentToSubject`.
+* `RemoveStudentFromSubject`.
+* `GetAllAsync`.
+
+Nên chuyển điều kiện xuống SQL.
+
+### 8. Controller truy cập trực tiếp UnitOfWork
+
+`LecturerManagementController.Index` nên gọi Service để lấy:
+
+* Danh sách Lecturer.
+* Danh sách assignment.
+* Danh sách Subject.
+
+---
+
+## Mức thấp nhưng nên cải thiện
+
+* Không dùng `CancellationToken`.
+* Không dùng logger chuẩn, đang dùng `Console.WriteLine`.
+* Tên method async chưa thống nhất hậu tố `Async`.
+* Dùng nhiều `ViewBag` thay vì ViewModel.
+* Controller không hiển thị lỗi ModelState khi Assign.
+* Action Remove/Unassign không trả kết quả thực tế.
+* Không có realtime khi thêm/xóa Student.
+* Không có pagination khi số môn, giảng viên hoặc sinh viên lớn.
+
+---
+
+# 15. Đánh giá kiến trúc hiện tại
+
+## Điểm tốt
+
+* Controller và Service đã được tách tương đối rõ.
+* Có interface `ISubjectService`.
+* Có DTO thay vì trả Entity ra View.
+* Có role authorization.
+* Có anti-forgery cho POST.
+* Có transaction cho phân công giảng viên.
+* Có transaction cho import sinh viên.
+* Có cơ chế một leader cho mỗi môn.
+* Có soft delete cho Subject và StudentSubject.
+* Mật khẩu sinh viên mới được BCrypt hash.
+* Email được gửi sau transaction.
+* SignalR được gọi sau khi database đã lưu ở đa số luồng.
+
+## Điểm chưa tốt
+
+`SubjectService` đang quá rộng vì cùng xử lý:
+
+```text
+Subject CRUD
+Lecturer assignment
+Student enrollment
+Excel import
+Account creation
+Email
+Realtime
+```
+
+Có thể tách thành:
+
+```text
+SubjectService
+→ CRUD và truy vấn môn
+
+LecturerAssignmentService
+→ phân công, leader, unassign
+
+StudentEnrollmentService
+→ add/remove/import sinh viên
+
+StudentImportService
+→ validate file data, tạo tài khoản, email
+```
+
+Tuy nhiên với quy mô dự án môn học, Service hiện tại vẫn có thể chấp nhận nếu được sửa các lỗi validation và transaction trước.
+
+---
+
+# 16. Sơ đồ kiến trúc luồng 7.3
+
+```text
+Views/Subject
+Views/LecturerManagement
+        │
+        ▼
+SubjectController
+LecturerManagementController
+        │
+        ▼
+ISubjectService
+        │
+        ▼
+SubjectService
+ ├─ IRepository<Subject>
+ ├─ IRepository<StudentSubject>
+ ├─ IRepository<User>
+ ├─ IUnitOfWork
+ │   ├─ Subjects
+ │   ├─ Users
+ │   ├─ StudentSubjects
+ │   └─ LecturerSubjects
+ ├─ IEmailService
+ └─ IRealtimeNotifier
+        │
+        ├─────────────► SMTP / Email
+        ├─────────────► SignalR Hub
+        ▼
+Entity Framework Core
+        ▼
+SQL Server
+```
+
+---
+
+# 17. Tóm tắt ngắn từng phương thức
+
+| Phương thức                    | Nhiệm vụ                                 |
+| ------------------------------ | ---------------------------------------- |
+| `GetAllAsync`                  | Lấy tất cả môn chưa xóa                  |
+| `GetByIdAsync`                 | Lấy một môn theo ID                      |
+| `CreateAsync`                  | Tạo môn và gửi realtime                  |
+| `UpdateAsync`                  | Sửa môn và thông báo người liên quan     |
+| `DeleteAsync`                  | Soft delete môn, xóa phân công Lecturer  |
+| `GetSubjectsByLecturerIdAsync` | Lấy môn của Lecturer                     |
+| `GetSubjectsByUserIdAsync`     | Lấy môn của Student                      |
+| `AssignLecturerToSubject`      | Tạo/cập nhật phân công và leader         |
+| `RemoveLecturerFromSubject`    | Hard delete phân công Lecturer           |
+| `CanUploadDocument`            | Kiểm tra Lecturer là leader              |
+| `IsLecturerAssignedToSubject`  | Kiểm tra Lecturer thuộc môn              |
+| `GetStudentEnrollmentStatus`   | Chia Student thành enrolled/not enrolled |
+| `AssignStudentToSubject`       | Thêm hoặc restore StudentSubject         |
+| `RemoveStudentFromSubject`     | Soft delete StudentSubject               |
+| `ImportStudentsAsync`          | Tạo tài khoản, ghi danh và gửi email     |
+
+Tóm lại, luồng 7.3 đã triển khai tương đối đầy đủ cả quản lý môn, phân công giảng viên và ghi danh sinh viên. Phần vận hành cơ bản có thể hoạt động, nhưng trước khi phát triển tiếp nên ưu tiên sửa validation trùng môn, kiểm tra role trong Service, lỗi restore enrollment khi import và việc `DeleteAsync` nuốt lỗi database.
+
+# Phân tích toàn bộ luồng 7.3 – Quản lý môn học và phân công
+
+## 1. Kết luận tổng quan
+
+Luồng 7.3 hiện được chia giữa ba thành phần chính:
+
+```text
+SubjectController
+→ quản lý môn học, sinh viên và import Excel
+
+LecturerManagementController
+→ hiển thị và tiếp nhận thao tác phân công giảng viên
+
+SubjectService
+→ xử lý phần lớn nghiệp vụ môn học, sinh viên và giảng viên
+```
+
+Luồng đầy đủ:
+
+```text
+Razor View
+→ HTTP Request
+→ Controller
+→ ISubjectService
+→ SubjectService
+→ Repository / UnitOfWork
+→ Entity Framework Core
+→ SQL Server
+→ SignalR / Email
+→ Redirect về View
+```
+
+`SubjectService` là trung tâm nghiệp vụ, nhưng không xử lý toàn bộ hệ thống. Controller vẫn chịu trách nhiệm về routing, phân quyền, chống CSRF, đọc file Excel và chuẩn bị dữ liệu cho View. Riêng `LecturerManagementController` còn truy cập trực tiếp `IUnitOfWork`, nên ranh giới Controller–Service chưa hoàn toàn sạch.
+
+---
+
+# 2. Các công nghệ được dùng trong luồng
+
+| Công nghệ                              | Chức năng trong luồng                          |
+| -------------------------------------- | ---------------------------------------------- |
+| ASP.NET Core MVC                       | Controller, routing, authorization, ModelState |
+| Razor View                             | Hiển thị danh sách môn, form và dropdown       |
+| Cookie Authentication                  | Xác định tài khoản hiện tại                    |
+| Role-based Authorization               | Phân quyền Admin và Lecturer                   |
+| Anti-forgery Token                     | Chống request POST giả mạo                     |
+| Dependency Injection                   | Inject `ISubjectService`, `IUnitOfWork`        |
+| Entity Framework Core                  | Truy vấn và cập nhật database                  |
+| Repository Pattern                     | Thao tác với từng Entity                       |
+| Unit of Work                           | Gom repository và quản lý transaction          |
+| SQL Server                             | Lưu môn, người dùng và phân công               |
+| ExcelDataReader                        | Đọc file `.xlsx`                               |
+| BCrypt                                 | Băm mật khẩu sinh viên mới                     |
+| MailKit/SMTP thông qua `IEmailService` | Gửi tài khoản và thông báo nhập học            |
+| SignalR thông qua `IRealtimeNotifier`  | Cập nhật môn học theo thời gian thực           |
+| `SelectList`                           | Tạo dropdown môn và giảng viên                 |
+
+---
+
+# 3. Các Entity tham gia
+
+## 3.1. `Subject`
+
+Đại diện cho môn học.
+
+Các trường được dùng trong code:
+
+```text
+Id
+Name
+Description
+CreatedAt
+UpdatedAt
+IsDeleted
+```
+
+Môn học đang dùng **soft delete**:
+
+```csharp
+subject.IsDeleted = true;
+```
+
+Tức là bản ghi vẫn tồn tại trong database nhưng không được hiển thị ở các truy vấn thông thường.
+
+---
+
+## 3.2. `User`
+
+Đại diện chung cho:
+
+* Admin
+* Lecturer
+* Student
+
+Các trường được sử dụng trong luồng:
+
+```text
+Id
+Username
+FullName
+Email
+StudentCode
+Role
+PasswordHash
+RequirePasswordChange
+IsDeleted
+```
+
+Không có bảng `Lecturer` hoặc `Student` riêng. Vai trò của người dùng được xác định bằng `User.Role`.
+
+---
+
+## 3.3. `LecturerSubject`
+
+Bảng trung gian phân công giảng viên vào môn:
+
+```text
+LecturerId
+SubjectId
+IsLeader
+```
+
+Quan hệ:
+
+```text
+Một môn có nhiều giảng viên
+Một giảng viên có nhiều môn
+```
+
+`IsLeader` thể hiện giảng viên phụ trách chính của môn.
+
+---
+
+## 3.4. `StudentSubject`
+
+Bảng trung gian ghi danh sinh viên:
+
+```text
+StudentId
+SubjectId
+IsDeleted
+```
+
+Quan hệ này dùng soft delete. Khi sinh viên bị gỡ khỏi môn, bản ghi không bị xóa mà chỉ đổi:
+
+```csharp
+IsDeleted = true;
+```
+
+---
+
+# 4. Phân quyền tổng thể
+
+## `SubjectController`
+
+Controller có attribute:
+
+```csharp
+[Authorize(Roles = "Admin, Lecturer")]
+```
+
+Do đó chỉ Admin và Lecturer được truy cập Controller này. 
+
+| Chức năng                  | Admin |               Lecturer | Student |
+| -------------------------- | ----: | ---------------------: | ------: |
+| Xem danh sách môn          |    Có |                     Có |   Không |
+| Tạo môn                    |    Có |                  Không |   Không |
+| Sửa môn                    |    Có |                  Không |   Không |
+| Xóa môn                    |    Có |                  Không |   Không |
+| Quản lý sinh viên thủ công |    Có |                  Không |   Không |
+| Import Excel               |    Có | Có, nếu được phân công |   Không |
+
+## `LecturerManagementController`
+
+Controller này chỉ dành cho Admin:
+
+```csharp
+[Authorize(Roles = "Admin")]
+```
+
+
+
+Do đó chỉ Admin có thể:
+
+* Phân công giảng viên.
+* Hủy phân công.
+* Đặt giảng viên làm leader.
+
+---
+
+# 5. Phân tích `ISubjectService`
+
+Interface quy định các nghiệp vụ mà Controller được phép gọi:
+
+```csharp
+Task<IEnumerable<SubjectDto>> GetAllAsync();
+Task<SubjectDto?> GetByIdAsync(int id);
+Task<SubjectDto> CreateAsync(SubjectCreateDto dto);
+Task UpdateAsync(SubjectUpdateDto dto);
+Task DeleteAsync(int id);
+
+Task<IEnumerable<SubjectDto>> GetSubjectsByUserIdAsync(int userId);
+Task<IEnumerable<SubjectDto>> GetSubjectsByLecturerIdAsync(int lecturerId);
+
+Task AssignStudentToSubject(int studentId, int subjectId);
+Task RemoveStudentFromSubject(int studentId, int subjectId);
+Task<(IEnumerable<UserDto> Enrolled,
+      IEnumerable<UserDto> NotEnrolled)>
+    GetStudentEnrollmentStatus(int subjectId);
+Task ImportStudentsAsync(
+    int subjectId,
+    List<StudentImportDto> importedStudents);
+
+Task AssignLecturerToSubject(AssignLecturerDto dto);
+Task RemoveLecturerFromSubject(int lecturerId, int subjectId);
+Task<bool> IsLecturerAssignedToSubject(
+    int lecturerId,
+    int subjectId);
+Task<bool> CanUploadDocument(
+    int lecturerId,
+    int subjectId);
+```
+
+Interface này cho thấy `SubjectService` đang gộp ba nhóm nghiệp vụ:
+
+1. Quản lý môn học.
+2. Quản lý sinh viên trong môn.
+3. Quản lý giảng viên trong môn.
+
+
+
+---
+
+# 6. Phân tích `SubjectController`
+
+## 6.1. Constructor
+
+```csharp
+private readonly ISubjectService _subjectService;
+
+public SubjectController(ISubjectService subjectService)
+{
+    _subjectService = subjectService;
+}
+```
+
+Controller không khởi tạo `SubjectService` trực tiếp. ASP.NET Core Dependency Injection sẽ truyền implementation vào.
+
+Ý nghĩa:
+
+```text
+SubjectController
+→ chỉ phụ thuộc ISubjectService
+→ không phụ thuộc trực tiếp SubjectService
+```
+
+Điều này hỗ trợ thay implementation và viết unit test dễ hơn.
+
+---
+
+## 6.2. `Index()`
+
+```csharp
+public async Task<IActionResult> Index()
+```
+
+### Mục đích
+
+Hiển thị danh sách môn theo vai trò người dùng.
+
+### Luồng xử lý
+
+```text
+Người dùng mở /Subject
+→ SubjectController.Index
+→ kiểm tra role
+→ gọi phương thức Service phù hợp
+→ trả danh sách về View
+```
+
+### Với Admin
+
+```csharp
+if (User.IsInRole("Admin"))
+{
+    return View(await _subjectService.GetAllAsync());
+}
+```
+
+Admin xem tất cả môn chưa bị xóa.
+
+### Với Lecturer
+
+```csharp
+var mySubjects =
+    await _subjectService.GetSubjectsByLecturerIdAsync(userId);
+```
+
+Lecturer chỉ xem những môn đã được phân công.
+
+### Nhánh Student
+
+```csharp
+var enrolledSubjects =
+    await _subjectService.GetSubjectsByUserIdAsync(userId);
+```
+
+Nhánh này hiện không thể chạy vì Controller đã giới hạn:
+
+```csharp
+[Authorize(Roles = "Admin, Lecturer")]
+```
+
+Student sẽ bị middleware Authorization chặn trước khi vào `Index()`. Vì vậy đây là **dead branch**. 
+
+### Vấn đề
+
+Nên chọn một trong hai cách:
+
+* Thêm Student vào authorization nếu Student cần xem môn tại đây.
+* Xóa nhánh Student nếu Student dùng Controller khác.
+
+---
+
+## 6.3. `Create()` GET
+
+```csharp
+[HttpGet]
+[Authorize(Roles = "Admin")]
+public IActionResult Create() => View();
+```
+
+### Nhiệm vụ
+
+Chỉ mở form tạo môn.
+
+Không truy cập database và không gọi Service.
+
+---
+
+## 6.4. `Create(SubjectCreateDto dto)` POST
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+public async Task<IActionResult> Create(SubjectCreateDto dto)
+```
+
+### Luồng
+
+```text
+Admin gửi form
+→ ASP.NET model binding tạo SubjectCreateDto
+→ kiểm tra ModelState
+→ SubjectService.CreateAsync
+→ lưu database
+→ TempData Success
+→ Redirect về Index
+```
+
+### Validation hiện có
+
+```csharp
+if (!ModelState.IsValid)
+    return View(dto);
+```
+
+`ModelState` chỉ kiểm tra các validation attribute nằm trong DTO, ví dụ `[Required]`, `[StringLength]` nếu DTO có khai báo.
+
+### Chưa có validation trùng môn
+
+Controller không kiểm tra:
+
+```text
+Tên môn đã tồn tại chưa?
+Tên có trùng khi bỏ khoảng trắng không?
+Tên có trùng không phân biệt hoa thường không?
+```
+
+Service cũng không kiểm tra, vì vậy hiện có khả năng tạo nhiều môn cùng tên.
+
+
+
+---
+
+## 6.5. `Edit(int id)` GET
+
+```csharp
+public async Task<IActionResult> Edit(int id)
+```
+
+### Luồng
+
+```text
+Admin nhấn Sửa
+→ GET /Subject/Edit/{id}
+→ GetByIdAsync(id)
+→ không tìm thấy thì 404
+→ chuyển SubjectDto thành SubjectUpdateDto
+→ trả View
+```
+
+Controller thực hiện mapping thủ công:
+
+```csharp
+var dto = new SubjectUpdateDto
+{
+    Id = subject.Id,
+    Name = subject.Name,
+    Description = subject.Description
+};
+```
+
+
+
+---
+
+## 6.6. `Edit(SubjectUpdateDto dto)` POST
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+```
+
+### Luồng
+
+```text
+Admin sửa form
+→ kiểm tra ModelState
+→ SubjectService.UpdateAsync
+→ TempData
+→ Redirect Index
+```
+
+### Điểm thiếu
+
+Không kiểm tra trùng tên khi đổi tên môn.
+
+Ngoài ra, nếu Service ném `InvalidOperationException`, action không bắt lỗi. Exception sẽ đi lên middleware xử lý lỗi chung.
+
+
+
+---
+
+## 6.7. `Delete(int id)`
+
+```csharp
+[HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Admin")]
+```
+
+### Luồng
+
+```text
+Admin nhấn Xóa
+→ POST /Subject/Delete
+→ SubjectService.DeleteAsync(id)
+→ thông báo thành công
+→ Redirect Index
+```
+
+Controller luôn hiển thị:
+
+```text
+Xóa môn học thành công!
+```
+
+Ngay cả khi Service không tìm thấy môn, vì `DeleteAsync` chỉ `return` mà không báo lỗi.
+
+Nghiêm trọng hơn, `DeleteAsync` có thể nuốt exception bên trong, khiến Controller vẫn báo thành công dù database save thất bại. Phần này được phân tích kỹ ở dưới. 
+
+---
+
+## 6.8. `ManageStudents(int id)`
+
+```csharp
+[HttpGet]
+[Authorize(Roles = "Admin")]
+```
+
+### Mục đích
+
+Hiển thị hai danh sách:
+
+* Sinh viên đã thuộc môn.
+* Sinh viên chưa thuộc môn.
+
+### Luồng
+
+```text
+Admin mở quản lý sinh viên
+→ tìm Subject theo id
+→ lấy enrollment status
+→ đưa Subject vào ViewBag
+→ đưa tuple Enrolled/NotEnrolled vào Model
+→ render View
+```
+
+Controller dùng:
+
+```csharp
+ViewBag.Subject = subjectDto;
+```
+
+và model:
+
+```csharp
+(Enrolled: enrolled, NotEnrolled: notEnrolled)
+```
+
+Cách này chạy được nhưng không mạnh về type safety. Một ViewModel riêng sẽ rõ hơn, ví dụ:
+
+```csharp
+public class ManageStudentsViewModel
+{
+    public SubjectDto Subject { get; set; }
+    public IEnumerable<UserDto> Enrolled { get; set; }
+    public IEnumerable<UserDto> NotEnrolled { get; set; }
+}
+```
+
+
+
+---
+
+## 6.9. `AssignStudent`
+
+```csharp
+public async Task<IActionResult> AssignStudent(
+    int subjectId,
+    int studentId)
+```
+
+### Luồng
+
+```text
+Admin chọn sinh viên
+→ POST AssignStudent
+→ Service.AssignStudentToSubject
+→ Redirect ManageStudents
+```
+
+Controller không kiểm tra:
+
+* Subject có tồn tại không.
+* User có tồn tại không.
+* User có role Student không.
+* Sinh viên đã thuộc môn chưa.
+
+Các kiểm tra này đáng lẽ phải nằm trong Service, nhưng Service hiện cũng chưa kiểm tra đầy đủ. 
+
+---
+
+## 6.10. `RemoveStudent`
+
+Luồng tương tự:
+
+```text
+Admin nhấn xóa sinh viên khỏi môn
+→ Service.RemoveStudentFromSubject
+→ soft delete StudentSubject
+→ Redirect
+```
+
+Controller không kiểm tra kết quả. Nếu quan hệ không tồn tại, Service không làm gì nhưng Controller vẫn báo thành công. 
+
+---
+
+## 6.11. `ImportStudents`
+
+Đây là action phức tạp nhất của `SubjectController`.
+
+### Bước 1: Kiểm tra quyền Lecturer
+
+Nếu người dùng là Lecturer:
+
+```csharp
+bool isAssigned =
+    await _subjectService.IsLecturerAssignedToSubject(
+        lecturerId,
+        id);
+```
+
+Lecturer chỉ được import vào môn đã được phân công.
+
+Điểm đáng chú ý: Lecturer không cần là leader. Chỉ cần tồn tại quan hệ `LecturerSubject`. 
+
+### Bước 2: Kiểm tra file
+
+```csharp
+if (file == null || file.Length == 0)
+```
+
+và:
+
+```csharp
+if (!file.FileName.EndsWith(".xlsx"))
+```
+
+Hệ thống chỉ kiểm tra tên file, chưa kiểm tra:
+
+* MIME type.
+* Nội dung file thật.
+* Kích thước tối đa.
+* File độc hại.
+* Extension viết hoa `.XLSX`.
+
+`EndsWith(".xlsx")` mặc định phân biệt hoa thường, nên `.XLSX` có thể bị từ chối.
+
+### Bước 3: Đọc Excel
+
+Hệ thống dùng `ExcelDataReader`:
+
+```csharp
+ExcelReaderFactory.CreateReader(stream)
+```
+
+và sử dụng dòng đầu làm header:
+
+```csharp
+UseHeaderRow = true
+```
+
+### Bước 4: Tìm cột
+
+Yêu cầu chính xác ba header:
+
+```text
+Student Code
+Full Name
+Email
+```
+
+Header được trim và chuyển lowercase, nên khác biệt hoa thường không ảnh hưởng.
+
+### Bước 5: Chuyển từng dòng thành DTO
+
+```csharp
+studentList.Add(new StudentImportDto
+{
+    StudentCode = ...,
+    FullName = ...,
+    Email = ...
+});
+```
+
+Controller không loại:
+
+* Dòng trống.
+* Dòng thiếu email.
+* Dòng thiếu mã sinh viên.
+* Dòng trùng nhau.
+
+### Bước 6: Gọi Service
+
+```csharp
+await _subjectService.ImportStudentsAsync(id, studentList);
+```
+
+### Bước 7: Thông báo
+
+Controller báo:
+
+```csharp
+Import thành công {studentList.Count} sinh viên.
+```
+
+Con số này là số dòng Excel, không phải số sinh viên thật sự được tạo hoặc được ghi danh. Vì vậy thông báo có thể sai.
+
+### Bước 8: Xử lý lỗi
+
+```csharp
+TempData["Error"] =
+    "Lỗi khi xử lý file: " + ex.Message;
+```
+
+Việc hiển thị trực tiếp `ex.Message` có thể làm lộ thông tin kỹ thuật hoặc thông tin database. 
+
+---
+
+# 7. Phân tích `LecturerManagementController`
+
+## 7.1. Dependencies
+
+```csharp
+private readonly ISubjectService _subjectService;
+private readonly IUnitOfWork _uow;
+```
+
+Controller vừa gọi Service, vừa truy cập trực tiếp Unit of Work.
+
+Đây là dấu hiệu phân tầng chưa sạch:
+
+```text
+Nên là:
+Controller → Service → Repository
+
+Hiện tại:
+Controller → Service
+Controller → UnitOfWork → Repository
+```
+
+
+
+---
+
+## 7.2. `Index()`
+
+Action chuẩn bị ba nhóm dữ liệu.
+
+### Danh sách môn
+
+```csharp
+var subjects = await _subjectService.GetAllAsync();
+ViewBag.Subjects =
+    new SelectList(subjects, "Id", "Name");
+```
+
+Dùng cho dropdown môn học.
+
+### Danh sách giảng viên
+
+```csharp
+var lecturers = await _uow.Users.GetAllAsync(
+    u => u.Role == UserRole.Lecturer &&
+         !u.IsDeleted);
+```
+
+Đây chính là nơi hệ thống chọn người để phân công.
+
+Chỉ những User thỏa mãn:
+
+```text
+Role = Lecturer
+IsDeleted = false
+```
+
+mới xuất hiện trong dropdown.
+
+### Danh sách phân công hiện có
+
+```csharp
+_uow.LecturerSubjects.GetAllWithIncludeAsync(...)
+```
 
 Include:
 
-- provider;
-- SDK;
-- models;
-- calling files and methods;
-- configuration flow;
-- prompt flow;
-- history/context handling;
-- API key handling;
-- masked secret findings;
-- failures and risks.
+* `Lecturer`
+* `Subject`
 
-Do not reveal complete secrets.
+và loại bỏ những môn hoặc giảng viên đã soft delete.
 
-## 14. RAG and Document Pipeline Audit
+### Output
 
-Explain every confirmed stage from upload to answer.
+Các danh sách được đặt vào `ViewBag`, sau đó trả View.
 
-State clearly whether this is real RAG.
 
-## 15. Database and Persistence
 
-Include:
+### Hạn chế
 
-- DbContext;
-- entity table;
-- relationships;
-- migrations;
-- persistence behavior;
-- Mermaid ER diagram.
+* Controller truy cập database trực tiếp.
+* Không có ViewModel mạnh kiểu.
+* Không phân trang.
+* Có thể tải toàn bộ phân công vào bộ nhớ.
+* Logic lấy Lecturer nên được chuyển vào Service.
 
-## 16. UI, Routes, and Client Communication
+---
 
-Map pages to Controller actions, APIs, and SignalR calls.
+## 7.3. `Assign(AssignLecturerDto dto)`
 
-## 17. Authentication and Security Findings
+### Input
 
-Separate confirmed facts from risks.
+DTO chứa tối thiểu:
 
-Use severity:
+```text
+LecturerId
+SubjectId
+IsLeader
+```
 
-- Critical
-- High
-- Medium
-- Low
-- Informational
+### Luồng
 
-## 18. Requirement Coverage Matrix
+```text
+Admin chọn môn và giảng viên
+→ POST /LecturerManagement/Assign
+→ ModelState
+→ AssignLecturerToSubject(dto)
+→ lưu phân công
+→ Redirect Index
+```
 
-Use the required status values.
+Nếu ModelState không hợp lệ, Controller chỉ redirect, không lưu thông báo lỗi. Người dùng có thể không biết vì sao thao tác thất bại. 
 
-## 19. Build and Test Results
+---
 
-Report commands and exact results.
+## 7.4. `Unassign`
 
-## 20. Implemented, Partial, Missing, and Dead Code
+```csharp
+await _subjectService.RemoveLecturerFromSubject(
+    lecturerId,
+    subjectId);
+```
 
-Separate:
+Service xóa vật lý bản ghi `LecturerSubject`.
 
-- active working code;
-- partially connected code;
-- unused code;
-- duplicate code;
-- mocked code;
-- likely obsolete code.
+Controller không xác nhận:
 
-Do not include `commit.md`.
+* Phân công có tồn tại không.
+* Người đang bị xóa có phải leader không.
+* Sau khi xóa môn còn leader hay không.
 
-## 21. Important Configuration Needed to Run the Project
+Dù không tìm thấy phân công, Controller vẫn báo thành công. 
 
-Provide a sanitized configuration checklist.
+---
 
-Example:
+## 7.5. `SetLeader`
 
-| Setting | Required | Used by | Purpose | Secret? |
+Controller tái sử dụng `AssignLecturerToSubject`:
 
-Do not print real secret values.
+```csharp
+var dto = new AssignLecturerDto
+{
+    LecturerId = lecturerId,
+    SubjectId = subjectId,
+    IsLeader = true
+};
+```
 
-## 22. Risks and Technical Debt
+Sau đó gọi:
 
-Prioritize findings by impact on continued development.
+```csharp
+await _subjectService.AssignLecturerToSubject(dto);
+```
 
-## 23. Recommended Development Order
+Đây là cách tái sử dụng nghiệp vụ hợp lý. Service sẽ:
 
-Provide a safe step-by-step order for continuing the project.
+* Tạo quan hệ nếu chưa tồn tại.
+* Đặt giảng viên thành leader.
+* Hạ leader cũ xuống.
 
-Do not implement these steps.
 
-## 24. New Developer Reading Guide
 
-List the files a new developer should read first, in order, and explain why.
+---
 
-## 25. Open Questions for the Previous Developer or Team
+# 8. Phân tích các dependency của `SubjectService`
 
-Only include questions that cannot be answered from the repository.
+```csharp
+IRepository<Subject> _repo;
+IRepository<StudentSubject> _studentSubjectRepo;
+IRepository<User> _userRepo;
+IEmailService _emailService;
+IUnitOfWork _uow;
+IRealtimeNotifier _realtime;
+```
 
-# EVIDENCE REQUIREMENTS
 
-For all important findings:
 
-- include exact relative file paths;
-- include class names;
-- include method names;
-- include route names;
-- include relevant line ranges when possible;
-- distinguish confirmed behavior from inference;
-- write “Not found in the inspected repository” when no evidence exists;
-- do not invent missing code;
-- do not assume that an unused class is active;
-- trace actual call sites before marking a feature as implemented.
-
-When something is uncertain, use this format:
-
-- Confirmed:
-- Inference:
-- Missing evidence:
-- How to verify:
-
-# FINAL QUALITY REQUIREMENTS
-
-The audit must be understandable to someone who has just received the project.
-
-Do not only list classes and files.
-
-Explain:
-
-- why each major component exists;
-- who calls it;
-- what it calls;
-- what data enters;
-- what data leaves;
-- where the data is stored;
-- what the main business responsibility is;
-- whether it is part of the active runtime flow.
-
-Be especially detailed about:
-
-- SignalR;
-- chatbot processing;
-- AI API calls;
-- AI key configuration;
-- document upload;
-- chunking;
-- embedding;
-- retrieval;
-- citations;
-- chat history;
-- Controller and Service responsibilities.
-
-Stop after producing the audit report.
-
-Do not modify the project.
-
-You are working inside an existing .NET project that I have just received from another developer.
-
-This is a LARGE READ-ONLY PROJECT AUDIT.
-
-Your job is to help a new developer understand the entire project well enough to continue development safely.
-
-DO NOT implement new features.
-DO NOT modify source code.
-DO NOT refactor.
-DO NOT format files.
-DO NOT rename or move files.
-DO NOT create new files.
-DO NOT install or upgrade packages.
-DO NOT run database migrations.
-DO NOT seed, delete, or modify database data.
-DO NOT make destructive API calls.
-DO NOT expose secrets or print complete API keys.
-DO NOT treat `commit.md` as project documentation.
-
-Important:
-- The repository contains a file named `commit.md`.
-- This file is unnecessary and not relevant to the audit.
-- Ignore `commit.md` completely.
-- Do not read it, summarize it, or use it as evidence.
-
-You may safely inspect the repository, configuration files, source files, project files, package references, migrations, tests, and documentation.
-
-You may run safe read-only verification commands such as:
-- listing files and folders;
-- `dotnet --info`;
-- `dotnet restore`, if dependencies are already configured and this does not modify source code;
-- `dotnet build`;
-- existing test commands;
-- static searches through the codebase.
-
-Do not start making fixes even when issues are found.
-
-# PROJECT CONTEXT
-
-The project is a course project related to an educational chatbot.
-
-Expected business direction:
-
-1. Document management
-   - Upload PDF, DOCX, or lecture slides.
-   - Automatically split documents into chunks.
-   - Embed and index document content.
-   - Organize documents by subject or chapter.
-   - Show indexed documents.
-
-2. Chat and question answering
-   - Natural conversation using conversation context.
-   - Retrieve answers from uploaded documents.
-   - Limit answers to the information available in the documents.
-   - Cite the source used for an answer.
-   - Save chat history.
-
-3. AI/RAG research
-   - Compare RAG with a fine-tuned model.
-   - Experiment with multiple chunking strategies.
-   - Experiment with multiple embedding models.
-   - Save or present benchmark results.
-   - Possible embedding model references include:
-     - multilingual-e5-base
-     - text-embedding-3-small
-     - PhoBERT-base
-     - bge-m3
-
-4. Main expected deliverables
-   - Web chatbot.
-   - Source code.
-   - Test question set and ground-truth answers.
-   - Model comparison report.
-   - RAGAS benchmark data.
-
-The project is known to use:
-- .NET MVC, or a closely related ASP.NET architecture;
-- SignalR.
-
-Do not assume the exact .NET version or architecture. Determine the actual stack from the repository.
-
-# PRIMARY AUDIT OBJECTIVES
-
-Audit the entire project and explain:
-
-1. What the application currently does.
-2. What technologies and packages it actually uses.
-3. How the application starts and how requests travel through the system.
-4. What the main business workflows are.
-5. What each Controller is responsible for.
-6. What each Service is responsible for.
-7. How Controllers and Services interact.
-8. How SignalR is configured and used.
-9. How the AI provider is called.
-10. How AI keys and configuration are loaded and used.
-11. Whether the project currently implements real RAG, simple prompt-based chat, or another AI approach.
-12. How files are uploaded, parsed, chunked, embedded, indexed, searched, and cited.
-13. How chat sessions and chat history are stored.
-14. What data is stored in the database.
-15. Which project requirements are complete, partial, missing, mocked, or unclear.
-16. What a new developer should understand before changing the project.
-
-Every important conclusion must be supported by concrete code evidence.
-
-# AUDIT PROCESS
-
-## Phase 1 — Repository and solution structure
-
-Inspect the complete repository structure.
-
-Identify:
-
-- solution files;
-- project files;
-- startup project;
-- application layers;
-- Controllers;
-- Services;
-- Interfaces;
-- Repositories;
-- Models;
-- Entities;
-- DTOs;
-- ViewModels;
-- Views;
-- Razor pages, if present;
-- SignalR Hubs;
-- middleware;
-- filters;
-- background services;
-- database context;
-- migrations;
-- static files;
-- frontend scripts;
-- tests;
-- utility/helper classes;
-- AI-related files;
-- document-processing files;
-- configuration files;
-- environment variable usage;
-- Docker or deployment files.
-
-Determine whether this is:
-
-- classic ASP.NET MVC;
-- ASP.NET Core MVC;
-- Razor Pages;
-- Web API;
-- Blazor;
-- a hybrid architecture;
-- a multi-project solution.
-
-Provide a compact repository tree containing only important files and folders.
-
-Do not dump the entire repository tree without explanation.
-
-## Phase 2 — Technology stack
-
-Determine the exact technologies actually used.
-
-Inspect:
-
-- `.sln`;
-- `.csproj`;
-- `Program.cs`;
-- `Startup.cs`, if present;
-- package references;
-- JavaScript package files, if present;
-- database configuration;
-- SignalR registration;
-- AI SDK registration;
-- document-processing packages;
-- authentication packages.
-
-Report:
-
-- .NET SDK and target framework;
-- ASP.NET application model;
-- Entity Framework version;
-- database provider;
-- frontend technology;
-- UI libraries;
-- dependency injection approach;
-- SignalR version and package;
-- authentication and authorization;
-- AI provider and AI SDK;
-- PDF/DOCX/PPTX parsing libraries;
-- embedding provider;
-- vector database or vector-search mechanism;
-- logging;
-- caching;
-- object mapping;
-- validation;
-- test frameworks;
-- deployment/runtime dependencies.
-
-Do not list a technology unless it is proven by the repository.
-
-## Phase 3 — Application startup and dependency injection
-
-Trace application startup from the entry point.
-
-Explain:
-
-- which file contains the entry point;
-- which services are registered;
-- which interfaces map to which implementations;
-- how MVC, APIs, Razor, SignalR, database, authentication, sessions, CORS, static files, and AI clients are registered;
-- middleware order;
-- route configuration;
-- SignalR endpoint mapping;
-- database initialization behavior;
-- environment-specific behavior;
-- configuration sources.
-
-Produce a startup flow such as:
-
-Application entry
-→ configuration loading
-→ dependency registration
-→ middleware pipeline
-→ route mapping
-→ Controller or Hub execution
-
-Identify any startup risks, including:
-
-- missing configuration;
-- incorrect middleware order;
-- duplicate registrations;
-- service lifetime problems;
-- unregistered dependencies;
-- development-only assumptions.
-
-## Phase 4 — Business workflow discovery
-
-Identify at least three major workflows or mainflows that currently exist in the code.
-
-Do not invent workflows based only on the project description.
-
-Possible workflows may include:
-
-- user authentication;
-- document upload;
-- document indexing;
-- chatbot question answering;
-- SignalR real-time chat;
-- chat history;
-- subject or chapter management;
-- RAG retrieval;
-- AI model comparison;
-- benchmark execution.
-
-For every confirmed workflow, document:
-
-1. Workflow name.
-2. User or system actor.
-3. Starting UI, route, API, or Hub method.
-4. Controller or Hub involved.
-5. Request model.
-6. Service interface.
-7. Service implementation.
-8. Repository or DbContext access.
-9. External service or AI call.
-10. Response model.
-11. Data written or read.
-12. Error handling.
-13. Current status:
-    - working;
-    - partially implemented;
-    - mocked;
-    - unused;
-    - broken;
-    - uncertain.
-
-Show each workflow as an end-to-end sequence.
-
-Example format:
-
-Browser/UI
-→ JavaScript client
-→ SignalR Hub or Controller
-→ application service
-→ retrieval/indexing service
-→ AI provider
-→ database
-→ response returned to UI
-
-Also produce a Mermaid sequence diagram for the most important chatbot workflow.
-
-## Phase 5 — Controller audit
-
-Inspect every Controller.
-
-For each Controller, provide a table containing:
-
-- Controller name;
-- file path;
-- route prefix;
-- constructor dependencies;
-- actions/endpoints;
-- HTTP method;
-- request parameters;
-- request DTO or ViewModel;
-- response type or returned View;
-- authorization requirements;
-- called Services;
-- main responsibility;
-- side effects;
-- error-handling approach;
-- whether the Controller appears active, incomplete, duplicated, or unused.
-
-Then explain each Controller in beginner-friendly language.
-
-For example:
-
-“This Controller receives document upload requests. It validates the uploaded file, then delegates parsing and indexing to the document service. It does not perform embedding directly.”
-
-Clearly separate:
-
-- MVC Controllers returning Views;
-- API Controllers returning JSON;
-- authentication Controllers;
-- administrative Controllers;
-- chatbot Controllers;
-- document Controllers;
-- research or benchmark Controllers.
-
-Flag Controllers that:
-
-- contain too much business logic;
-- directly access DbContext;
-- directly call AI APIs;
-- duplicate Service logic;
-- expose sensitive data;
-- appear disconnected from routes or views.
-
-## Phase 6 — Service audit
-
-Inspect every Service and Service interface.
-
-For each Service, provide:
-
-- Service name;
-- interface name;
-- implementation name;
-- file paths;
-- dependency-injection lifetime;
-- injected dependencies;
-- public methods;
-- calling Controllers, Hubs, or other Services;
-- database operations;
-- external API operations;
-- AI operations;
-- primary business responsibility;
-- returned data;
-- exception behavior;
-- current implementation status.
-
-Explain the boundary between Controller and Service.
-
-Identify whether each Service is mainly responsible for:
-
-- orchestration;
-- business rules;
-- file parsing;
-- document processing;
-- chunking;
-- embedding;
-- vector search;
-- prompt construction;
-- AI completion;
-- chat history;
-- user management;
-- database access;
-- benchmarking;
-- SignalR notification.
-
-Flag Services that:
-
-- are registered but never called;
-- are called but not registered;
-- duplicate another Service;
-- have misleading names;
-- perform several unrelated responsibilities;
-- contain hard-coded configuration;
-- contain direct secrets;
-- appear incomplete or mocked.
-
-Also produce a dependency map:
-
-Controller or Hub
-→ Interface
-→ Implementation
-→ Repository/DbContext/external provider
-
-## Phase 7 — SignalR audit
-
-Audit SignalR in detail.
-
-Locate:
-
-- Hub classes;
-- Hub interfaces;
-- `AddSignalR`;
-- `MapHub`;
-- JavaScript or .NET SignalR clients;
-- Report whether different environments use different configuration.
-- Report whether startup fails clearly when the key is missing.
-
-Search for likely names such as:
-
-- API_KEY;
-- OPENAI_API_KEY;
-- OpenAI;
-- Gemini;
-- GoogleAI;
-- AzureOpenAI;
-- HuggingFace;
-- Bearer;
-- Authorization;
-- ApiKey;
-- Secret;
-- Token.
-
-Do not call the external AI provider during this audit.
-
-## Phase 9 — RAG and document-processing audit
-
-Determine whether the current project contains a real RAG pipeline.
-
-Do not classify the system as RAG merely because document text is placed in a prompt.
-
-Inspect for:
-
-- document upload;
-- file-type validation;
-- storage;
-- text extraction;
-- OCR;
-- text normalization;
-- chunk creation;
-- chunk overlap;
-- metadata;
-- embedding generation;
-- vector storage;
-- similarity search;
-- top-k selection;
-- score threshold;
-- reranking;
-- prompt context assembly;
-- source citation;
-- fallback when no relevant source exists.
-
-Trace the full document lifecycle:
-
-Uploaded file
-→ stored file
-→ extracted text
-→ chunks
-→ embeddings
-→ index/vector store
-→ query embedding
-→ similarity search
-→ selected context
-→ AI prompt
-→ answer and citations
-
-For each stage, report:
-
-- actual class and method;
-- input;
-- output;
-- storage location;
-- database table or file;
-- external provider;
-- current implementation status;
-- important limitations.
-
-Explicitly conclude whether the system is currently:
-
-- true embedding-based RAG;
-- keyword or full-text retrieval;
-- database text lookup;
-- entire-document prompt injection;
-- pure chatbot without retrieval;
-- partially implemented RAG;
-- unclear due to missing code.
-
-Check whether citations are:
-
-- generated from actual retrieved chunks;
-- added manually;
-- fabricated by the model;
-- not implemented.
-
-Check whether multiple embedding or chunking strategies are currently supported.
-
-## Phase 10 — Database and persistence audit
-
-Inspect:
-
-- DbContext;
-- entities;
-- relationships;
-- migrations;
-- repositories;
-- database configuration;
-- data access from Controllers and Services.
-
-Produce an entity table:
-
-| Entity | Purpose | Important fields | Relationships | Written by | Read by |
-
-Explain how the following are stored, when applicable:
-
-- users;
-- roles;
-- documents;
-- subjects;
-- chapters;
-- chunks;
-- embeddings;
-- chat sessions;
-- chat messages;
-- citations;
-- benchmark results;
-- model configurations.
-
-Identify:
-
-- tables defined but unused;
-- missing relationships;
-- cascade-delete risks;
-- inconsistent naming;
-- serialized vector storage;
-- migrations not aligned with entities;
-- in-memory data that disappears after restart.
-
-Provide a Mermaid ER diagram based only on confirmed relationships.
-
-## Phase 11 — UI and client-side audit
-
-Identify how the frontend interacts with the backend.
-
-Inspect:
-
-- MVC Views;
-- Razor files;
-- JavaScript;
-- fetch/AJAX;
-- forms;
-- SignalR client;
-- route links;
-- static assets;
-- frontend validation.
-
-For each important page, report:
-
-- route;
-- View file;
-- Controller action;
-- scripts loaded;
-- APIs or Hub methods called;
-- main user actions;
-- data rendered;
-- current working status.
-
-Explain how the chatbot page works from the user clicking Send until the answer is displayed.
-
-## Phase 12 — Authentication, authorization, and security
-
-Inspect:
-
-- authentication mechanism;
-- cookie/JWT/Identity configuration;
-- role handling;
-- Controller authorization;
-- Hub authorization;
-- file upload validation;
-- ownership checks;
-- anti-forgery protection;
-- CORS;
-- secrets management;
-- error pages;
-- logging of sensitive information.
-
-Report only issues supported by code evidence.
-
-Do not perform penetration testing.
-
-Important areas:
-
-- Can one user read another user's chat?
-- Can uploaded files be accessed publicly?
-- Is the SignalR Hub anonymous?
-- Are file extensions and actual content checked?
-- Are upload sizes limited?
-- Are AI keys server-side only?
-- Can arbitrary prompt content override system instructions?
-- Are retrieved documents filtered by user, subject, or ownership?
-- Can users request documents outside their permitted scope?
-
-## Phase 13 — Requirement coverage
-
-Compare the current implementation against the expected course-project scope.
-
-Use the following status values only:
-
-- Implemented
-- Partially implemented
-- Present but unused
-- Mocked
-- Missing
-- Unclear
-
-Create a coverage matrix for:
-
-- PDF upload;
-- DOCX upload;
-- slide upload;
-- document chunking;
-- embedding;
-- indexing;
-- subject/chapter management;
-- indexed-document listing;
-- contextual chat;
-- document-based retrieval;
-- answer restriction to source documents;
-- source citation;
-- chat history;
-- SignalR real-time communication;
-- RAG implementation;
-- fine-tuned model integration;
-- multiple chunking strategies;
-- multiple embedding models;
-- model comparison;
-- RAGAS benchmark;
-- test question and ground-truth dataset.
-
-For each item, provide:
-
-- status;
-- evidence;
-- relevant files;
-- brief explanation;
-- what is missing, when incomplete.
-
-Do not claim a feature works only because a class or method exists.
-
-Check whether it is actually connected to the active flow.
-
-## Phase 14 — Build and test verification
-
-When safe, run:
-
-- `dotnet restore`;
-- `dotnet build`;
-- existing automated tests.
-
-Do not modify source code to make the build pass.
-
-Report:
-
-- commands executed;
-- result;
-- warnings;
-- errors;
-- failing projects;
-- failing tests;
-- whether the application can likely start;
-- external dependencies required to run;
-- missing environment variables;
-- required database;
-- required AI provider configuration.
-
-Do not call paid AI APIs or modify a real database.
-
-# REQUIRED OUTPUT FORMAT
-
-Create one comprehensive Markdown audit report in your final response.
-
-Do not create an audit file unless I later request one.
-
-Use this exact structure:
-
-# Complete Project Audit
-
-## 1. Executive Summary
-
-Explain in beginner-friendly language:
-
-- what the project is;
-- what currently works;
-- the main architecture;
-- whether SignalR is central to the system;
-- whether real RAG exists;
-- which AI provider is used;
-- the project's overall level of completion;
-- the most important things a new developer must know.
-
-## 2. Current Business Capabilities
-
-Describe what users can currently do.
-
-Separate confirmed working capabilities from partial or missing capabilities.
-
-## 3. Technology Stack
-
-Use a table:
-
-| Area | Technology | Version/Package | Evidence | Purpose |
-
-## 4. Solution and Folder Structure
-
-Show a compact important-file tree and explain the responsibility of each layer.
-
-## 5. Application Startup and Runtime Flow
-
-Explain configuration, dependency injection, middleware, routes, Controllers, Hubs, and Views.
-
-## 6. High-Level Architecture
-
-Provide a Mermaid architecture diagram.
-
-## 7. Main Business Workflows
-
-Document at least three confirmed workflows.
-
-For each workflow include:
-
-- actor;
-- entry point;
-- end-to-end sequence;
-- involved files;
-- database effects;
-- external calls;
-- status;
-- possible failure points.
-
-## 8. Chatbot End-to-End Flow
-
-Explain the exact chatbot process from UI input to displayed response.
-
-Include a Mermaid sequence diagram.
-
-## 9. Controller Inventory
-
-Use a detailed table.
-
-After the table, explain each Controller's main job in simple language.
-
-## 10. Service Inventory
-
-Use a detailed table.
-
-After the table, explain the main Service relationships.
-
-## 11. Controller-to-Service Dependency Map
-
-Show:
-
-Controller/Hub
-→ interface
-→ implementation
-→ data/external dependency
-
-## 12. SignalR Audit
-
-Include:
-
-- server setup;
-- client setup;
-- Hub methods;
-- client events;
-- payloads;
-- groups/users;
-- authentication;
-- message flow;
-- persistence;
-- reconnection;
-- risks.
-
-Include the SignalR event matrix.
-
-## 13. AI and API Key Audit
-
-Include:
-
-- provider;
-- SDK;
-- models;
-- calling files and methods;
-- configuration flow;
-- prompt flow;
-- history/context handling;
-- API key handling;
-- masked secret findings;
-- failures and risks.
-
-Do not reveal complete secrets.
-
-## 14. RAG and Document Pipeline Audit
-
-Explain every confirmed stage from upload to answer.
-
-State clearly whether this is real RAG.
-
-## 15. Database and Persistence
-
-Include:
-
-- DbContext;
-- entity table;
-- relationships;
-- migrations;
-- persistence behavior;
-- Mermaid ER diagram.
-
-## 16. UI, Routes, and Client Communication
-
-Map pages to Controller actions, APIs, and SignalR calls.
-
-## 17. Authentication and Security Findings
-
-Separate confirmed facts from risks.
-
-Use severity:
-
-- Critical
-- High
-- Medium
-- Low
-- Informational
-
-## 18. Requirement Coverage Matrix
-
-Use the required status values.
-
-## 19. Build and Test Results
-
-Report commands and exact results.
-
-## 20. Implemented, Partial, Missing, and Dead Code
-
-Separate:
-
-- active working code;
-- partially connected code;
-- unused code;
-- duplicate code;
-- mocked code;
-- likely obsolete code.
-
-Do not include `commit.md`.
-
-## 21. Important Configuration Needed to Run the Project
-
-Provide a sanitized configuration checklist.
-
-Example:
-
-| Setting | Required | Used by | Purpose | Secret? |
-
-Do not print real secret values.
-
-## 22. Risks and Technical Debt
-
-Prioritize findings by impact on continued development.
-
-## 23. Recommended Development Order
-
-Provide a safe step-by-step order for continuing the project.
-
-Do not implement these steps.
-
-## 24. New Developer Reading Guide
-
-List the files a new developer should read first, in order, and explain why.
-
-## 25. Open Questions for the Previous Developer or Team
-
-Only include questions that cannot be answered from the repository.
-
-# EVIDENCE REQUIREMENTS
-
-For all important findings:
-
-- include exact relative file paths;
-- include class names;
-- include method names;
-- include route names;
-- include relevant line ranges when possible;
-- distinguish confirmed behavior from inference;
-- write “Not found in the inspected repository” when no evidence exists;
-- do not invent missing code;
-- do not assume that an unused class is active;
-- trace actual call sites before marking a feature as implemented.
-
-When something is uncertain, use this format:
-
-- Confirmed:
-- Inference:
-- Missing evidence:
-- How to verify:
-
-# FINAL QUALITY REQUIREMENTS
-
-The audit must be understandable to someone who has just received the project.
-
-Do not only list classes and files.
-
-Explain:
-
-- why each major component exists;
-- who calls it;
-- what it calls;
-- what data enters;
-- what data leaves;
-- where the data is stored;
-- what the main business responsibility is;
-- whether it is part of the active runtime flow.
-
-Be especially detailed about:
-
-- SignalR;
-- chatbot processing;
-- AI API calls;
-- AI key configuration;
-- document upload;
-- chunking;
-- embedding;
-- retrieval;
-- citations;
-- chat history;
-- Controller and Service responsibilities.
-
-Stop after producing the audit report.
-
-Do not modify the project.
+## Vai trò
+
+| Dependency            | Trách nhiệm                              |
+| --------------------- | ---------------------------------------- |
+| `_repo`               | CRUD trực tiếp với `Subject`             |
+| `_studentSubjectRepo` | Quản lý quan hệ sinh viên–môn            |
+| `_userRepo`           | Lấy danh sách sinh viên                  |
+| `_uow`                | Truy cập nhiều repository và transaction |
+| `_emailService`       | Gửi email                                |
+| `_realtime`           | Gửi thông báo SignalR                    |
+
+### Nhận xét kiến trúc
+
+Service đang dùng cả:
+
+```text
+Repository riêng lẻ
+và
+UnitOfWork chứa repository
+```
+
+Ví dụ:
+
+```text
+_repo
+_studentSubjectRepo
+_userRepo
+```
+
+đồng thời:
+
+```text
+_uow.Subjects
+_uow.Users
+_uow.StudentSubjects
+_uow.LecturerSubjects
+```
+
+Điều này thiếu nhất quán. Nên chọn một hướng:
+
+```text
+SubjectService → IUnitOfWork
+```
+
+hoặc inject các repository riêng, nhưng không nên trộn cả hai nếu không có lý do rõ ràng.
+
+---
+
+# 9. Phân tích từng phương thức của `SubjectService`
+
+## 9.1. `AssignLecturerToSubject`
+
+```csharp
+public async Task AssignLecturerToSubject(
+    AssignLecturerDto dto)
+```
+
+Đây là phương thức chính cho cả:
+
+* Phân công giảng viên.
+* Cập nhật trạng thái leader.
+* Đặt leader từ `SetLeader`.
+
+## Bước 1: Kiểm tra DTO
+
+```csharp
+if (dto == null)
+    throw new ArgumentNullException(nameof(dto));
+```
+
+Chỉ kiểm tra DTO null.
+
+## Bước 2: Kiểm tra môn
+
+```csharp
+var subject =
+    await _uow.Subjects.GetByIdAsync(dto.SubjectId);
+
+if (subject == null || subject.IsDeleted)
+    throw new InvalidOperationException(
+        "Không tìm thấy môn học.");
+```
+
+Môn phải tồn tại và chưa bị xóa.
+
+## Bước 3: Bắt đầu transaction
+
+```csharp
+await _uow.BeginTransactionAsync();
+```
+
+Transaction cần thiết vì có thể cập nhật nhiều `LecturerSubject`:
+
+* Giảng viên đang chọn.
+* Các leader cũ.
+
+## Bước 4: Tìm phân công hiện tại
+
+```csharp
+var existing =
+    await _uow.LecturerSubjects.GetAllAsync();
+
+var item = existing.FirstOrDefault(...);
+```
+
+Phương thức tải toàn bộ bảng phân công rồi lọc trong bộ nhớ.
+
+Nên thay bằng truy vấn có điều kiện:
+
+```csharp
+await repository.FirstOrDefaultAsync(
+    x => x.LecturerId == dto.LecturerId &&
+         x.SubjectId == dto.SubjectId);
+```
+
+## Bước 5: Tạo hoặc cập nhật
+
+Nếu chưa có:
+
+```csharp
+await AddAsync(new LecturerSubject { ... });
+```
+
+Nếu đã có:
+
+```csharp
+item.IsLeader = dto.IsLeader;
+Update(item);
+```
+
+Điều này có nghĩa hệ thống không tạo duplicate assignment. Nếu cặp giảng viên–môn đã tồn tại, nó cập nhật `IsLeader`.
+
+## Bước 6: Đảm bảo một leader
+
+Nếu `dto.IsLeader == true`:
+
+```csharp
+var leaders = existing.Where(
+    ls => ls.SubjectId == dto.SubjectId &&
+          ls.IsLeader &&
+          ls.LecturerId != dto.LecturerId);
+```
+
+Mọi leader cũ được đặt:
+
+```csharp
+l.IsLeader = false;
+```
+
+Như vậy ở tầng ứng dụng, mỗi môn chỉ có một leader.
+
+## Bước 7: Lưu và commit
+
+```csharp
+await _uow.SaveChangesAsync();
+await _uow.CommitTransactionAsync();
+```
+
+Nếu lỗi:
+
+```csharp
+await _uow.RollbackTransactionAsync();
+throw;
+```
+
+Đây là xử lý transaction đúng hướng.
+
+## Bước 8: Gửi SignalR
+
+Sau khi commit:
+
+```csharp
+await _realtime
+    .SendSubjectAssignedToLecturerAsync(
+        dto.LecturerId,
+        subjectDto);
+```
+
+SignalR lỗi không làm rollback database.
+
+
+
+## Những validation đang thiếu
+
+Phương thức chưa kiểm tra:
+
+* `LecturerId` có tồn tại không.
+* User có `Role == Lecturer` không.
+* User có bị soft delete không.
+* Có unique constraint ở database không.
+* `SubjectId` hoặc `LecturerId` có giá trị hợp lệ không.
+
+Dropdown UI chỉ hiển thị Lecturer hợp lệ, nhưng request có thể bị chỉnh sửa thủ công. Service không nên tin hoàn toàn input từ UI.
+
+---
+
+## 9.2. `CanUploadDocument`
+
+```csharp
+public async Task<bool> CanUploadDocument(
+    int lecturerId,
+    int subjectId)
+```
+
+Kiểm tra tồn tại phân công:
+
+```text
+LecturerId đúng
+SubjectId đúng
+IsLeader = true
+```
+
+Chỉ leader mới được upload tài liệu.
+
+Tuy nhiên phương thức tải toàn bộ `LecturerSubjects` rồi lọc trong memory. Ngoài ra nó không kiểm tra:
+
+* Subject có bị xóa không.
+* Lecturer có bị xóa không.
+
+
+
+---
+
+## 9.3. `GetSubjectsByLecturerIdAsync`
+
+```csharp
+GetAllWithIncludeAsync(
+    ls => ls.LecturerId == lecturerId,
+    ls => ls.Subject)
+```
+
+Luồng:
+
+```text
+Lấy các LecturerSubject của giảng viên
+→ Include Subject
+→ loại Subject null hoặc IsDeleted
+→ Distinct
+→ map thành SubjectDto
+```
+
+`Distinct()` tránh một môn xuất hiện nhiều lần, dù bình thường composite key đã ngăn quan hệ trùng. 
+
+---
+
+## 9.4. `RemoveLecturerFromSubject`
+
+```csharp
+public async Task RemoveLecturerFromSubject(
+    int lecturerId,
+    int subjectId)
+```
+
+Luồng:
+
+```text
+Tải các phân công
+→ tìm cặp LecturerId + SubjectId
+→ không có thì return
+→ Delete quan hệ
+→ SaveChanges
+→ SignalR Unassigned
+```
+
+Đây là **hard delete** của bảng trung gian.
+
+Khác với `StudentSubject`, quan hệ giảng viên không dùng soft delete.
+
+### Điểm thiếu
+
+* Không transaction.
+* Không kiểm tra giảng viên có phải leader không.
+* Không buộc chọn leader mới.
+* Không trả kết quả thành công/thất bại.
+* Tải toàn bộ bảng rồi lọc.
+* Không kiểm tra Subject hoặc Lecturer active.
+
+
+
+---
+
+## 9.5. `GetAllAsync`
+
+```csharp
+var all = await _repo.GetAllAsync();
+
+return all
+    .Where(s => !s.IsDeleted)
+    .Select(...);
+```
+
+Phương thức lấy toàn bộ môn rồi lọc `IsDeleted` trong bộ nhớ.
+
+Nếu repository hỗ trợ predicate, nên lọc ở database:
+
+```csharp
+_repo.GetAllAsync(s => !s.IsDeleted)
+```
+
+Output là `SubjectDto`, không trả Entity trực tiếp cho tầng Web. Đây là điểm tốt. 
+
+---
+
+## 9.6. `GetByIdAsync`
+
+Luồng:
+
+```text
+Repository.GetByIdAsync
+→ null hoặc IsDeleted thì return null
+→ map SubjectDto
+```
+
+Đây là truy vấn read đơn giản và đúng trách nhiệm. 
+
+---
+
+## 9.7. `CreateAsync`
+
+Phương thức tạo Entity:
+
+```csharp
+var subject = new Subject
+{
+    Name = dto.Name,
+    Description = dto.Description,
+    CreatedAt = DateTime.UtcNow,
+    IsDeleted = false
+};
+```
+
+Sau đó:
+
+```text
+AddAsync
+→ SaveChangesAsync
+→ map SubjectDto
+→ gửi SignalR SubjectCreated
+```
+
+### Thiếu validation quan trọng
+
+Không có:
+
+```text
+Trim tên môn
+Kiểm tra tên rỗng ở Service
+Kiểm tra trùng tên
+Chuẩn hóa hoa/thường
+Kiểm tra unique constraint
+```
+
+Vì vậy các tên sau có thể được coi là khác nhau:
+
+```text
+Lập trình C#
+lập trình c#
+ Lập trình C#
+```
+
+nếu database không có constraint phù hợp.
+
+
+
+---
+
+## 9.8. `UpdateAsync`
+
+Luồng:
+
+```text
+Tìm Subject
+→ kiểm tra tồn tại và chưa xóa
+→ cập nhật Name, Description, UpdatedAt
+→ SaveChanges
+→ lấy Lecturer + Student liên quan
+→ gửi SignalR cho các user bị ảnh hưởng
+```
+
+Affected users được tính bằng:
+
+```csharp
+lecturerIds
+.Concat(studentIds)
+.Distinct()
+```
+
+Điều này hợp lý vì khi tên hoặc mô tả môn thay đổi, tất cả người tham gia môn cần được cập nhật.
+
+### Điểm thiếu
+
+* Không kiểm tra trùng tên với môn khác.
+* Không trim dữ liệu.
+* Không transaction, dù phần database chỉ cập nhật một Entity.
+* Nếu SignalR lỗi, database vẫn thành công; exception realtime được log và bỏ qua, hợp lý.
+
+
+
+---
+
+## 9.9. `DeleteAsync`
+
+Đây là phương thức có vấn đề đáng chú ý.
+
+### Luồng
+
+```text
+Tìm Subject
+→ không tồn tại thì return
+→ Subject.IsDeleted = true
+→ lấy LecturerSubject và StudentSubject
+→ lấy affected user IDs
+→ hard delete các LecturerSubject
+→ SaveChanges
+→ SignalR SubjectDeleted
+```
+
+Môn bị soft delete, nhưng các phân công giảng viên bị hard delete.
+
+Các `StudentSubject` không bị xóa hoặc soft delete tại đây. Chúng còn trong database nhưng các truy vấn thường loại môn đã xóa.
+
+### Vấn đề nghiêm trọng: nuốt lỗi database
+
+Toàn bộ đoạn sau nằm trong `try`:
+
+```csharp
+await _repo.SaveChangesAsync();
+await _realtime.SendSubjectDeletedAsync(...);
+```
+
+và `catch` chỉ:
+
+```csharp
+Console.WriteLine(...);
+```
+
+không `throw`.
+
+Điều đó có nghĩa nếu `SaveChangesAsync()` thất bại:
+
+```text
+Service bắt lỗi
+→ không báo lại Controller
+→ Controller vẫn đặt TempData "Xóa môn học thành công"
+```
+
+Đây là lỗi logic quan trọng.
+
+### Vấn đề transaction
+
+Quá trình gồm:
+
+* Soft delete Subject.
+* Xóa nhiều LecturerSubject.
+
+Nhưng không có transaction rõ ràng. Nên bao toàn bộ thao tác database trong transaction, rồi gửi SignalR sau commit.
+
+
+
+---
+
+## 9.10. `GetSubjectsByUserIdAsync`
+
+Dùng cho sinh viên:
+
+```text
+Lấy StudentSubject active theo StudentId
+→ Include Subject
+→ loại Subject null hoặc bị xóa
+→ Distinct
+→ map SubjectDto
+```
+
+Phương thức đúng về mặt nghiệp vụ, nhưng hiện nhánh gọi nó trong `SubjectController.Index` không thể chạy vì Student bị chặn. Phương thức có thể đang được Controller khác sử dụng. 
+
+---
+
+## 9.11. `AssignStudentToSubject`
+
+Luồng:
+
+```text
+Tìm StudentSubject theo StudentId + SubjectId
+→ chưa có: tạo mới
+→ đã có nhưng IsDeleted: kích hoạt lại
+→ đã active: không thay đổi
+→ SaveChanges
+```
+
+Đây là cơ chế tránh duplicate khá hợp lý cho thao tác thêm thủ công.
+
+### Validation thiếu
+
+Không kiểm tra:
+
+* Subject tồn tại hay chưa.
+* Subject có bị xóa không.
+* User tồn tại không.
+* User có role Student không.
+* User có bị xóa không.
+
+Một request giả có thể gửi ID của Lecturer hoặc Admin làm `studentId`.
+
+Ngoài ra phương thức tải toàn bộ `StudentSubject` trước khi lọc. 
+
+---
+
+## 9.12. `RemoveStudentFromSubject`
+
+Tìm quan hệ active rồi đặt:
+
+```csharp
+item.IsDeleted = true;
+```
+
+Đây là soft delete.
+
+Nếu không tìm thấy, phương thức im lặng và không trả kết quả. Controller vẫn báo đã xóa thành công.
+
+Không có email hoặc SignalR khi sinh viên bị gỡ khỏi môn. 
+
+---
+
+## 9.13. `GetStudentEnrollmentStatus`
+
+### Mục đích
+
+Chuẩn bị hai danh sách cho màn `ManageStudents`.
+
+### Bước 1: Lấy toàn bộ Student active
+
+```csharp
+_userRepo.GetAllAsync(
+    u => u.Role == UserRole.Student &&
+         !u.IsDeleted);
+```
+
+### Bước 2: Lấy enrollment active của môn
+
+```csharp
+_studentSubjectRepo.GetAllWithIncludeAsync(
+    ss => ss.SubjectId == subjectId &&
+          !ss.IsDeleted,
+    ss => ss.User);
+```
+
+### Bước 3: Chia hai nhóm
+
+```text
+Enrolled
+→ các User đang có StudentSubject active
+
+NotEnrolled
+→ các Student không nằm trong enrolledIds
+```
+
+Output dạng tuple.
+
+### Điểm thiếu
+
+Không kiểm tra Subject tồn tại. Controller đã kiểm tra trước, nhưng Service vẫn nên có thể tự bảo vệ khi được gọi từ nơi khác.
+
+
+
+---
+
+## 9.14. `ImportStudentsAsync`
+
+Đây là nghiệp vụ phức tạp nhất toàn Service.
+
+## Bước 1: Kiểm tra danh sách
+
+```csharp
+if (importedStudents == null ||
+    !importedStudents.Any())
+    return;
+```
+
+Nếu danh sách rỗng, im lặng kết thúc.
+
+## Bước 2: Kiểm tra môn
+
+Subject phải tồn tại và chưa bị xóa.
+
+## Bước 3: Bắt đầu transaction
+
+Các thao tác tạo User và StudentSubject được thực hiện trong cùng transaction.
+
+## Bước 4: Chuẩn hóa dữ liệu import
+
+```csharp
+Email.Trim().ToLower()
+StudentCode.Trim().ToUpper()
+```
+
+Điều này giúp so sánh không phân biệt hoa thường.
+
+## Bước 5: Tìm User hiện có
+
+Hệ thống tìm User có:
+
+```text
+Email trùng
+HOẶC
+StudentCode trùng
+```
+
+và chưa bị xóa.
+
+## Bước 6: Tạo User mới
+
+Nếu cả email và mã sinh viên chưa tồn tại:
+
+```text
+GenerateUsername
+GenerateRandomPassword(15)
+BCrypt.HashPassword
+Role = Student
+RequirePasswordChange = true
+```
+
+Đây là cách xử lý tốt về mật khẩu:
+
+* Không lưu password plain text vào database.
+* Sinh viên buộc đổi password khi đăng nhập.
+
+## Bước 7: Lưu User mới
+
+Service lưu User trước để lấy `Id`.
+
+## Bước 8: Ghi danh vào môn
+
+Gộp ID:
+
+```text
+Existing users
++
+New users
+```
+
+Sau đó tạo `StudentSubject` nếu chưa có.
+
+## Bước 9: Commit transaction
+
+Chỉ sau khi lưu User và enrollment thành công mới commit.
+
+## Bước 10: Gửi email sau commit
+
+Hai loại email:
+
+1. Welcome email cho tài khoản mới.
+2. Enrollment notification cho sinh viên vừa được thêm.
+
+Email lỗi không rollback database, đây là cách xử lý hợp lý.
+
+
+
+---
+
+# 10. Các lỗi tiềm ẩn trong `ImportStudentsAsync`
+
+## 10.1. Trùng trong chính file Excel
+
+`existingEmails` và `existingCodes` chỉ được tạo từ database trước import:
+
+```csharp
+var existingEmails = existingUsers...
+var existingCodes = existingUsers...
+```
+
+Khi thêm một User mới vào `newUsersToInsert`, hai HashSet này không được cập nhật.
+
+Ví dụ file có hai dòng cùng email:
+
+```text
+SV001 | Nguyễn A | a@gmail.com
+SV001 | Nguyễn A | a@gmail.com
+```
+
+Cả hai dòng có thể cùng được coi là chưa tồn tại và tạo hai `User`.
+
+Database unique constraint có thể chặn, nhưng transaction sẽ lỗi toàn bộ. Nếu database không có unique constraint, dữ liệu trùng có thể được lưu.
+
+---
+
+## 10.2. User hiện có không được kiểm tra role
+
+Truy vấn `existingUsers` không yêu cầu:
+
+```csharp
+u.Role == UserRole.Student
+```
+
+Nếu email trong Excel trùng với Lecturer hoặc Admin, User đó có thể bị đưa vào `StudentSubject`.
+
+Đây là lỗi validation nghiệp vụ.
+
+---
+
+## 10.3. Quan hệ soft-deleted không được phục hồi
+
+Code lấy:
+
+```csharp
+var currentEnrollments =
+    await _uow.StudentSubjects.GetAllAsync(
+        ss => ss.SubjectId == subjectId);
+```
+
+Nó bao gồm cả các bản ghi `IsDeleted = true`.
+
+Sau đó:
+
+```csharp
+var enrolledStudentIds =
+    currentEnrollments
+        .Select(ss => ss.StudentId)
+        .ToHashSet();
+```
+
+Nếu sinh viên từng bị gỡ khỏi môn:
+
+```text
+StudentSubject tồn tại
+IsDeleted = true
+```
+
+ID vẫn nằm trong HashSet. Code sẽ không tạo mới và cũng không đặt `IsDeleted = false`.
+
+Kết quả: import lại nhưng sinh viên vẫn không được ghi danh.
+
+---
+
+## 10.4. Không validate dòng trống
+
+Controller thêm tất cả các dòng vào `studentList`, kể cả:
+
+```text
+StudentCode = ""
+FullName = ""
+Email = ""
+```
+
+Service có thể cố tạo tài khoản từ dữ liệu trống.
+
+---
+
+## 10.5. Xung đột email và mã sinh viên
+
+Ví dụ:
+
+```text
+Email thuộc User A
+StudentCode thuộc User B
+```
+
+Truy vấn dùng điều kiện `OR`, nên có thể trả về cả hai User. Sau đó cả hai ID có thể được thêm vào môn, dù file chỉ có một dòng.
+
+Cần validation để xác định xung đột và báo lỗi rõ ràng.
+
+---
+
+## 10.6. Thông báo số lượng không chính xác
+
+Controller hiển thị:
+
+```csharp
+studentList.Count
+```
+
+nhưng đây chỉ là số dòng, không phải:
+
+* Số tài khoản mới.
+* Số sinh viên đã tồn tại.
+* Số sinh viên mới được ghi danh.
+* Số dòng lỗi.
+
+Service nên trả về một result DTO:
+
+```csharp
+public class ImportStudentsResult
+{
+    public int TotalRows { get; set; }
+    public int CreatedAccounts { get; set; }
+    public int EnrolledStudents { get; set; }
+    public int SkippedRows { get; set; }
+    public List<string> Errors { get; set; }
+}
+```
+
+---
+
+# 11. `IsLecturerAssignedToSubject`
+
+```csharp
+var rels =
+    await _uow.LecturerSubjects.GetAllAsync(
+        ls => ls.LecturerId == lecturerId &&
+              ls.SubjectId == subjectId);
+
+return rels.Any();
+```
+
+Phương thức được `ImportStudents` dùng để kiểm tra Lecturer có quyền import vào môn không.
+
+### Thiếu kiểm tra
+
+* Subject có active không.
+* Lecturer có active không.
+* User có đúng role Lecturer không.
+* Lecturer có cần `IsLeader` không.
+
+Hiện chỉ cần có quan hệ phân công là được import. 
+
+---
+
+# 12. Các luồng nghiệp vụ hoàn chỉnh
+
+## 12.1. Xem danh sách môn
+
+```text
+Browser
+→ GET /Subject
+→ SubjectController.Index
+→ kiểm tra role
+
+Admin
+→ SubjectService.GetAllAsync
+→ Subject Repository
+→ SubjectDto[]
+→ View
+
+Lecturer
+→ GetSubjectsByLecturerIdAsync
+→ LecturerSubject + Subject
+→ SubjectDto[]
+→ View
+```
+
+---
+
+## 12.2. Tạo môn
+
+```text
+Admin mở Create
+→ GET Subject/Create
+→ View
+
+Admin submit
+→ POST Subject/Create
+→ AntiForgery
+→ ModelState
+→ SubjectService.CreateAsync
+→ INSERT Subject
+→ SaveChanges
+→ SignalR SubjectCreated
+→ Redirect Subject/Index
+```
+
+### Hiện chưa có
+
+```text
+Kiểm tra tên môn trùng
+Unique validation
+Trim/normalize tên
+```
+
+---
+
+## 12.3. Sửa môn
+
+```text
+GET Edit/{id}
+→ GetByIdAsync
+→ SubjectUpdateDto
+→ View
+
+POST Edit
+→ ModelState
+→ UpdateAsync
+→ UPDATE Subject
+→ lấy giảng viên và sinh viên bị ảnh hưởng
+→ SignalR SubjectUpdated
+→ Redirect
+```
+
+---
+
+## 12.4. Xóa môn
+
+```text
+POST Delete
+→ DeleteAsync
+→ IsDeleted = true
+→ xóa LecturerSubject
+→ SaveChanges
+→ SignalR SubjectDeleted
+→ Redirect
+```
+
+### Vấn đề
+
+```text
+Không transaction
+Không xử lý StudentSubject
+Nuốt exception SaveChanges
+Controller có thể báo thành công giả
+```
+
+---
+
+## 12.5. Phân công giảng viên
+
+```text
+Admin mở LecturerManagement
+→ lấy danh sách môn
+→ lấy User role Lecturer
+→ lấy phân công hiện tại
+→ render dropdown và bảng
+
+Admin submit Assign
+→ AssignLecturerToSubject
+→ kiểm tra Subject
+→ BeginTransaction
+→ tạo/cập nhật LecturerSubject
+→ nếu IsLeader thì hạ leader cũ
+→ SaveChanges
+→ Commit
+→ SignalR gửi cho Lecturer
+→ Redirect
+```
+
+---
+
+## 12.6. Hủy phân công
+
+```text
+Admin POST Unassign
+→ RemoveLecturerFromSubject
+→ tìm LecturerSubject
+→ hard delete
+→ SaveChanges
+→ SignalR Unassigned
+→ Redirect
+```
+
+---
+
+## 12.7. Đặt trưởng môn
+
+```text
+Admin POST SetLeader
+→ tạo AssignLecturerDto IsLeader=true
+→ dùng lại AssignLecturerToSubject
+→ đặt leader mới
+→ hạ leader cũ
+→ Commit
+→ SignalR
+```
+
+---
+
+## 12.8. Thêm sinh viên thủ công
+
+```text
+Admin mở ManageStudents
+→ GetStudentEnrollmentStatus
+→ Enrolled + NotEnrolled
+
+Admin chọn Add
+→ AssignStudentToSubject
+→ tạo mới hoặc restore StudentSubject
+→ SaveChanges
+→ Redirect
+```
+
+---
+
+## 12.9. Import sinh viên Excel
+
+```text
+Admin/Lecturer upload .xlsx
+→ Controller kiểm tra Lecturer đã được phân công
+→ kiểm tra extension
+→ ExcelDataReader đọc sheet đầu tiên
+→ tìm header
+→ tạo List<StudentImportDto>
+→ ImportStudentsAsync
+→ BeginTransaction
+→ tìm User theo email/code
+→ tạo tài khoản mới
+→ BCrypt password
+→ tạo StudentSubject
+→ Commit
+→ gửi welcome email
+→ gửi enrollment email
+→ Redirect
+```
+
+---
+
+# 13. Ma trận validation hiện tại
+
+| Validation                                              | Trạng thái                                             |
+| ------------------------------------------------------- | ------------------------------------------------------ |
+| Chỉ Admin được CRUD môn                                 | Có                                                     |
+| Chỉ Admin được phân công giảng viên                     | Có                                                     |
+| Lecturer chỉ import môn được phân công                  | Có                                                     |
+| Anti-forgery cho POST                                   | Có                                                     |
+| ModelState cho tạo/sửa/phân công                        | Có                                                     |
+| Kiểm tra Subject tồn tại khi phân công Lecturer         | Có                                                     |
+| Chống duplicate LecturerSubject                         | Có, bằng cập nhật quan hệ hiện tại                     |
+| Đảm bảo một leader trong Service                        | Có                                                     |
+| Kiểm tra User được phân công đúng role Lecturer         | Không                                                  |
+| Kiểm tra tên môn trùng                                  | Không                                                  |
+| Kiểm tra User thêm vào môn đúng role Student            | Không                                                  |
+| Kiểm tra Subject tồn tại khi thêm Student               | Không                                                  |
+| Khôi phục StudentSubject soft-deleted khi thêm thủ công | Có                                                     |
+| Khôi phục StudentSubject khi import                     | Không, có lỗi                                          |
+| Chống trùng trong cùng file Excel                       | Chưa đầy đủ                                            |
+| Validate dòng Excel rỗng                                | Không                                                  |
+| Validate MIME/nội dung file                             | Không                                                  |
+| Giới hạn kích thước Excel                               | Không thấy                                             |
+| Transaction khi phân công giảng viên                    | Có                                                     |
+| Transaction khi import                                  | Có                                                     |
+| Transaction khi xóa môn                                 | Không                                                  |
+| SignalR sau commit                                      | Có ở assign/import database; import không gửi realtime |
+| Email sau commit                                        | Có                                                     |
+
+---
+
+# 14. Các vấn đề cần ưu tiên sửa
+
+## Mức cao
+
+### 1. `DeleteAsync` nuốt lỗi database
+
+Cần tách database và realtime:
+
+```csharp
+await _uow.BeginTransactionAsync();
+
+try
+{
+    // cập nhật Subject và xóa relation
+    await _uow.SaveChangesAsync();
+    await _uow.CommitTransactionAsync();
+}
+catch
+{
+    await _uow.RollbackTransactionAsync();
+    throw;
+}
+
+try
+{
+    await _realtime.SendSubjectDeletedAsync(...);
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, ...);
+}
+```
+
+### 2. Import có thể ghi danh User không phải Student
+
+Phải kiểm tra role của existing user.
+
+### 3. Import không restore enrollment đã soft delete
+
+Phải đặt `IsDeleted = false` khi quan hệ tồn tại nhưng đã bị xóa.
+
+### 4. Không kiểm tra trùng tên môn
+
+Cần kiểm tra ở Service và unique index ở database.
+
+---
+
+## Mức trung bình
+
+### 5. Không kiểm tra `LecturerId` đúng role Lecturer
+
+Service cần xác minh trực tiếp.
+
+### 6. Student branch trong `Index` không thể chạy
+
+Cần sửa authorization hoặc xóa code thừa.
+
+### 7. Tải toàn bộ bảng rồi lọc trong memory
+
+Xuất hiện tại:
+
+* `AssignLecturerToSubject`.
+* `CanUploadDocument`.
+* `RemoveLecturerFromSubject`.
+* `AssignStudentToSubject`.
+* `RemoveStudentFromSubject`.
+* `GetAllAsync`.
+
+Nên chuyển điều kiện xuống SQL.
+
+### 8. Controller truy cập trực tiếp UnitOfWork
+
+`LecturerManagementController.Index` nên gọi Service để lấy:
+
+* Danh sách Lecturer.
+* Danh sách assignment.
+* Danh sách Subject.
+
+---
+
+## Mức thấp nhưng nên cải thiện
+
+* Không dùng `CancellationToken`.
+* Không dùng logger chuẩn, đang dùng `Console.WriteLine`.
+* Tên method async chưa thống nhất hậu tố `Async`.
+* Dùng nhiều `ViewBag` thay vì ViewModel.
+* Controller không hiển thị lỗi ModelState khi Assign.
+* Action Remove/Unassign không trả kết quả thực tế.
+* Không có realtime khi thêm/xóa Student.
+* Không có pagination khi số môn, giảng viên hoặc sinh viên lớn.
+
+---
+
+# 15. Đánh giá kiến trúc hiện tại
+
+## Điểm tốt
+
+* Controller và Service đã được tách tương đối rõ.
+* Có interface `ISubjectService`.
+* Có DTO thay vì trả Entity ra View.
+* Có role authorization.
+* Có anti-forgery cho POST.
+* Có transaction cho phân công giảng viên.
+* Có transaction cho import sinh viên.
+* Có cơ chế một leader cho mỗi môn.
+* Có soft delete cho Subject và StudentSubject.
+* Mật khẩu sinh viên mới được BCrypt hash.
+* Email được gửi sau transaction.
+* SignalR được gọi sau khi database đã lưu ở đa số luồng.
+
+## Điểm chưa tốt
+
+`SubjectService` đang quá rộng vì cùng xử lý:
+
+```text
+Subject CRUD
+Lecturer assignment
+Student enrollment
+Excel import
+Account creation
+Email
+Realtime
+```
+
+Có thể tách thành:
+
+```text
+SubjectService
+→ CRUD và truy vấn môn
+
+LecturerAssignmentService
+→ phân công, leader, unassign
+
+StudentEnrollmentService
+→ add/remove/import sinh viên
+
+StudentImportService
+→ validate file data, tạo tài khoản, email
+```
+
+Tuy nhiên với quy mô dự án môn học, Service hiện tại vẫn có thể chấp nhận nếu được sửa các lỗi validation và transaction trước.
+
+---
+
+# 16. Sơ đồ kiến trúc luồng 7.3
+
+```text
+Views/Subject
+Views/LecturerManagement
+        │
+        ▼
+SubjectController
+LecturerManagementController
+        │
+        ▼
+ISubjectService
+        │
+        ▼
+SubjectService
+ ├─ IRepository<Subject>
+ ├─ IRepository<StudentSubject>
+ ├─ IRepository<User>
+ ├─ IUnitOfWork
+ │   ├─ Subjects
+ │   ├─ Users
+ │   ├─ StudentSubjects
+ │   └─ LecturerSubjects
+ ├─ IEmailService
+ └─ IRealtimeNotifier
+        │
+        ├─────────────► SMTP / Email
+        ├─────────────► SignalR Hub
+        ▼
+Entity Framework Core
+        ▼
+SQL Server
+```
+
+---
+
+# 17. Tóm tắt ngắn từng phương thức
+
+| Phương thức                    | Nhiệm vụ                                 |
+| ------------------------------ | ---------------------------------------- |
+| `GetAllAsync`                  | Lấy tất cả môn chưa xóa                  |
+| `GetByIdAsync`                 | Lấy một môn theo ID                      |
+| `CreateAsync`                  | Tạo môn và gửi realtime                  |
+| `UpdateAsync`                  | Sửa môn và thông báo người liên quan     |
+| `DeleteAsync`                  | Soft delete môn, xóa phân công Lecturer  |
+| `GetSubjectsByLecturerIdAsync` | Lấy môn của Lecturer                     |
+| `GetSubjectsByUserIdAsync`     | Lấy môn của Student                      |
+| `AssignLecturerToSubject`      | Tạo/cập nhật phân công và leader         |
+| `RemoveLecturerFromSubject`    | Hard delete phân công Lecturer           |
+| `CanUploadDocument`            | Kiểm tra Lecturer là leader              |
+| `IsLecturerAssignedToSubject`  | Kiểm tra Lecturer thuộc môn              |
+| `GetStudentEnrollmentStatus`   | Chia Student thành enrolled/not enrolled |
+| `AssignStudentToSubject`       | Thêm hoặc restore StudentSubject         |
+| `RemoveStudentFromSubject`     | Soft delete StudentSubject               |
+| `ImportStudentsAsync`          | Tạo tài khoản, ghi danh và gửi email     |
+
+Tóm lại, luồng 7.3 đã triển khai tương đối đầy đủ cả quản lý môn, phân công giảng viên và ghi danh sinh viên. Phần vận hành cơ bản có thể hoạt động, nhưng trước khi phát triển tiếp nên ưu tiên sửa validation trùng môn, kiểm tra role trong Service, lỗi restore enrollment khi import và việc `DeleteAsync` nuốt lỗi database.
+
