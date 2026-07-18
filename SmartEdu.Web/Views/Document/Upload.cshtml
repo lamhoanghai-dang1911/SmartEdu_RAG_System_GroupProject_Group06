@@ -208,29 +208,137 @@
         color: #33384f;
     }
 
-    #dupOldStatus {
-        border: none;
-        border-radius: 10px;
+    /* ===== Bảng danh sách tài liệu trùng ===== */
+    .dup-table-wrap {
+        border: 1.5px solid #e3e5ef;
+        border-radius: 12px;
+        overflow: hidden;
+        max-height: 260px;
+        overflow-y: auto;
+        margin-bottom: 0.5rem;
+    }
+
+    .dup-table {
+        width: 100%;
+        border-collapse: collapse;
         font-size: 0.85rem;
     }
 
-        #dupOldStatus.alert-success {
-            background: rgba(31, 174, 99, 0.09);
-            color: var(--success);
-            border-left: 3px solid var(--success);
+        .dup-table thead th {
+            position: sticky;
+            top: 0;
+            background: var(--paper);
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--slate-light);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            padding: 0.55rem 0.7rem;
+            text-align: left;
+            border-bottom: 1.5px solid #e3e5ef;
+            white-space: nowrap;
         }
 
-        #dupOldStatus.alert-warning {
-            background: rgba(255, 182, 72, 0.14);
+        .dup-table tbody td {
+            padding: 0.6rem 0.7rem;
+            border-bottom: 1px solid #eef0f6;
+            color: #33384f;
+            vertical-align: middle;
+        }
+
+        .dup-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .dup-table tbody tr.selectable {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+            .dup-table tbody tr.selectable:hover {
+                background: rgba(13, 110, 253, 0.04);
+            }
+
+        .dup-table tbody tr.selected-row {
+            background: rgba(13, 110, 253, 0.07);
+        }
+
+    .dup-col-select {
+        width: 42px;
+        text-align: center !important;
+    }
+
+        .dup-col-select input[type="radio"] {
+            accent-color: var(--brand-blue);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+    .dup-title-cell {
+        font-weight: 600;
+        color: #12162b;
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .dup-pct {
+        display: inline-block;
+        font-weight: 700;
+        font-size: 0.8rem;
+        border-radius: 999px;
+        padding: 0.18rem 0.6rem;
+    }
+
+        .dup-pct.exact {
+            background: rgba(229, 72, 77, 0.1);
+            color: var(--danger);
+        }
+
+        .dup-pct.near {
+            background: rgba(255, 182, 72, 0.16);
             color: #b8790a;
-            border-left: 3px solid var(--amber);
         }
 
-        #dupOldStatus a {
-            color: inherit;
-            font-weight: 600;
-            text-decoration: underline;
+    .dup-badge {
+        display: inline-block;
+        font-size: 0.72rem;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 0.16rem 0.55rem;
+        white-space: nowrap;
+    }
+
+        .dup-badge.ok {
+            background: rgba(31, 174, 99, 0.1);
+            color: var(--success);
         }
+
+        .dup-badge.warn {
+            background: rgba(255, 182, 72, 0.16);
+            color: #b8790a;
+        }
+
+    .dup-embed-link {
+        font-size: 0.8rem;
+        text-decoration: none;
+        margin-left: 0.2rem;
+    }
+
+    .dup-replace-hint {
+        font-size: 0.8rem;
+        color: var(--slate);
+        margin-bottom: 0.3rem;
+    }
+
+    .dup-select-warning {
+        font-size: 0.82rem;
+        color: var(--danger);
+        font-weight: 600;
+        margin-bottom: 0.3rem;
+    }
 
     .action-choice-label {
         font-size: 0.82rem;
@@ -409,33 +517,54 @@
 
 <!-- Modal xử lý trùng lặp -->
 <div class="modal fade" id="duplicateModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="dupModalTitle">⚠️ Phát hiện tài liệu trùng</h5>
             </div>
             <div class="modal-body">
                 <p id="dupMessage"></p>
-                <div id="dupOldStatus" class="alert" style="display:none;"></div>
+
+                <div class="action-choice-label" style="margin-top:0.4rem;">Danh sách tài liệu trùng trong môn học</div>
+                <div class="dup-table-wrap">
+                    <table class="dup-table">
+                        <thead>
+                            <tr>
+                                <th class="dup-col-select dup-select-ui" style="display:none;"></th>
+                                <th>Tài liệu</th>
+                                <th>Độ trùng</th>
+                                <th>Ngày tải</th>
+                                <th>Embedding</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dupListBody"></tbody>
+                    </table>
+                </div>
+                <div id="dupReplaceHint" class="dup-replace-hint dup-select-ui" style="display:none;">
+                    👉 Chọn một tài liệu trong danh sách trên để thay thế bằng tài liệu vừa upload.
+                </div>
+                <div id="dupSelectWarning" class="dup-select-warning" style="display:none;">
+                    ⚠️ Vui lòng chọn tài liệu cần thay thế trước khi xác nhận.
+                </div>
 
                 <div class="action-choice-label">Chọn hành động</div>
                 <form id="dupForm">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" id="oldDocId" name="OldDocumentId" />
+                    <input type="hidden" id="replaceDocId" name="replaceDocumentId" />
                     <input type="hidden" id="dupAction" name="action" value="3" />
 
                     <div class="action-options">
                         <div class="action-option selected" data-value="3">
                             <span class="opt-check"></span>
                             <span class="opt-icon">📚</span>
-                            <div class="opt-title">Giữ cả hai</div>
-                            <div class="opt-desc">Lưu tài liệu mới như một phiên bản riêng, không xoá bản cũ.</div>
+                            <div class="opt-title">Giữ</div>
+                            <div class="opt-desc">Lưu tài liệu mới như một phiên bản riêng, không xoá các bản cũ.</div>
                         </div>
                         <div class="action-option" data-value="2">
                             <span class="opt-check"></span>
                             <span class="opt-icon">♻️</span>
                             <div class="opt-title">Thay thế</div>
-                            <div class="opt-desc">Ghi đè tài liệu cũ bằng tài liệu vừa upload.</div>
+                            <div class="opt-desc">Ghi đè tài liệu cũ do bạn chọn trong danh sách bên trên.</div>
                         </div>
                     </div>
                 </form>
@@ -450,7 +579,10 @@
 
 @section Scripts {
     <script>
-        (function(){
+        // Danh sách tài liệu trùng hiện tại (server trả về khi upload phát hiện trùng)
+        let currentDuplicates = [];
+
+        (function() {
             const form = document.getElementById('uploadForm');
             const select = document.querySelector('select[name="subjectId"]');
             const uploadBtn = document.getElementById('uploadBtn');
@@ -567,43 +699,33 @@
                         return;
                     }
 
-                     if (result.isDuplicate) {
-            document.getElementById('oldDocId').value = result.oldDocumentId;
-            document.getElementById('dupMessage').textContent = result.message;
+                    if (result.isDuplicate) {
+                        currentDuplicates = result.duplicates || [];
+                        document.getElementById('dupMessage').textContent = result.message;
 
-            const isExact = result.matchType === 'Exact';
+                        const isExact = result.matchType === 'Exact';
 
-            document.getElementById('dupModalTitle').textContent = isExact
-                ? '⚠️ Tài liệu trùng khớp hoàn toàn'
-                : '🔍 Tài liệu có vẻ giống bản đã tải trước';
+                        document.getElementById('dupModalTitle').textContent = isExact
+                            ? '⚠️ Tài liệu trùng khớp hoàn toàn'
+                            : '🔍 Phát hiện tài liệu gần giống trong môn học';
 
-            const keepBothOption = document.querySelector('.action-option[data-value="3"]');
+                        const keepOption = document.querySelector('.action-option[data-value="3"]');
 
-            if (isExact) {
-                keepBothOption.style.display = 'none';
-                setActionChoice('2');
-            } else {
-                keepBothOption.style.display = '';
-                setActionChoice('3');
-            }
+                        if (isExact) {
+                            // Trùng 100% với ít nhất một tài liệu -> không cho "Giữ"
+                            keepOption.style.display = 'none';
+                            setActionChoice('2');
+                        } else {
+                            keepOption.style.display = '';
+                            setActionChoice('3');
+                        }
 
-            const statusEl = document.getElementById('dupOldStatus');
-            if (result.isEmbeddingReady) {
-                statusEl.className = 'alert alert-success';
-                statusEl.textContent = isExact
-                    ? 'Tài liệu cũ đã có embeddings (sẵn sàng sử dụng). Bạn có thể thay thế hoặc hủy upload.'
-                    : 'Tài liệu cũ đã có embeddings. Vì chỉ giống một phần, bạn có thể giữ cả hai, thay thế, hoặc hủy.';
-                statusEl.style.display = 'block';
-            } else {
-                statusEl.className = 'alert alert-warning';
-                statusEl.innerHTML = 'Tài liệu cũ chưa được chunk/embed. Bạn có thể kích hoạt embedding cho tài liệu cũ để sử dụng (nhấn <a href="/Document/TriggerEmbeddingGet?id=' + encodeURIComponent(result.oldDocumentId) + '">ở đây</a>).';
-                statusEl.style.display = 'block';
-            }
-            new bootstrap.Modal(document.getElementById('duplicateModal')).show();
-            uploadBtn.disabled = false;
-        } else {
-            window.location.href = '@Url.Action("Index", "Document")';
-        }
+                        renderDupList();
+                        new bootstrap.Modal(document.getElementById('duplicateModal')).show();
+                        uploadBtn.disabled = false;
+                    } else {
+                        window.location.href = '@Url.Action("Index", "Document")';
+                    }
                 } catch (err) {
                     errorAlert.textContent = 'Không thể kết nối server. Vui lòng thử lại.';
                     errorAlert.style.display = 'block';
@@ -614,20 +736,121 @@
             loadSubjects();
         })();
 
-        // Chọn hành động (Giữ cả hai / Thay thế) bằng cách click vào thẻ option
+        // ===== Danh sách tài liệu trùng =====
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str ?? '';
+            return div.innerHTML;
+        }
+
+        function renderDupList() {
+            const body = document.getElementById('dupListBody');
+            body.innerHTML = currentDuplicates.map(d => {
+                const isExact = d.matchType === 'Exact';
+                const pct = isExact ? '100%' : `${d.similarityPercent}%`;
+                const pctClass = isExact ? 'dup-pct exact' : 'dup-pct near';
+                const pctTitle = isExact ? 'Trùng khớp hoàn toàn (hash giống nhau)' : 'Độ tương đồng nội dung';
+                const embed = d.isEmbeddingReady
+                    ? '<span class="dup-badge ok">✓ Sẵn sàng</span>'
+                    : `<span class="dup-badge warn">Chưa embed</span><a class="dup-embed-link" href="/Document/TriggerEmbeddingGet?id=${d.id}" title="Kích hoạt embedding cho tài liệu này">⚡</a>`;
+
+                return `<tr data-id="${d.id}">
+                            <td class="dup-col-select dup-select-ui" style="display:none;">
+                                <input type="radio" name="replaceTarget" value="${d.id}" aria-label="Chọn thay thế ${escapeHtml(d.title)}">
+                            </td>
+                            <td class="dup-title-cell" title="${escapeHtml(d.title)}">${escapeHtml(d.title || '(không tiêu đề)')}</td>
+                            <td><span class="${pctClass}" title="${pctTitle}">${pct}</span></td>
+                            <td>${d.createdAt || '—'}</td>
+                            <td>${embed}</td>
+                        </tr>`;
+            }).join('');
+
+            // Click cả dòng để chọn radio (khi đang ở chế độ Thay thế)
+            body.querySelectorAll('tr').forEach(tr => {
+                tr.addEventListener('click', (e) => {
+                    if (document.getElementById('dupAction').value !== '2') return;
+                    if (e.target.closest('a')) return; // đừng chặn link ⚡
+                    const radio = tr.querySelector('input[name="replaceTarget"]');
+                    if (radio) {
+                        radio.checked = true;
+                        markSelectedRow();
+                        hideSelectWarning();
+                    }
+                });
+            });
+            body.querySelectorAll('input[name="replaceTarget"]').forEach(r => {
+                r.addEventListener('change', () => { markSelectedRow(); hideSelectWarning(); });
+            });
+
+            // Nếu chỉ có đúng 1 tài liệu trùng thì tự chọn sẵn cho tiện
+            if (currentDuplicates.length === 1) {
+                const only = body.querySelector('input[name="replaceTarget"]');
+                if (only) only.checked = true;
+            }
+
+            updateReplaceUI();
+        }
+
+        function markSelectedRow() {
+            document.querySelectorAll('#dupListBody tr').forEach(tr => {
+                const radio = tr.querySelector('input[name="replaceTarget"]');
+                tr.classList.toggle('selected-row', !!(radio && radio.checked));
+            });
+        }
+
+        // Bật/tắt cột chọn tài liệu tùy theo hành động đang chọn (chỉ hiện khi Thay thế)
+        function updateReplaceUI() {
+            const isReplace = document.getElementById('dupAction').value === '2';
+            document.querySelectorAll('.dup-select-ui').forEach(el => {
+                el.style.display = isReplace ? '' : 'none';
+            });
+            document.querySelectorAll('#dupListBody tr').forEach(tr => {
+                tr.classList.toggle('selectable', isReplace);
+            });
+            if (isReplace) {
+                markSelectedRow();
+            } else {
+                hideSelectWarning();
+                document.querySelectorAll('#dupListBody tr').forEach(tr => tr.classList.remove('selected-row'));
+            }
+        }
+
+        function hideSelectWarning() {
+            document.getElementById('dupSelectWarning').style.display = 'none';
+        }
+
+        // ===== Chọn hành động (Giữ / Thay thế) =====
+
         function setActionChoice(value) {
             document.getElementById('dupAction').value = value;
             document.querySelectorAll('.action-option').forEach(el => {
                 el.classList.toggle('selected', el.getAttribute('data-value') === value);
             });
+            updateReplaceUI();
         }
 
         document.querySelectorAll('.action-option').forEach(el => {
             el.addEventListener('click', () => setActionChoice(el.getAttribute('data-value')));
         });
 
-        // Xác nhận hành động trùng lặp (Giữ cả hai / Thay thế)
+        // ===== Xác nhận hành động trùng lặp (Giữ / Thay thế) =====
         async function confirmDuplicate() {
+            const action = document.getElementById('dupAction').value;
+            const replaceInput = document.getElementById('replaceDocId');
+
+            if (action === '2') {
+                // Thay thế: bắt buộc phải chọn 1 tài liệu trong danh sách
+                const selected = document.querySelector('input[name="replaceTarget"]:checked');
+                if (!selected) {
+                    document.getElementById('dupSelectWarning').style.display = 'block';
+                    return;
+                }
+                replaceInput.value = selected.value;
+            } else {
+                replaceInput.value = '';
+            }
+
             const formData = new FormData(document.getElementById('dupForm'));
             await fetch('/Document/ConfirmDuplicate', { method: 'POST', body: formData, credentials: 'same-origin' });
             window.location.href = '@Url.Action("Index", "Document")';
@@ -637,6 +860,7 @@
         async function cancelDuplicateUpload() {
             const formData = new FormData(document.getElementById('dupForm'));
             formData.set('action', '1');
+            formData.set('replaceDocumentId', '');
             await fetch('/Document/ConfirmDuplicate', { method: 'POST', body: formData, credentials: 'same-origin' });
             window.location.href = '@Url.Action("Index", "Document")';
         }

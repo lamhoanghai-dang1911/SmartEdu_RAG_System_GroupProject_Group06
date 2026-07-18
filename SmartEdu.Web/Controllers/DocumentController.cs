@@ -5,6 +5,7 @@ using SmartEdu.Business.Interfaces;
 using SmartEdu.Shared.DTOs;
 using SmartEdu.Shared.Enums;
 using SmartEdu.Web.Extensions;
+using System.Text.Json;
 
 namespace SmartEdu.Web.Controllers;
 
@@ -299,19 +300,28 @@ public class DocumentController : Controller
                 HttpContext.Session.SetString("TempTitle", title ?? string.Empty);
                 HttpContext.Session.SetInt32("TempSubjectId", subjectId);
                 HttpContext.Session.SetString("TempFileSize", file.Length.ToString());
-                HttpContext.Session.SetInt32("OldDocumentId", dupCheck.DuplicateDocumentId ?? 0);
                 HttpContext.Session.SetInt32("DuplicateMatchType", (int)dupCheck.MatchType);
+
+                // Lưu danh sách ID các tài liệu trùng (đã sắp theo % giảm dần) để validate ở bước Confirm
+                HttpContext.Session.SetString("DuplicateDocIds",
+                    JsonSerializer.Serialize(dupCheck.Duplicates.Select(d => d.Id).ToList()));
 
                 return Json(new
                 {
                     isDuplicate = true,
                     matchType = dupCheck.MatchType.ToString(),
-                    similarityPercent = dupCheck.SimilarityPercent,
-                    oldDocumentId = dupCheck.DuplicateDocumentId,
-                    isEmbeddingReady = dupCheck.IsEmbeddingReady,
+                    duplicates = dupCheck.Duplicates.Select(d => new
+                    {
+                        id = d.Id,
+                        title = d.Title,
+                        similarityPercent = d.SimilarityPercent,
+                        matchType = d.MatchType.ToString(),
+                        createdAt = d.CreatedAt.HasValue ? d.CreatedAt.Value.ToString("dd/MM/yyyy") : null,
+                        isEmbeddingReady = d.IsEmbeddingReady
+                    }),
                     message = dupCheck.MatchType == DuplicateMatchType.Exact
-                        ? $"Tài liệu đã tồn tại: {dupCheck.DuplicateTitle}"
-                        : $"Tài liệu này có vẻ giống {dupCheck.SimilarityPercent}% với tài liệu \"{dupCheck.DuplicateTitle}\" đã tải lúc {dupCheck.DuplicateCreatedAt:dd/MM/yyyy}."
+                        ? $"Tài liệu trùng khớp hoàn toàn với \"{dupCheck.DuplicateTitle}\". Phát hiện tổng cộng {dupCheck.Duplicates.Count} tài liệu trùng/gần giống trong môn học này."
+                        : $"Phát hiện {dupCheck.Duplicates.Count} tài liệu gần giống trong môn học này (cao nhất {dupCheck.SimilarityPercent}%)."
                 });
             }
 
@@ -347,21 +357,51 @@ public class DocumentController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ConfirmDuplicate(int action)
+    public async Task<IActionResult> ConfirmDuplicate(int action, int? replaceDocumentId)
     {
-        var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
         var matchTypeInt = HttpContext.Session.GetInt32("DuplicateMatchType") ?? 0;
         var matchType = (DuplicateMatchType)matchTypeInt;
 
-        if (!oldDocId.HasValue)
+        List<int> dupIds;
+        try
+        {
+            var dupIdsJson = HttpContext.Session.GetString("DuplicateDocIds");
+            dupIds = string.IsNullOrWhiteSpace(dupIdsJson)
+                ? new List<int>()
+                : (JsonSerializer.Deserialize<List<int>>(dupIdsJson) ?? new List<int>());
+        }
+        catch
+        {
+            dupIds = new List<int>();
+        }
+
+        if (dupIds.Count == 0)
             return RedirectToAction(nameof(Index));
 
         var chosenAction = (DocumentDuplicateAction)action;
 
         if (matchType == DuplicateMatchType.Exact && chosenAction == DocumentDuplicateAction.KeptBoth)
         {
-            TempData["Error"] = "Không thể giữ cả hai khi tài liệu trùng khớp hoàn toàn. Vui lòng chọn Thay thế hoặc Hủy.";
+            TempData["Error"] = "Không thể giữ khi có tài liệu trùng khớp hoàn toàn. Vui lòng chọn Thay thế hoặc Hủy.";
             return RedirectToAction(nameof(Index));
+        }
+
+        // Xác định tài liệu cũ để xử lý
+        int oldDocId;
+        if (chosenAction == DocumentDuplicateAction.Replaced)
+        {
+            // Thay thế: BẮT BUỘC người dùng phải chọn 1 tài liệu trong danh sách trùng
+            if (!replaceDocumentId.HasValue || !dupIds.Contains(replaceDocumentId.Value))
+            {
+                TempData["Error"] = "Vui lòng chọn tài liệu cần thay thế trong danh sách tài liệu trùng.";
+                return RedirectToAction(nameof(Index));
+            }
+            oldDocId = replaceDocumentId.Value;
+        }
+        else
+        {
+            // Giữ / Hủy: dùng tài liệu trùng cao nhất làm tham chiếu (parent/version)
+            oldDocId = dupIds[0];
         }
 
         var userIdClaim = User.FindFirst("UserId")?.Value;
@@ -393,7 +433,7 @@ public class DocumentController : Controller
             var dto = new DuplicateHandleDto
             {
                 NewDocumentId = newDocDto.Id,
-                OldDocumentId = oldDocId.Value,
+                OldDocumentId = oldDocId,
                 Action = chosenAction
             };
 
@@ -405,8 +445,9 @@ public class DocumentController : Controller
             HttpContext.Session.Remove("TempTitle");
             HttpContext.Session.Remove("TempSubjectId");
             HttpContext.Session.Remove("TempFileSize");
-            HttpContext.Session.Remove("OldDocumentId");
+            HttpContext.Session.Remove("DuplicateDocIds");
             HttpContext.Session.Remove("DuplicateMatchType");
+            HttpContext.Session.Remove("OldDocumentId"); // dọn key cũ nếu còn sót từ phiên trước
 
             TempData["Success"] = "Xử lý tài liệu trùng thành công!";
             return RedirectToAction(nameof(Index));

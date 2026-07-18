@@ -672,88 +672,106 @@ public class DocumentService : IDocumentService
 
     public async Task<DuplicateCheckDto> CheckDuplicateAsync(string filePath, string fileExt, string fileHash, int subjectId, int excludeDocumentId = 0)
     {
-        // === Bước 1: check trùng 100% (giữ nguyên logic cũ) ===
+        var duplicates = new List<DuplicateDocumentItemDto>();
+        var exactIds = new HashSet<int>();
+
+        // === Bước 1: check trùng 100% theo hash (có thể có NHIỀU tài liệu cùng hash) ===
         var exactMatches = await _docRepo.GetAllAsync(d =>
             d.FileHash == fileHash &&
             d.SubjectId == subjectId &&
             d.Id != excludeDocumentId &&
             !d.IsDeleted);
 
-        var exactDoc = exactMatches.FirstOrDefault();
-        if (exactDoc != null)
+        foreach (var doc in exactMatches)
         {
-            return new DuplicateCheckDto
+            exactIds.Add(doc.Id);
+            duplicates.Add(new DuplicateDocumentItemDto
             {
-                HasDuplicate = true,
+                Id = doc.Id,
+                Title = doc.Title,
+                CreatedAt = doc.CreatedAt,
                 MatchType = DuplicateMatchType.Exact,
-                DuplicateDocumentId = exactDoc.Id,
-                DuplicateTitle = exactDoc.Title,
-                DuplicateCreatedAt = exactDoc.CreatedAt,
-                IsEmbeddingReady = exactDoc.Status == DocumentStatus.Ready || exactDoc.EmbeddingSetId != null
-            };
+                SimilarityPercent = 100,
+                IsEmbeddingReady = doc.Status == DocumentStatus.Ready || doc.EmbeddingSetId != null
+            });
         }
 
-        // === Bước 2: check gần giống ===
+        // === Bước 2: check gần giống — LUÔN chạy (kể cả khi đã có exact match)
+        //     để liệt kê đầy đủ MỌI tài liệu trùng trong môn học kèm % từng cái ===
         try
         {
             var newDocVector = await ComputeDocumentVectorFromFileAsync(filePath, fileExt, subjectId);
-            if (newDocVector.Length == 0)
-                return new DuplicateCheckDto { HasDuplicate = false };
-
-            var candidateDocs = await _docRepo.GetAllWithIncludeAsync(
-                d => d.SubjectId == subjectId
-                     && d.Id != excludeDocumentId
-                     && !d.IsDeleted
-                     && d.Status == DocumentStatus.Ready
-                     && d.EmbeddingSetId != null,
-                d => d.EmbeddingSet
-            );
-
-            DocumentDto? bestMatch = null;
-            double bestScore = 0;
-
-            foreach (var candidate in candidateDocs)
+            if (newDocVector.Length > 0)
             {
-                var candidateChunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == candidate.EmbeddingSetId!.Value);
-                var candidateVectors = candidateChunks
-                    .Select(c => JsonSerializer.Deserialize<float[]>(c.EmbeddingJson!))
-                    .Where(v => v != null)
-                    .ToList();
+                var candidateDocs = await _docRepo.GetAllWithIncludeAsync(
+                    d => d.SubjectId == subjectId
+                         && d.Id != excludeDocumentId
+                         && !d.IsDeleted
+                         && d.Status == DocumentStatus.Ready
+                         && d.EmbeddingSetId != null,
+                    d => d.EmbeddingSet
+                );
 
-                if (candidateVectors.Count == 0) continue;
+                var nearDuplicateThreshold = await _uploadConfigService.ResolveNearDuplicateThresholdAsync();
 
-                var candidateDocVector = VectorMath.MeanPool(candidateVectors!);
-                var score = VectorMath.CosineSimilarity(newDocVector, candidateDocVector);
-
-                if (score > bestScore)
+                foreach (var candidate in candidateDocs)
                 {
-                    bestScore = score;
-                    bestMatch = new DocumentDto { Id = candidate.Id, Title = candidate.Title, CreatedAt = candidate.CreatedAt, Status = candidate.Status };
+                    // Đã liệt kê ở bước 1 với 100% rồi thì bỏ qua
+                    if (exactIds.Contains(candidate.Id)) continue;
+
+                    var candidateChunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == candidate.EmbeddingSetId!.Value);
+                    var candidateVectors = candidateChunks
+                        .Select(c => JsonSerializer.Deserialize<float[]>(c.EmbeddingJson!))
+                        .Where(v => v != null)
+                        .ToList();
+
+                    if (candidateVectors.Count == 0) continue;
+
+                    var candidateDocVector = VectorMath.MeanPool(candidateVectors!);
+                    var score = VectorMath.CosineSimilarity(newDocVector, candidateDocVector);
+
+                    // Thu thập TẤT CẢ tài liệu vượt ngưỡng, không chỉ bản giống nhất
+                    if (score >= nearDuplicateThreshold)
+                    {
+                        duplicates.Add(new DuplicateDocumentItemDto
+                        {
+                            Id = candidate.Id,
+                            Title = candidate.Title,
+                            CreatedAt = candidate.CreatedAt,
+                            MatchType = DuplicateMatchType.Near,
+                            SimilarityPercent = Math.Round(score * 100, 1),
+                            IsEmbeddingReady = true
+                        });
+                    }
                 }
-            }
-            var nearDuplicateThreshold = await _uploadConfigService.ResolveNearDuplicateThresholdAsync();
-            if (bestMatch != null && bestScore >= nearDuplicateThreshold)
-            {
-                return new DuplicateCheckDto
-                {
-                    HasDuplicate = true,
-                    MatchType = DuplicateMatchType.Near,
-                    DuplicateDocumentId = bestMatch.Id,
-                    DuplicateTitle = bestMatch.Title,
-                    DuplicateCreatedAt = bestMatch.CreatedAt,
-                    IsEmbeddingReady = true,
-                    SimilarityPercent = Math.Round(bestScore * 100, 1)
-                };
             }
         }
         catch (Exception ex)
         {
             // Nếu bước check similarity lỗi (ví dụ HuggingFace tạm downtime), KHÔNG chặn upload —
-            // chỉ log lại và coi như không phát hiện trùng, để không làm gián đoạn trải nghiệm giảng viên
+            // chỉ log lại. Nếu bước 1 đã tìm thấy exact match thì vẫn trả về danh sách đó.
             Console.WriteLine($"Lỗi khi kiểm tra tài liệu gần giống: {ex}");
         }
 
-        return new DuplicateCheckDto { HasDuplicate = false };
+        if (duplicates.Count == 0)
+            return new DuplicateCheckDto { HasDuplicate = false };
+
+        var ordered = duplicates.OrderByDescending(d => d.SimilarityPercent).ThenByDescending(d => d.CreatedAt).ToList();
+        var best = ordered[0];
+
+        return new DuplicateCheckDto
+        {
+            HasDuplicate = true,
+            MatchType = exactIds.Count > 0 ? DuplicateMatchType.Exact : DuplicateMatchType.Near,
+            Duplicates = ordered,
+
+            // Legacy fields — gán theo tài liệu trùng cao nhất để code cũ (nếu còn dùng) không vỡ
+            DuplicateDocumentId = best.Id,
+            DuplicateTitle = best.Title,
+            DuplicateCreatedAt = best.CreatedAt,
+            IsEmbeddingReady = best.IsEmbeddingReady,
+            SimilarityPercent = best.MatchType == DuplicateMatchType.Near ? best.SimilarityPercent : (double?)null
+        };
     }
 
     private async Task<float[]> ComputeDocumentVectorFromFileAsync(string filePath, string fileExt, int subjectId)
