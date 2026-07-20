@@ -1,0 +1,41 @@
+@*
+    Standardized page header with title, optional eyebrow/sub and right-aligned actions slot.
+    Usage:
+        @await Html.PartialAsync("Partial/_PageHead", new {
+            Eyebrow = "Catalog",
+            Title = "Subjects",
+            Sub = "All subjects you have access to."
+        })
+*@
+@* The signature is intentionally loose — we read dynamic fields below. *@
+@using System.Dynamic
+@{
+    dynamic? data = null;
+    if (ViewData.Model is not null) { data = ViewData.Model; }
+    string eyebrow = (data?.Eyebrow as string) ?? (ViewData["Eyebrow"] as string ?? string.Empty);
+    string title   = (data?.Title   as string) ?? (ViewData["Title"]   as string ?? string.Empty);
+    string sub     = (data?.Sub     as string) ?? (ViewData["Sub"]     as string ?? string.Empty);
+    string icon    = (data?.Icon    as string) ?? (ViewData["Icon"]    as string ?? string.Empty);
+}
+<div class="page-head">
+    <div>
+        @if (!string.IsNullOrWhiteSpace(eyebrow))
+        {
+            <div class="page-head-sub">@eyebrow</div>
+        }
+        <h1 class="page-head-title">
+            @if (!string.IsNullOrWhiteSpace(icon))
+            {
+                <i class="bi @icon me-2"></i>
+            }
+            @title
+        </h1>
+        @if (!string.IsNullOrWhiteSpace(sub))
+        {
+            <div class="page-head-sub mt-1">@sub</div>
+        }
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        @RenderSection("PageHeadActions", required: false)
+    </div>
+</div>

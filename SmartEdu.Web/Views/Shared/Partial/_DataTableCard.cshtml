@@ -1,0 +1,28 @@
+@*
+    Standardized table card. Use the optional slots via RenderSection.
+    Usage:
+        @await Html.PartialAsync("Partial/_DataTableCard", new {
+            Title = "Users", Sub = "All admin/staff accounts."
+        })
+        <partial> with sections "Head" and "Body" — but Razor partials don't support
+        sections directly; consumers should just wrap manually. We provide the wrapper.
+*@
+@{
+    var title = (ViewData["Title"] as string) ?? string.Empty;
+    var sub = (ViewData["Sub"] as string) ?? string.Empty;
+}
+<div class="data-card">
+    <div class="data-card-head">
+        <div>
+            <h5 class="data-card-title">@title</h5>
+            @if (!string.IsNullOrWhiteSpace(sub))
+            {
+                <div class="text-muted small">@sub</div>
+            }
+        </div>
+        <div>@RenderSection("Head", required: false)</div>
+    </div>
+    <div class="data-card-body">
+        @RenderBody()
+    </div>
+</div>

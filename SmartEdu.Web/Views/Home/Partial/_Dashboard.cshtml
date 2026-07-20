@@ -1,0 +1,183 @@
+@using SmartEdu.Web.Extensions
+@{
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+               ?? User.FindFirst("role")?.Value
+               ?? "User";
+    var userName = User.Identity?.Name ?? "there";
+    var isAdmin = User.UiIsAdmin();
+    var isLecturer = User.UiIsLecturer();
+    var isStudent = User.UiIsStudent();
+}
+<div class="page-head">
+    <div>
+        <div class="page-head-sub">Welcome back</div>
+        <h1 class="page-head-title">Hello, @userName 👋</h1>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-primary btn-icon" asp-controller="Chat" asp-action="Index">
+            <i class="bi bi-chat-dots"></i> Open AI Chat
+        </a>
+        <role name="Lecturer">
+            <a class="btn btn-light btn-icon" asp-controller="Document" asp-action="Upload">
+                <i class="bi bi-cloud-arrow-up"></i> Upload document
+            </a>
+        </role>
+        <role name="Admin">
+            <a class="btn btn-light btn-icon" asp-controller="Subject" asp-action="Create">
+                <i class="bi bi-plus-circle"></i> New subject
+            </a>
+        </role>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Subjects</div>
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-trend up">Across your role</div>
+                </div>
+                <span class="kpi-icon bg-blue"><i class="bi bi-book"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Documents</div>
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-trend up">Ready for AI</div>
+                </div>
+                <span class="kpi-icon bg-purple"><i class="bi bi-file-earmark-text"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Chat sessions</div>
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-trend up">Last 30 days</div>
+                </div>
+                <span class="kpi-icon bg-cyan"><i class="bi bi-chat-square-text"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="kpi-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="kpi-label">Tokens left</div>
+                    <div class="kpi-value">—</div>
+                    <div class="kpi-trend">Free tier</div>
+                </div>
+                <span class="kpi-icon bg-amber"><i class="bi bi-lightning-charge"></i></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="data-card">
+            <div class="data-card-head">
+                <div>
+                    <h5 class="data-card-title">Quick actions</h5>
+                    <div class="text-muted small">Jump straight to what you do most.</div>
+                </div>
+            </div>
+            <div class="data-card-body">
+                <div class="row g-3 p-3">
+                    <permission capability="CanChat">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="Chat" asp-action="Index">
+                                <div class="feature-icon"><i class="bi bi-chat-dots"></i></div>
+                                <div class="feature-title">Ask the AI tutor</div>
+                                <div class="feature-desc">Chat grounded in your subjects' documents.</div>
+                            </a>
+                        </div>
+                    </permission>
+                    <permission capability="CanViewSubjectsAsLecturer">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="Subject" asp-action="Index">
+                                <div class="feature-icon purple"><i class="bi bi-book"></i></div>
+                                <div class="feature-title">Manage subjects</div>
+                                <div class="feature-desc">View your subjects, enrollments and content.</div>
+                            </a>
+                        </div>
+                    </permission>
+                    <permission capability="CanUploadDocuments">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="Document" asp-action="Upload">
+                                <div class="feature-icon cyan"><i class="bi bi-cloud-arrow-up"></i></div>
+                                <div class="feature-title">Upload document</div>
+                                <div class="feature-desc">Add PDF, DOCX or PPTX and trigger embedding.</div>
+                            </a>
+                        </div>
+                    </permission>
+                    <permission capability="CanViewAdminReports">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="Reports" asp-action="Index">
+                                <div class="feature-icon amber"><i class="bi bi-bar-chart-line"></i></div>
+                                <div class="feature-title">Reports</div>
+                                <div class="feature-desc">Revenue, usage and token metrics.</div>
+                            </a>
+                        </div>
+                    </permission>
+                    <permission capability="CanViewOwnReports">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="StudentReports" asp-action="Index">
+                                <div class="feature-icon pink"><i class="bi bi-graph-up"></i></div>
+                                <div class="feature-title">My usage</div>
+                                <div class="feature-desc">Your orders, tokens and chat history.</div>
+                            </a>
+                        </div>
+                    </permission>
+                    <permission capability="CanBuyPackage">
+                        <div class="col-md-6">
+                            <a class="feature-card d-block text-decoration-none" asp-controller="Package" asp-action="List">
+                                <div class="feature-icon green"><i class="bi bi-stars"></i></div>
+                                <div class="feature-title">Buy tokens</div>
+                                <div class="feature-desc">Top up your token quota in seconds.</div>
+                            </a>
+                        </div>
+                    </permission>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="surface-card">
+            <div class="d-flex align-items-center justify-content-between mb-3">
+                <div>
+                    <div class="section-eyebrow">Your role</div>
+                    <h5 class="mb-0">@role</h5>
+                </div>
+                <span class="kpi-icon bg-blue"><i class="bi bi-person-badge"></i></span>
+            </div>
+            <p class="text-muted small">
+                The sidebar shows only what you can do. Need a new feature? Ask your administrator to enable the
+                corresponding capability.
+            </p>
+            <hr />
+            <ul class="list-unstyled small mb-0">
+                <li class="mb-2"><i class="bi bi-shield-check text-success me-2"></i> Your access is enforced both in the UI and in the API.</li>
+                <li class="mb-2"><i class="bi bi-key text-warning me-2"></i> Change your password any time from the top-right menu.</li>
+                <li><i class="bi bi-life-preserver text-info me-2"></i> Need help? Reach out to your lecturer or admin.</li>
+            </ul>
+        </div>
+
+        <role name="Student">
+            <div class="surface-card mt-3">
+                <h5 class="mb-2"><i class="bi bi-stars me-2 text-warning"></i> Upgrade your plan</h5>
+                <p class="text-muted small mb-3">Need more tokens? Pick a package that suits you.</p>
+                <a class="btn btn-primary w-100" asp-controller="Package" asp-action="List">View packages</a>
+            </div>
+        </role>
+    </div>
+</div>

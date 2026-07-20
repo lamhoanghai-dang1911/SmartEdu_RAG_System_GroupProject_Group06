@@ -1,0 +1,32 @@
+@*
+    Wrapping form layout for admin configuration pages.
+    Usage:
+        @await Html.PartialAsync("Partial/_ConfigFormLayout", new {
+            Title = "Chunking strategy",
+            Sub = "Tune how documents are split before embedding."
+        })
+        ... form content ...
+    The form closing button is rendered by the caller (we just wrap the body).
+*@
+@{
+    var title = (ViewData["Title"] as string) ?? string.Empty;
+    var sub = (ViewData["Sub"] as string) ?? string.Empty;
+}
+<div class="app-content-inner">
+    <div class="page-head">
+        <div>
+            <div class="page-head-sub">Configuration</div>
+            <h1 class="page-head-title">@title</h1>
+            @if (!string.IsNullOrWhiteSpace(sub))
+            {
+                <div class="page-head-sub mt-1">@sub</div>
+            }
+        </div>
+        <a class="btn btn-light btn-icon" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+    <div class="surface-card">
+        @RenderBody()
+    </div>
+</div>

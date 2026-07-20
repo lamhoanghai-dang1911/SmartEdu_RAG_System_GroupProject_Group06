@@ -1,0 +1,42 @@
+@*
+    Renders TempData success/error/alert banners consistently across pages.
+    Auto-dismiss is handled by site.js for elements with data-auto-dismiss="true".
+*@
+@{
+    var success = TempData["Success"] as string;
+    var error = TempData["Error"] as string;
+    var info = TempData["Info"] as string;
+    var warning = TempData["Warning"] as string;
+}
+@if (!string.IsNullOrWhiteSpace(success))
+{
+    <div class="alert alert-success d-flex align-items-center" role="alert" data-auto-dismiss="true">
+        <i class="bi bi-check-circle me-2"></i>
+        <div class="flex-grow-1">@success</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        <div class="flex-grow-1">@error</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(info))
+{
+    <div class="alert alert-primary d-flex align-items-center" role="alert" data-auto-dismiss="true">
+        <i class="bi bi-info-circle me-2"></i>
+        <div class="flex-grow-1">@info</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(warning))
+{
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>
+        <div class="flex-grow-1">@warning</div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}

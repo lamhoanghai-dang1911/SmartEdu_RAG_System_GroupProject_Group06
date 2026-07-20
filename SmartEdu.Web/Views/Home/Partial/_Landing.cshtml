@@ -1,0 +1,338 @@
+@{
+    Layout = null;
+}
+<div class="landing-body">
+    @* Top bar *@
+    <div class="landing-topbar">
+        <a class="landing-topbar-brand" asp-controller="Home" asp-action="Index">
+            <span class="mark"><i class="bi bi-mortarboard-fill"></i></span>
+            <span>SmartEdu</span>
+        </a>
+        <nav class="landing-topbar-links d-none d-md-inline-flex">
+            <a href="#features">Features</a>
+            <a href="#workflow">How it works</a>
+            <a href="#pricing">Pricing</a>
+            <a href="#faq">FAQ</a>
+        </nav>
+        <div class="landing-topbar-cta">
+            <a class="btn btn-ghost btn-sm" asp-controller="Account" asp-action="Login">Sign in</a>
+            <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">Get started</a>
+        </div>
+    </div>
+
+    @* Hero *@
+    <section class="hero">
+        <div class="hero-inner">
+            <div>
+                <span class="hero-eyebrow">
+                    <i class="bi bi-stars"></i> RAG-powered learning · Gemini AI
+                </span>
+                <h1 class="hero-title">
+                    Turn your course materials into an <span class="gradient">always-on tutor.</span>
+                </h1>
+                <p class="hero-sub">
+                    SmartEdu lets lecturers and students upload PDFs, Word documents and slides, then chat with an AI that
+                    answers only from your documents — with cited sources, every time.
+                </p>
+                <div class="hero-ctas">
+                    <a class="btn btn-primary btn-icon" asp-controller="Account" asp-action="Login">
+                        <i class="bi bi-rocket-takeoff"></i> Start free
+                    </a>
+                    <a class="btn btn-light btn-icon" href="#workflow">
+                        <i class="bi bi-play-circle"></i> See how it works
+                    </a>
+                </div>
+                <div class="hero-trust">
+                    <span class="avatars">
+                        <span>S</span><span>L</span><span>A</span>
+                    </span>
+                    <span>Trusted by lecturers and students to learn faster, with grounded answers.</span>
+                </div>
+            </div>
+            <div class="hero-visual" aria-hidden="true">
+                <div class="chat-bubble-card user">
+                    <div class="meta">You</div>
+                    <div class="body">Summarize the key concepts from chapter 3 of my course PDF.</div>
+                </div>
+                <div class="chat-bubble-card bot">
+                    <div class="meta">SmartEdu AI</div>
+                    <div class="body">Here are the three main ideas, each with a citation from your document:</div>
+                    <div class="sources">
+                        <span>Lecture 3 · p.12</span>
+                        <span>Lecture 3 · p.14</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Features *@
+    <section class="section" id="features">
+        <div class="section-inner">
+            <div class="section-head">
+                <div class="section-eyebrow">Built for serious learning</div>
+                <h2 class="section-title">Everything you need to study smarter</h2>
+                <p class="section-sub">
+                    From uploading slides to citing sources in your answer — SmartEdu keeps the workflow tight,
+                    secure and scoped to your subjects.
+                </p>
+            </div>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                        <div class="feature-title">Upload any document</div>
+                        <div class="feature-desc">PDF, DOCX and PPTX files are processed automatically into searchable chunks.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon purple"><i class="bi bi-diagram-3"></i></div>
+                        <div class="feature-title">Smart chunking</div>
+                        <div class="feature-desc">Admin-tuned chunking strategies keep answers precise and contextual.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon cyan"><i class="bi bi-search"></i></div>
+                        <div class="feature-title">Vector search</div>
+                        <div class="feature-desc">Embeddings find the right context across all your subjects in milliseconds.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon amber"><i class="bi bi-robot"></i></div>
+                        <div class="feature-title">Gemini-powered answers</div>
+                        <div class="feature-desc">Answers are generated by Gemini using only the retrieved context.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon pink"><i class="bi bi-quote"></i></div>
+                        <div class="feature-title">Source citations</div>
+                        <div class="feature-desc">Every reply shows the exact document and page the answer came from.</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="feature-card">
+                        <div class="feature-icon green"><i class="bi bi-shield-check"></i></div>
+                        <div class="feature-title">Subject-scoped access</div>
+                        <div class="feature-desc">Lecturers manage their subjects, students only see their own material.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* RAG workflow *@
+    <section class="section rag-workflow" id="workflow">
+        <div class="section-inner">
+            <div class="section-head">
+                <div class="section-eyebrow">The RAG pipeline</div>
+                <h2 class="section-title">From document to grounded answer</h2>
+                <p class="section-sub">Seven steps that happen in seconds — completely invisible to your students.</p>
+            </div>
+            <div class="rag-steps">
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-cloud-arrow-up"></i></div>
+                    <div class="label">Upload Document</div>
+                    <div class="hint">PDF · DOCX · PPTX</div>
+                </div>
+                <div class="rag-arrow"><i class="bi bi-chevron-right"></i></div>
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-diagram-3"></i></div>
+                    <div class="label">Chunking</div>
+                    <div class="hint">Adaptive splitting</div>
+                </div>
+                <div class="rag-arrow"><i class="bi bi-chevron-right"></i></div>
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-magic"></i></div>
+                    <div class="label">Embedding</div>
+                    <div class="hint">Vector representations</div>
+                </div>
+                <div class="rag-arrow"><i class="bi bi-chevron-right"></i></div>
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-search"></i></div>
+                    <div class="label">Vector Search</div>
+                    <div class="hint">Top-k context</div>
+                </div>
+                <div class="rag-arrow"><i class="bi bi-chevron-right"></i></div>
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-robot"></i></div>
+                    <div class="label">Gemini AI</div>
+                    <div class="hint">Grounded generation</div>
+                </div>
+                <div class="rag-arrow"><i class="bi bi-chevron-right"></i></div>
+                <div class="rag-step">
+                    <div class="icon"><i class="bi bi-chat-dots"></i></div>
+                    <div class="label">Answer</div>
+                    <div class="hint">With source citation</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Stats *@
+    <section class="section stats-band">
+        <div class="section-inner">
+            <div class="row g-3">
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">7</div>
+                        <div class="stat-label">Pipeline stages</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">3+</div>
+                        <div class="stat-label">Document formats</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">∞</div>
+                        <div class="stat-label">Subjects supported</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6">
+                    <div class="stat-card">
+                        <div class="stat-value">24/7</div>
+                        <div class="stat-label">Always-on tutor</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* Pricing teaser *@
+    <section class="section" id="pricing">
+        <div class="section-inner">
+            <div class="section-head">
+                <div class="section-eyebrow">Simple pricing</div>
+                <h2 class="section-title">Start free, upgrade when you need more</h2>
+                <p class="section-sub">All students get a free token quota. Buy more only when you need to.</p>
+            </div>
+            <div class="row g-3 justify-content-center">
+                <div class="col-md-4">
+                    <div class="pricing-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Free</h5>
+                            <span class="badge badge-soft-neutral">Starter</span>
+                        </div>
+                        <div class="pricing-price mt-3">0 ₫</div>
+                        <div class="text-muted small">per month</div>
+                        <ul class="pricing-features">
+                            <li><i class="bi bi-check2"></i> Free tier tokens every month</li>
+                            <li><i class="bi bi-check2"></i> Chat with your subjects</li>
+                            <li><i class="bi bi-check2"></i> Source citations included</li>
+                        </ul>
+                        <a class="btn btn-light w-100" asp-controller="Package" asp-action="List">Get started</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="pricing-card featured">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Standard</h5>
+                            <span class="badge badge-soft-primary">Popular</span>
+                        </div>
+                        <div class="pricing-price mt-3">From 49,000 ₫</div>
+                        <div class="text-muted small">per pack</div>
+                        <ul class="pricing-features">
+                            <li><i class="bi bi-check2"></i> Larger token quotas</li>
+                            <li><i class="bi bi-check2"></i> Faster responses</li>
+                            <li><i class="bi bi-check2"></i> Priority support</li>
+                        </ul>
+                        <a class="btn btn-primary w-100" asp-controller="Package" asp-action="List">See packages</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="pricing-card">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Pro</h5>
+                            <span class="badge badge-soft-neutral">Heavy use</span>
+                        </div>
+                        <div class="pricing-price mt-3">From 149,000 ₫</div>
+                        <div class="text-muted small">per pack</div>
+                        <ul class="pricing-features">
+                            <li><i class="bi bi-check2"></i> Maximum tokens</li>
+                            <li><i class="bi bi-check2"></i> Best for thesis & research</li>
+                            <li><i class="bi bi-check2"></i> Dedicated support</li>
+                        </ul>
+                        <a class="btn btn-light w-100" asp-controller="Package" asp-action="List">See packages</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @* FAQ *@
+    <section class="section" id="faq" style="background: var(--surface-2);">
+        <div class="section-inner" style="max-width: 820px;">
+            <div class="section-head">
+                <div class="section-eyebrow">FAQ</div>
+                <h2 class="section-title">Questions, answered</h2>
+            </div>
+            <details class="faq-item" open>
+                <summary>How does SmartEdu keep answers grounded?</summary>
+                <div class="body">Every answer is generated by Gemini using only the chunks retrieved from your uploaded documents. Each response includes the document and page it came from.</div>
+            </details>
+            <details class="faq-item">
+                <summary>Who can upload documents?</summary>
+                <div class="body">Lecturers who lead a subject and Admins can upload. Students can only read and chat with documents in subjects they are enrolled in.</div>
+            </details>
+            <details class="faq-item">
+                <summary>What file formats are supported?</summary>
+                <div class="body">PDF, DOCX and PPTX are supported out of the box. Each subject can have its own chunking strategy tuned by Admins.</div>
+            </details>
+            <details class="faq-item">
+                <summary>How does billing work?</summary>
+                <div class="body">Students receive a free token quota each month. When you run out, you can purchase additional token packages from the Pricing page.</div>
+            </details>
+            <details class="faq-item">
+                <summary>Is my data private?</summary>
+                <div class="body">Documents are scoped per subject. Only enrolled users can access a subject's materials. Chat history is private to the user who created it.</div>
+            </details>
+        </div>
+    </section>
+
+    @* Footer *@
+    <footer class="landing-footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="brand mb-2 d-flex align-items-center gap-2">
+                        <span class="mark" style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--brand-blue),var(--brand-purple));color:#fff;display:inline-flex;align-items:center;justify-content:center;"><i class="bi bi-mortarboard-fill"></i></span>
+                        SmartEdu
+                    </div>
+                    <p class="small mb-0">A RAG-powered learning platform that turns your course material into an always-on tutor.</p>
+                </div>
+                <div class="col-md-2">
+                    <h6>Product</h6>
+                    <ul class="list-unstyled small">
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#workflow">How it works</a></li>
+                        <li><a href="#pricing">Pricing</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h6>Account</h6>
+                    <ul class="list-unstyled small">
+                        <li><a asp-controller="Account" asp-action="Login">Sign in</a></li>
+                        <li><a asp-controller="Account" asp-action="ChangePassword">Change password</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6>Stay in the loop</h6>
+                    <p class="small mb-2">Get product updates and learning tips.</p>
+                    <a class="btn btn-primary btn-sm" asp-controller="Account" asp-action="Login">
+                        <i class="bi bi-rocket-takeoff me-1"></i> Try SmartEdu free
+                    </a>
+                </div>
+            </div>
+            <div class="bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span>&copy; 2026 SmartEdu. All rights reserved.</span>
+                <span><a asp-controller="Home" asp-action="Privacy">Privacy</a></span>
+            </div>
+        </div>
+    </footer>
+</div>

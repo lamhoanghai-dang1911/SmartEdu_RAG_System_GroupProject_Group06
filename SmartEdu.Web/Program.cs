@@ -25,6 +25,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IModelBenchmarkService,ModelBenchmarkService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IPackageService, PackageService>();
             builder.Services.AddScoped<IUserSubscriptionService, UserSubscriptionService>();
@@ -79,6 +80,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<SmartEdu.Business.Interfaces.IRealtimeNotifier, SmartEdu.Web.Realtime.SignalRNotifier>();
             builder.Services.AddScoped<IUploadConfigService, UploadConfigService>();
             builder.Services.AddScoped<IFreeTierService, FreeTierService>();
+            builder.Services.AddScoped<SmartEdu.Web.Services.SubjectAccessAuthorizer>();
 
             // Reports
             builder.Services.AddScoped<IReportService, ReportService>();
