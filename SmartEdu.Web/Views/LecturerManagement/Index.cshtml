@@ -1,173 +1,56 @@
 @{
-    ViewData["Title"] = "Quản lý giảng viên - phân công môn học";
+    ViewData["Title"] = "Phân công giảng viên";
+    var assignments = (IEnumerable<SmartEdu.Shared.Entities.LecturerSubject>)ViewBag.Assignments;
 }
 
-<h2>@ViewData["Title"]</h2>
+<style>
+    .assignment-layout { display:grid; grid-template-columns:minmax(280px,.65fr) minmax(0,1.35fr); gap:18px; align-items:start; }
+    .assignment-form-card { position:sticky; top:88px; padding:22px; border:1px solid #dde5df; border-radius:15px; background:#fff; box-shadow:0 8px 26px rgba(26,57,40,.05); }
+    .assignment-form-card h2 { margin:0 0 6px; font-size:18px; }
+    .assignment-form-card p { margin:0 0 19px; color:#67736b; font-size:13px; line-height:1.55; }
+    .assignment-form-card .form-label { color:#465249; font-size:12px; font-weight:700; }
+    .leader-option { padding:11px 12px; border:1px solid #dde5df; border-radius:10px; background:#f7f9f7; }
+    @@media(max-width:900px){.assignment-layout{grid-template-columns:1fr}.assignment-form-card{position:static}}
+</style>
 
-@if (TempData["Success"] != null)
-{
-    <div class="alert alert-success">@TempData["Success"]</div>
-}
-
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Assign" method="post" id="assignForm">
-            <div class="form-group mb-2">
-                <label>Giảng viên</label>
-                <select class="form-control" name="LecturerId" id="lecturerSelect">
-                    <option value="">-- Chọn giảng viên --</option>
-                    @foreach (var l in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Lecturers)
-                    {
-                        <option value="@l.Value">@l.Text</option>
-                    }
-                </select>
-            </div>
-            <div class="form-group mb-2">
-                <label>Môn học</label>
-                <select class="form-control" name="SubjectId" id="subjectSelect">
-                    <option value="">-- Chọn môn học --</option>
-                    @foreach (var s in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Subjects)
-                    {
-                        <option value="@s.Value">@s.Text</option>
-                    }
-                </select>
-            </div>
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" value="true" id="IsLeader" name="IsLeader" />
-                <label class="form-check-label" for="IsLeader">Đặt làm trưởng môn</label>
-            </div>
-            <button type="submit" class="btn btn-primary">Gán</button>
-        </form>
+<main>
+    <header class="page-head"><div><div class="page-head-sub">Administration</div><h1 class="page-head-title">Phân công giảng viên</h1><p class="text-muted mb-0 mt-1 small">Gắn giảng viên với môn học và xác định người phụ trách chính.</p></div></header>
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+    <div class="assignment-layout">
+        <aside class="assignment-form-card">
+            <h2>Phân công mới</h2><p>Chọn giảng viên và môn học. Mỗi môn chỉ có một trưởng môn tại một thời điểm.</p>
+            <form asp-action="Assign" method="post" id="assignForm">
+                <div class="mb-3"><label class="form-label" for="lecturerSelect">Giảng viên</label><select class="form-select" name="LecturerId" id="lecturerSelect" required><option value="">Chọn giảng viên</option>@foreach (var l in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Lecturers) { <option value="@l.Value">@l.Text</option> }</select></div>
+                <div class="mb-3"><label class="form-label" for="subjectSelect">Môn học</label><select class="form-select" name="SubjectId" id="subjectSelect" required><option value="">Chọn môn học</option>@foreach (var s in (Microsoft.AspNetCore.Mvc.Rendering.SelectList)ViewBag.Subjects) { <option value="@s.Value">@s.Text</option> }</select></div>
+                <div class="leader-option mb-3"><div class="form-check"><input class="form-check-input" type="checkbox" value="true" id="IsLeader" name="IsLeader" /><label class="form-check-label" for="IsLeader">Đặt làm trưởng môn</label></div></div>
+                <button type="submit" class="btn btn-primary w-100">Lưu phân công</button>
+            </form>
+        </aside>
+        <section class="data-card">
+            <div class="data-card-head"><div><h2 class="data-card-title">Danh sách phân công</h2><div class="text-muted small">@assignments.Count() phân công hiện tại</div></div></div>
+            <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Giảng viên</th><th>Môn học</th><th>Vai trò</th><th class="table-action-column"><span class="visually-hidden">Thao tác</span></th></tr></thead><tbody>
+            @foreach (var a in assignments) {
+                <tr><td class="fw-semibold">@a.Lecturer?.FullName</td><td>@a.Subject?.Name</td><td>@if(a.IsLeader){<span class="badge bg-success">Trưởng môn</span>}else{<span class="text-muted">Giảng viên</span>}</td>
+                <td class="table-action-column"><div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu">
+                    @if(!a.IsLeader){<li><form class="set-leader-form" data-subject-id="@a.SubjectId" data-lecturer-name="@a.Lecturer?.FullName" asp-action="SetLeader" method="post"><input type="hidden" name="lecturerId" value="@a.LecturerId"/><input type="hidden" name="subjectId" value="@a.SubjectId"/><button class="dropdown-item" type="submit"><i class="bi bi-person-check"></i>Đặt làm trưởng môn</button></form></li><li><hr class="dropdown-divider"/></li>}
+                    <li><form asp-action="Unassign" method="post"><input type="hidden" name="lecturerId" value="@a.LecturerId"/><input type="hidden" name="subjectId" value="@a.SubjectId"/><button class="dropdown-item dropdown-item-danger" type="submit"><i class="bi bi-person-dash"></i>Hủy phân công</button></form></li>
+                </ul></div></td></tr>
+            }
+            @if(!assignments.Any()){<tr><td colspan="4"><div class="empty-state py-5"><div class="empty-state-title">Chưa có phân công</div><div class="empty-state-desc">Tạo phân công đầu tiên bằng biểu mẫu bên cạnh.</div></div></td></tr>}
+            </tbody></table></div>
+        </section>
     </div>
+</main>
 
-    <div class="col-md-6">
-        <h4>Danh sách phân công</h4>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Giảng viên</th>
-                    <th>Môn học</th>
-                    <th>Trưởng môn</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var a in (IEnumerable<SmartEdu.Shared.Entities.LecturerSubject>)ViewBag.Assignments)
-                {
-                    <tr>
-                        <td>@a.Lecturer?.FullName</td>
-                        <td>@a.Subject?.Name</td>
-                        <td>@(a.IsLeader ? "Có" : "—")</td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <form asp-action="Unassign" method="post" style="display:inline">
-                                    <input type="hidden" name="lecturerId" value="@a.LecturerId" />
-                                    <input type="hidden" name="subjectId" value="@a.SubjectId" />
-                                    <button class="btn btn-sm btn-danger" type="submit">Hủy</button>
-                                </form>
-                                @if (!a.IsLeader)
-                                {
-                                    <form class="d-inline set-leader-form" style="display:inline; margin-left:6px;"
-                                          data-lecturer-id="@a.LecturerId" data-subject-id="@a.SubjectId"
-                                          data-lecturer-name="@a.Lecturer?.FullName" data-subject-name="@a.Subject?.Name"
-                                          asp-action="SetLeader" method="post">
-                                        <input type="hidden" name="lecturerId" value="@a.LecturerId" />
-                                        <input type="hidden" name="subjectId" value="@a.SubjectId" />
-                                        <button class="btn btn-sm btn-success" type="submit">Đặt trưởng</button>
-                                    </form>
-                                }
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- Modal xác nhận đổi trưởng môn -->
-<div class="modal fade" id="confirmLeaderModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">⚠️ Xác nhận đổi trưởng môn</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p id="confirmLeaderMessage"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-warning" id="confirmLeaderBtn">Xác nhận đổi</button>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="confirmLeaderModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Xác nhận thay đổi trưởng môn</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p id="confirmLeaderMessage" class="mb-0"></p></div><div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Hủy</button><button type="button" class="btn btn-primary" id="confirmLeaderBtn">Xác nhận</button></div></div></div></div>
 
 @section Scripts {
-    <script>
-        let pendingForm = null;
-        const confirmModal = new bootstrap.Modal(document.getElementById('confirmLeaderModal'));
-
-        // ===== Trường hợp 1: form Assign (tick checkbox "Đặt làm trưởng môn") =====
-        document.getElementById('assignForm').addEventListener('submit', async function(e) {
-            const isLeaderChecked = document.getElementById('IsLeader').checked;
-            const subjectId = document.getElementById('subjectSelect').value;
-            const lecturerSelect = document.getElementById('lecturerSelect');
-            const newLecturerName = lecturerSelect.options[lecturerSelect.selectedIndex]?.text || '';
-
-            if (!isLeaderChecked || !subjectId) return; // không tick trưởng môn -> submit bình thường
-
-            e.preventDefault();
-            pendingForm = this;
-
-            try {
-                const resp = await fetch(`/LecturerManagement/GetCurrentLeader?subjectId=${subjectId}`);
-                const data = await resp.json();
-
-                if (data.hasLeader && data.leaderId != lecturerSelect.value) {
-                    document.getElementById('confirmLeaderMessage').textContent =
-                        `Môn học này đã có trưởng môn là "${data.leaderName}". Bạn có chắc chắn muốn đặt "${newLecturerName}" làm trưởng môn mới không? "${data.leaderName}" sẽ bị hạ chức.`;
-                    confirmModal.show();
-                } else {
-                    pendingForm.submit();
-                }
-            } catch (err) {
-                console.error('Không thể kiểm tra trưởng môn hiện tại:', err);
-                pendingForm.submit(); // fallback: nếu lỗi kiểm tra, vẫn cho submit bình thường
-            }
-        });
-
-        // ===== Trường hợp 2: nút "Đặt trưởng" trong bảng danh sách =====
-        document.querySelectorAll('.set-leader-form').forEach(form => {
-            form.addEventListener('submit', async function(e) {
-                const subjectId = this.getAttribute('data-subject-id');
-                const newLecturerName = this.getAttribute('data-lecturer-name');
-
-                e.preventDefault();
-                pendingForm = this;
-
-                try {
-                    const resp = await fetch(`/LecturerManagement/GetCurrentLeader?subjectId=${subjectId}`);
-                    const data = await resp.json();
-
-                    if (data.hasLeader) {
-                        document.getElementById('confirmLeaderMessage').textContent =
-                            `Môn học này đã có trưởng môn là "${data.leaderName}". Bạn có chắc chắn muốn đặt "${newLecturerName}" làm trưởng môn mới không? "${data.leaderName}" sẽ bị hạ chức.`;
-                        confirmModal.show();
-                    } else {
-                        pendingForm.submit();
-                    }
-                } catch (err) {
-                    console.error('Không thể kiểm tra trưởng môn hiện tại:', err);
-                    pendingForm.submit();
-                }
-            });
-        });
-
-        document.getElementById('confirmLeaderBtn').addEventListener('click', function() {
-            confirmModal.hide();
-            if (pendingForm) pendingForm.submit();
-        });
-    </script>
+<script>
+    let pendingForm=null;const confirmModal=new bootstrap.Modal(document.getElementById('confirmLeaderModal'));
+    async function confirmLeaderChange(form,subjectId,newLecturerName,onlyWhenDifferent){
+        try{const response=await fetch(`/LecturerManagement/GetCurrentLeader?subjectId=${subjectId}`),data=await response.json();if(data.hasLeader&&(!onlyWhenDifferent||String(data.leaderId)!==String(document.getElementById('lecturerSelect').value))){pendingForm=form;document.getElementById('confirmLeaderMessage').textContent=`Môn học hiện do “${data.leaderName}” phụ trách. Bạn có muốn chuyển vai trò trưởng môn cho “${newLecturerName}” không?`;confirmModal.show();return false}return true}catch(error){console.error('Không thể kiểm tra trưởng môn:',error);return true}}
+    document.getElementById('assignForm').addEventListener('submit',async function(event){if(!document.getElementById('IsLeader').checked||!document.getElementById('subjectSelect').value)return;event.preventDefault();const select=document.getElementById('lecturerSelect');if(await confirmLeaderChange(this,document.getElementById('subjectSelect').value,select.options[select.selectedIndex]?.text||'',true))this.submit()});
+    document.querySelectorAll('.set-leader-form').forEach(form=>form.addEventListener('submit',async function(event){event.preventDefault();if(await confirmLeaderChange(this,this.dataset.subjectId,this.dataset.lecturerName,false))this.submit()}));
+    document.getElementById('confirmLeaderBtn').addEventListener('click',()=>{confirmModal.hide();if(pendingForm)pendingForm.submit()});
+</script>
 }

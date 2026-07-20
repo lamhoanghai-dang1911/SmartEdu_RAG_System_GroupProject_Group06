@@ -38,7 +38,7 @@
             <div class="app-sidebar-brand">
                 <a asp-controller="Home" asp-action="Index" class="app-sidebar-brand-link">
                     <span class="app-sidebar-brand-mark" aria-hidden="true">
-                        <i class="bi bi-mortarboard-fill"></i>
+                        <i class="bi bi-book"></i>
                     </span>
                     <span class="app-sidebar-brand-text">
                         <span class="app-sidebar-brand-name">SmartEdu</span>
@@ -111,6 +111,8 @@
                 @RenderBody()
             </div>
         </main>
+
+        <link rel="stylesheet" href="~/css/harmony.css" asp-append-version="true" />
 
         @if (!isChatPage && !isAuth)
         {

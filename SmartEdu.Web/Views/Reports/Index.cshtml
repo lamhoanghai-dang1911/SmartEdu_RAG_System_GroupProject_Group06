@@ -3,526 +3,191 @@
 }
 
 <style>
-    :root {
-        --brand-blue: #0d6efd;
-        --brand-purple: #6610f2;
-        --ink-navy: #0b1120;
-        --amber: #ffb648;
-        --paper: #f7f8fc;
-        --slate: #5a6072;
-        --slate-light: #9aa0b4;
-        --success: #1fae63;
-        --danger: #e5484d;
-        --warning: #f5a623;
-    }
+    .reports-page { max-width: 1380px; margin: 0 auto; padding: 18px 8px 52px; color: #17211b; }
+    .reports-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+    .reports-head h1 { margin: 0 0 5px; font-size: 27px; font-weight: 750; letter-spacing: -.025em; }
+    .reports-head p { margin: 0; color: #67736b; font-size: 14px; }
+    .report-period { display: flex; align-items: end; gap: 10px; padding: 8px; border: 1px solid #dde5df; border-radius: 13px; background: #fff; }
+    .date-field label { display: block; margin: 0 0 4px 3px; color: #7a857e; font-size: 10px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+    .date-field input { width: 145px; height: 38px; padding: 7px 10px; color: #243129; font-size: 13px; border: 1px solid #d4ddd7; border-radius: 9px; background: #fafcfa; outline: none; }
+    .date-field input:focus { border-color: #246b4b; box-shadow: 0 0 0 3px rgba(36,107,75,.08); }
+    .period-shortcuts { display: flex; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f5f2; }
+    .period-btn { height: 32px; padding: 0 10px; color: #67736b; font-size: 11px; font-weight: 700; border: 0; border-radius: 7px; background: transparent; }
+    .period-btn:hover { color: #17211b; background: #fff; }
 
-    @@keyframes fadeUp {
-        from {
-            opacity: 0;
-            transform: translateY(12px);
-        }
+    .report-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 18px; }
+    .report-kpi { position: relative; padding: 18px 19px; border: 1px solid #dde5df; border-radius: 14px; background: #fff; box-shadow: 0 7px 22px rgba(26,57,40,.045); animation: report-in .35s ease both; }
+    .report-kpi::before { content: ""; position: absolute; left: 0; top: 17px; bottom: 17px; width: 3px; border-radius: 0 4px 4px 0; background: var(--kpi-color,#246b4b); }
+    .report-kpi:nth-child(2) { --kpi-color:#779383; animation-delay:.04s; }
+    .report-kpi:nth-child(3) { --kpi-color:#5a7ea8; animation-delay:.08s; }
+    .report-kpi:nth-child(4) { --kpi-color:#d39a3d; animation-delay:.12s; }
+    .report-kpi-label { margin-bottom: 8px; color: #748078; font-size: 11px; font-weight: 750; letter-spacing: .045em; text-transform: uppercase; }
+    .report-kpi-value { font-size: clamp(22px,2.2vw,30px); font-weight: 780; line-height: 1; letter-spacing: -.025em; }
+    .report-kpi-note { margin-top: 8px; color: #98a29b; font-size: 11px; }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
+    .analytics-grid { display: grid; grid-template-columns: minmax(0,1.65fr) minmax(310px,.85fr); gap: 14px; margin-bottom: 14px; }
+    .report-panel { min-width: 0; border: 1px solid #dde5df; border-radius: 15px; background: #fff; box-shadow: 0 8px 26px rgba(26,57,40,.05); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 58px; padding: 14px 17px; border-bottom: 1px solid #e5ebe7; }
+    .panel-title { margin: 0; font-size: 14px; font-weight: 750; }
+    .panel-subtitle { margin-top: 2px; color: #88928c; font-size: 11px; }
+    .granularity { display: inline-flex; gap: 3px; padding: 3px; border-radius: 9px; background: #f1f5f2; }
+    .granularity-btn { padding: 6px 10px; color: #6b766f; font-size: 11px; font-weight: 700; border: 0; border-radius: 7px; background: transparent; }
+    .granularity-btn.active { color: #fff; background: #246b4b; }
+    .chart-body { min-height: 292px; padding: 16px 17px 12px; }
+    .chart-empty { height: 250px; display: grid; place-items: center; color: #929d96; font-size: 13px; text-align: center; }
 
-    .page-head h2 {
-        font-family: 'Sora', sans-serif;
-        font-weight: 700;
-        font-size: 1.5rem;
-        color: #12162b;
-        margin: 0;
-    }
+    .line-chart { width: 100%; height: 250px; overflow: visible; }
+    .chart-grid-line { stroke: #e7ece8; stroke-width: 1; }
+    .chart-axis-label { fill: #87928b; font-size: 10px; }
+    .chart-area { fill: url(#revenueArea); }
+    .chart-line { fill: none; stroke: #246b4b; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-dot { fill: #fff; stroke: #246b4b; stroke-width: 2; }
 
-    /* ===== Filter bar ===== */
-    .filter-bar {
-        background: #fff;
-        border-radius: 14px;
-        padding: 1rem 1.2rem;
-        box-shadow: 0 6px 20px -12px rgba(11, 17, 32, 0.12);
-        margin-bottom: 1.25rem;
-    }
+    .donut-layout { min-height: 250px; display: grid; grid-template-columns: 150px minmax(0,1fr); align-items: center; gap: 18px; }
+    .donut { position: relative; width: 145px; height: 145px; border-radius: 50%; background: #edf1ee; }
+    .donut::after { content: ""; position: absolute; inset: 28px; border-radius: 50%; background: #fff; }
+    .donut-center { position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; text-align: center; pointer-events: none; }
+    .donut-center strong { font-size: 17px; }
+    .donut-center span { color: #8a958e; font-size: 10px; }
+    .chart-legend { display: grid; gap: 10px; }
+    .legend-row { display: grid; grid-template-columns: 8px minmax(0,1fr) auto; gap: 8px; align-items: center; font-size: 11px; }
+    .legend-dot { width: 8px; height: 8px; border-radius: 3px; background: var(--legend-color); }
+    .legend-name { overflow: hidden; color: #566159; text-overflow: ellipsis; white-space: nowrap; }
+    .legend-value { font-weight: 720; }
 
-        .filter-bar .form-label {
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--slate);
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            margin-bottom: 0.35rem;
-        }
+    .token-panel { margin-bottom: 14px; }
+    .token-chart { display: grid; gap: 13px; }
+    .token-row-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 5px; font-size: 11px; }
+    .token-row-head span { overflow: hidden; color: #566159; text-overflow: ellipsis; white-space: nowrap; }
+    .token-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e8ede9; }
+    .token-fill { width: 0; height: 100%; border-radius: inherit; background: #5a7ea8; animation: grow-token .6s ease forwards; }
 
-        .filter-bar .form-control {
-            border: 1.5px solid #e3e5ef;
-            border-radius: 10px;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
+    .details-panel { overflow: hidden; }
+    .details-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 9px; background: #f1f5f2; }
+    .details-tab { padding: 6px 10px; color: #6b766f; font-size: 11px; font-weight: 700; border: 0; border-radius: 7px; background: transparent; }
+    .details-tab.active { color: #17211b; background: #fff; box-shadow: 0 1px 4px rgba(23,33,27,.08); }
+    .details-pane { display: none; }
+    .details-pane.active { display: block; animation: report-in .22s ease both; }
+    .table-scroll { max-height: 330px; overflow: auto; }
+    .details-panel .table { margin: 0; }
+    .details-panel .table th { position: sticky; top: 0; z-index: 1; padding: 11px 16px !important; background: #f7f9f7 !important; }
+    .details-panel .table td { padding: 11px 16px !important; font-size: 12px; }
 
-            .filter-bar .form-control:focus {
-                border-color: var(--brand-blue);
-                box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
-            }
-
-    /* ===== KPI cards ===== */
-    .kpi-card {
-        border: none !important;
-        border-radius: 16px !important;
-        padding: 1.4rem 1.3rem;
-        color: #fff;
-        position: relative;
-        overflow: hidden;
-        opacity: 0;
-        animation: fadeUp 0.5s ease forwards;
-    }
-
-    .col-md-3:nth-of-type(1) .kpi-card {
-        animation-delay: 0.05s;
-    }
-
-    .col-md-3:nth-of-type(2) .kpi-card {
-        animation-delay: 0.1s;
-    }
-
-    .col-md-3:nth-of-type(3) .kpi-card {
-        animation-delay: 0.15s;
-    }
-
-    .col-md-3:nth-of-type(4) .kpi-card {
-        animation-delay: 0.2s;
-    }
-
-    .kpi-card::after {
-        content: "";
-        position: absolute;
-        top: -30%;
-        right: -20%;
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.08);
-    }
-
-    .kpi-card.kpi-revenue {
-        background: linear-gradient(135deg, var(--brand-blue), var(--brand-purple));
-    }
-
-    .kpi-card.kpi-orders {
-        background: linear-gradient(135deg, var(--success), #17c76f);
-    }
-
-    .kpi-card.kpi-tokens {
-        background: linear-gradient(135deg, #0dcaf0, #0d8fbd);
-    }
-
-    .kpi-card.kpi-users {
-        background: linear-gradient(135deg, var(--amber), #f28b1e);
-    }
-
-    .kpi-card .kpi-label {
-        font-size: 0.82rem;
-        opacity: 0.85;
-        font-weight: 600;
-        margin-bottom: 0.3rem;
-        position: relative;
-        z-index: 1;
-    }
-
-    .kpi-card .kpi-value {
-        font-family: 'Sora', sans-serif;
-        font-weight: 800;
-        font-size: 1.6rem;
-        position: relative;
-        z-index: 1;
-    }
-
-    /* ===== Chart-like table cards ===== */
-    .report-card {
-        border: none !important;
-        border-radius: 16px !important;
-        box-shadow: 0 10px 30px -16px rgba(11, 17, 32, 0.16);
-        opacity: 0;
-        animation: fadeUp 0.5s ease forwards;
-        animation-delay: 0.15s;
-    }
-
-        .report-card h6 {
-            font-family: 'Sora', sans-serif;
-            font-weight: 700;
-            font-size: 0.98rem;
-            color: #12162b;
-            margin: 0;
-        }
-
-    /* Đảm bảo 2 header card (có/không có nút segmented control) luôn cao bằng nhau */
-    .report-header {
-        min-height: 38px;
-    }
-
-    /* ===== Segmented control (thay cho dropdown) ===== */
-    .granularity-group {
-        display: inline-flex;
-        background: var(--paper);
-        border-radius: 999px;
-        padding: 3px;
-        gap: 2px;
-    }
-
-    .granularity-btn {
-        border: none;
-        background: transparent;
-        color: var(--slate);
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 0.4rem 0.9rem;
-        border-radius: 999px;
-        cursor: pointer;
-        transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
-        white-space: nowrap;
-    }
-
-        .granularity-btn:hover:not(.active) {
-            color: #12162b;
-        }
-
-        .granularity-btn.active {
-            background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
-            color: #fff;
-            box-shadow: 0 4px 12px -4px rgba(13, 110, 253, 0.5);
-        }
-
-    .table {
-        margin-bottom: 0;
-    }
-
-        .table thead tr {
-            background: linear-gradient(120deg, var(--ink-navy), #171d3d) !important;
-        }
-
-        .table thead th {
-            border: none !important;
-            color: #fff !important;
-            font-family: 'Sora', sans-serif;
-            font-weight: 600;
-            font-size: 0.76rem;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            padding: 0.8rem 0.9rem !important;
-        }
-
-        .table tbody tr {
-            transition: background 0.15s ease;
-        }
-
-            .table tbody tr:hover {
-                background: rgba(13, 110, 253, 0.045) !important;
-            }
-
-        .table tbody td {
-            border-color: #eef0f6 !important;
-            padding: 0.7rem 0.9rem !important;
-            font-size: 0.88rem;
-            color: #33384f;
-        }
-
-    .table-responsive-wrap {
-        max-height: 360px;
-        overflow-y: auto;
-        border-radius: 0 0 16px 16px;
-    }
-
-        .table-responsive-wrap::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .table-responsive-wrap::-webkit-scrollbar-thumb {
-            background: #d7dbe8;
-            border-radius: 8px;
-        }
-
-    @@media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
-            animation-duration: 0.01ms !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
+    @@keyframes report-in { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
+    @@keyframes grow-token { to { width:var(--bar-width); } }
+    @@media (max-width: 1050px) { .reports-head { align-items:flex-start; flex-direction:column; } .report-period { width:100%; flex-wrap:wrap; } .analytics-grid { grid-template-columns:1fr; } }
+    @@media (max-width: 760px) { .report-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } .donut-layout { grid-template-columns:1fr; justify-items:center; } .chart-legend { width:100%; } }
+    @@media (max-width: 520px) { .reports-page { padding-inline:0; } .report-kpis { grid-template-columns:1fr; } .date-field { flex:1; } .date-field input { width:100%; } .period-shortcuts { width:100%; } .period-btn { flex:1; } .details-tabs { overflow-x:auto; } }
+    @@media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
 </style>
 
-<div class="container mt-4">
-    <div class="page-head d-flex justify-content-between align-items-center mb-3">
-        <h2>📊 Báo cáo thống kê</h2>
-    </div>
+<main class="reports-page">
+    <header class="reports-head">
+        <div><h1>Báo cáo thống kê</h1><p>Theo dõi doanh thu, đơn hàng và mức sử dụng hệ thống.</p></div>
+        <div class="report-period">
+            <div class="date-field"><label for="start">Từ ngày</label><input type="date" id="start" /></div>
+            <div class="date-field"><label for="end">Đến ngày</label><input type="date" id="end" /></div>
+            <div class="period-shortcuts" aria-label="Khoảng thời gian nhanh">
+                <button type="button" class="period-btn" data-days="7">7 ngày</button>
+                <button type="button" class="period-btn" data-days="30">30 ngày</button>
+                <button type="button" class="period-btn" data-days="90">90 ngày</button>
+            </div>
+        </div>
+    </header>
 
-    <div class="filter-bar d-flex flex-wrap gap-3 align-items-end">
-        <div>
-            <label class="form-label d-block">Từ ngày</label>
-            <input type="date" id="start" class="form-control" />
-        </div>
-        <div>
-            <label class="form-label d-block">Đến ngày</label>
-            <input type="date" id="end" class="form-control" />
-        </div>
-    </div>
+    <section class="report-kpis" aria-label="Chỉ số tổng quan">
+        <article class="report-kpi"><div class="report-kpi-label">Tổng doanh thu</div><div class="report-kpi-value" id="kpiRevenue">0 đ</div><div class="report-kpi-note">Trong khoảng đã chọn</div></article>
+        <article class="report-kpi"><div class="report-kpi-label">Đơn hàng</div><div class="report-kpi-value" id="kpiOrders">0</div><div class="report-kpi-note">Giao dịch ghi nhận</div></article>
+        <article class="report-kpi"><div class="report-kpi-label">Token đã dùng</div><div class="report-kpi-value" id="kpiTokens">0</div><div class="report-kpi-note">Prompt và completion</div></article>
+        <article class="report-kpi"><div class="report-kpi-label">Người dùng hoạt động</div><div class="report-kpi-value" id="kpiUsers">0</div><div class="report-kpi-note">Có phát sinh sử dụng</div></article>
+    </section>
 
-    <!-- KPI Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-3">
-            <div class="card kpi-card kpi-revenue">
-                <div class="kpi-label">💰 Tổng doanh thu</div>
-                <div class="kpi-value" id="kpiRevenue">0 đ</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card kpi-card kpi-orders">
-                <div class="kpi-label">🧾 Số đơn hàng</div>
-                <div class="kpi-value" id="kpiOrders">0</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card kpi-card kpi-tokens">
-                <div class="kpi-label">🎫 Tổng token dùng</div>
-                <div class="kpi-value" id="kpiTokens">0</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card kpi-card kpi-users">
-                <div class="kpi-label">👥 User hoạt động</div>
-                <div class="kpi-value" id="kpiUsers">0</div>
-            </div>
-        </div>
-    </div>
+    <section class="analytics-grid">
+        <article class="report-panel">
+            <header class="panel-head"><div><h2 class="panel-title">Doanh thu theo thời gian</h2><div class="panel-subtitle">Xu hướng doanh thu trong kỳ</div></div><div class="granularity"><button class="granularity-btn active" data-value="day">Ngày</button><button class="granularity-btn" data-value="week">Tuần</button><button class="granularity-btn" data-value="month">Tháng</button></div></header>
+            <div class="chart-body" id="revenueChart"></div>
+        </article>
+        <article class="report-panel">
+            <header class="panel-head"><div><h2 class="panel-title">Cơ cấu theo gói</h2><div class="panel-subtitle">Tỷ trọng đóng góp doanh thu</div></div></header>
+            <div class="chart-body" id="packageChart"></div>
+        </article>
+    </section>
 
-    <div class="row g-4 mb-4">
-        <div class="col-md-6">
-            <div class="card report-card">
-                <div class="card-body">
-                    <div class="report-header d-flex justify-content-between align-items-center mb-3">
-                        <h6>💰 Doanh thu theo thời gian</h6>
-                        <div class="granularity-group" id="revenueGranularityGroup">
-                            <button type="button" class="granularity-btn active" data-value="day">Ngày</button>
-                            <button type="button" class="granularity-btn" data-value="week">Tuần</button>
-                            <button type="button" class="granularity-btn" data-value="month">Tháng</button>
-                        </div>
-                    </div>
-                    <div class="table-responsive-wrap">
-                        <table class="table table-hover" id="revenueTable">
-                            <thead>
-                                <tr>
-                                    <th id="revenueDateHeader">Ngày</th>
-                                    <th>Doanh thu</th>
-                                    <th>Số đơn</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card report-card">
-                <div class="card-body">
-                    <div class="report-header d-flex justify-content-between align-items-center mb-3">
-                        <h6>📦 Doanh thu theo gói</h6>
-                    </div>
-                    <div class="table-responsive-wrap">
-                        <table class="table table-hover" id="packageTable">
-                            <thead>
-                                <tr>
-                                    <th>Gói</th>
-                                    <th>Doanh thu</th>
-                                    <th>Số đơn</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <section class="report-panel token-panel">
+        <header class="panel-head"><div><h2 class="panel-title">Mức sử dụng token</h2><div class="panel-subtitle">Những người dùng có mức sử dụng cao nhất</div></div></header>
+        <div class="chart-body" id="tokenChart"></div>
+    </section>
 
-    <div class="card report-card">
-        <div class="card-body">
-            <h6 class="mb-3">📋 Token theo user</h6>
-            <div class="table-responsive-wrap">
-                <table class="table table-hover" id="usageTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>User</th>
-                            <th>Tổng token</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
+    <section class="report-panel details-panel">
+        <header class="panel-head"><div><h2 class="panel-title">Dữ liệu chi tiết</h2><div class="panel-subtitle">Số liệu dùng để tạo các biểu đồ phía trên</div></div><div class="details-tabs"><button class="details-tab active" data-pane="revenuePane">Theo thời gian</button><button class="details-tab" data-pane="packagePane">Theo gói</button><button class="details-tab" data-pane="usagePane">Theo người dùng</button></div></header>
+        <div id="revenuePane" class="details-pane active"><div class="table-scroll"><table class="table table-hover" id="revenueTable"><thead><tr><th id="revenueDateHeader">Ngày</th><th>Doanh thu</th><th>Số đơn</th></tr></thead><tbody></tbody></table></div></div>
+        <div id="packagePane" class="details-pane"><div class="table-scroll"><table class="table table-hover" id="packageTable"><thead><tr><th>Gói</th><th>Doanh thu</th><th>Số đơn</th></tr></thead><tbody></tbody></table></div></div>
+        <div id="usagePane" class="details-pane"><div class="table-scroll"><table class="table table-hover" id="usageTable"><thead><tr><th>#</th><th>Người dùng</th><th>Tổng token</th></tr></thead><tbody></tbody></table></div></div>
+    </section>
+</main>
 
 @section Scripts {
-    <script>
-        function fmtCurrency(n) {
-            return new Intl.NumberFormat('vi-VN').format(n) + ' đ';
-        }
-        function fmtNumber(n) {
-            return new Intl.NumberFormat('vi-VN').format(n);
-        }
-        function pad2(n) {
-            return String(n).padStart(2, '0');
-        }
+<script>
+    const chartColors = ['#246b4b','#5a7ea8','#d39a3d','#779383','#b66d5e','#8a7397'];
+    let rawRevenueItems = [], packageItems = [], usageItems = [], currentGranularity = 'day';
+    const fmtNumber = n => new Intl.NumberFormat('vi-VN').format(Number(n)||0);
+    const fmtCurrency = n => `${fmtNumber(n)} đ`;
+    const pad2 = n => String(n).padStart(2,'0');
 
-        let rawRevenueItems = [];
-        let currentGranularity = 'day';
+    function escapeHtml(value) { return String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+    function localDateValue(date) { return `${date.getFullYear()}-${pad2(date.getMonth()+1)}-${pad2(date.getDate())}`; }
+    function getMonday(date) { const d=new Date(date.getFullYear(),date.getMonth(),date.getDate()), day=d.getDay(); d.setDate(d.getDate()+(day===0?-6:1-day)); return d; }
+    function bucketDate(date, granularity) { const d=new Date(date); if(granularity==='month')return new Date(d.getFullYear(),d.getMonth(),1); if(granularity==='week')return getMonday(d); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+    function formatBucketLabel(date, granularity) { if(granularity==='month')return `Tháng ${pad2(date.getMonth()+1)}/${date.getFullYear()}`; if(granularity==='week'){const end=new Date(date);end.setDate(date.getDate()+6);return `${pad2(date.getDate())}/${pad2(date.getMonth()+1)} – ${pad2(end.getDate())}/${pad2(end.getMonth()+1)}`;} return date.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit'}); }
+    function groupedRevenue() { const map=new Map(); rawRevenueItems.forEach(item=>{const bucket=bucketDate(item.date,currentGranularity),key=bucket.getTime();if(!map.has(key))map.set(key,{bucket,amount:0,orderCount:0});const row=map.get(key);row.amount+=Number(item.amount)||0;row.orderCount+=Number(item.orderCount)||0;});return [...map.values()].sort((a,b)=>a.bucket-b.bucket); }
+    function emptyChart(message) { return `<div class="chart-empty">${escapeHtml(message)}</div>`; }
 
-        function getMonday(date) {
-            const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-            const day = d.getDay();
-            const diff = day === 0 ? -6 : 1 - day;
-            d.setDate(d.getDate() + diff);
-            return d;
-        }
+    function renderRevenue() {
+        const items=groupedRevenue(), tbody=document.querySelector('#revenueTable tbody');
+        document.getElementById('revenueDateHeader').textContent=currentGranularity==='month'?'Tháng':currentGranularity==='week'?'Tuần':'Ngày';
+        tbody.innerHTML=items.length?items.map(x=>`<tr><td>${escapeHtml(formatBucketLabel(x.bucket,currentGranularity))}</td><td>${fmtCurrency(x.amount)}</td><td>${fmtNumber(x.orderCount)}</td></tr>`).join(''):'<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
+        const host=document.getElementById('revenueChart'); if(!items.length){host.innerHTML=emptyChart('Chưa có doanh thu trong khoảng thời gian này.');return;}
+        const W=680,H=250,L=54,R=18,T=16,B=35,max=Math.max(...items.map(x=>x.amount),1),stepX=items.length===1?0:(W-L-R)/(items.length-1),y=v=>T+(H-T-B)*(1-v/max);
+        const points=items.map((x,i)=>`${L+i*stepX},${y(x.amount)}`).join(' '), area=`${L},${H-B} ${points} ${L+(items.length-1)*stepX},${H-B}`;
+        const grid=[0,.25,.5,.75,1].map(r=>{const yy=T+(H-T-B)*(1-r);return `<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" class="chart-grid-line"/><text x="${L-8}" y="${yy+3}" text-anchor="end" class="chart-axis-label">${compact(max*r)}</text>`}).join('');
+        const labelIndexes=[...new Set([0,Math.floor((items.length-1)/2),items.length-1])];
+        const labels=labelIndexes.map(i=>`<text x="${L+i*stepX}" y="${H-10}" text-anchor="middle" class="chart-axis-label">${escapeHtml(formatBucketLabel(items[i].bucket,currentGranularity))}</text>`).join('');
+        host.innerHTML=`<svg class="line-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Biểu đồ doanh thu"><defs><linearGradient id="revenueArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#246b4b" stop-opacity=".22"/><stop offset="1" stop-color="#246b4b" stop-opacity="0"/></linearGradient></defs>${grid}<polygon points="${area}" class="chart-area"/><polyline points="${points}" class="chart-line"/>${items.map((x,i)=>`<circle cx="${L+i*stepX}" cy="${y(x.amount)}" r="3.5" class="chart-dot"><title>${formatBucketLabel(x.bucket,currentGranularity)}: ${fmtCurrency(x.amount)}</title></circle>`).join('')}${labels}</svg>`;
+    }
 
-        function bucketDate(date, granularity) {
-            const d = new Date(date);
-            if (granularity === 'month') {
-                return new Date(d.getFullYear(), d.getMonth(), 1);
-            }
-            if (granularity === 'week') {
-                return getMonday(d);
-            }
-            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        }
+    function renderPackages() {
+        const tbody=document.querySelector('#packageTable tbody'),total=packageItems.reduce((s,x)=>s+(Number(x.amount)||0),0);
+        tbody.innerHTML=packageItems.length?packageItems.map(x=>`<tr><td>${escapeHtml(x.packageName)}</td><td>${fmtCurrency(x.amount)}</td><td>${fmtNumber(x.orderCount)}</td></tr>`).join(''):'<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
+        const host=document.getElementById('packageChart');if(!packageItems.length||!total){host.innerHTML=emptyChart('Chưa có doanh thu theo gói.');return;}
+        let cursor=0;const segments=packageItems.map((x,i)=>{const start=cursor,end=cursor+(Number(x.amount)||0)/total*100;cursor=end;return `${chartColors[i%chartColors.length]} ${start}% ${end}%`;});
+        const legend=packageItems.map((x,i)=>`<div class="legend-row"><span class="legend-dot" style="--legend-color:${chartColors[i%chartColors.length]}"></span><span class="legend-name">${escapeHtml(x.packageName)}</span><strong class="legend-value">${((Number(x.amount)||0)/total*100).toFixed(1)}%</strong></div>`).join('');
+        host.innerHTML=`<div class="donut-layout"><div class="donut" style="background:conic-gradient(${segments.join(',')})"><div class="donut-center"><strong>${fmtNumber(packageItems.length)}</strong><span>gói</span></div></div><div class="chart-legend">${legend}</div></div>`;
+    }
 
-        function formatBucketLabel(bucket, granularity) {
-            if (granularity === 'month') {
-                return `Tháng ${pad2(bucket.getMonth() + 1)}/${bucket.getFullYear()}`;
-            }
-            if (granularity === 'week') {
-                const sunday = new Date(bucket);
-                sunday.setDate(bucket.getDate() + 6);
-                const startStr = `${pad2(bucket.getDate())}/${pad2(bucket.getMonth() + 1)}`;
-                const endStr = `${pad2(sunday.getDate())}/${pad2(sunday.getMonth() + 1)}/${sunday.getFullYear()}`;
-                return `Tuần ${startStr} - ${endStr}`;
-            }
-            return bucket.toLocaleDateString('vi-VN');
-        }
+    function renderUsage() {
+        const tbody=document.querySelector('#usageTable tbody');tbody.innerHTML=usageItems.length?usageItems.map((x,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(x.userName)}</td><td><strong>${fmtNumber(x.totalTokens)}</strong></td></tr>`).join(''):'<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
+        const top=usageItems.slice().sort((a,b)=>b.totalTokens-a.totalTokens).slice(0,8),max=Math.max(...top.map(x=>Number(x.totalTokens)||0),1),host=document.getElementById('tokenChart');
+        host.innerHTML=top.length?`<div class="token-chart">${top.map(x=>`<div><div class="token-row-head"><span>${escapeHtml(x.userName)}</span><strong>${fmtNumber(x.totalTokens)}</strong></div><div class="token-track"><div class="token-fill" style="--bar-width:${Math.max(3,(Number(x.totalTokens)||0)/max*100)}%"></div></div></div>`).join('')}</div>`:emptyChart('Chưa có dữ liệu sử dụng token.');
+    }
 
-        function renderRevenueTable() {
-            const granularity = currentGranularity;
-            document.getElementById('revenueDateHeader').textContent =
-                granularity === 'month' ? 'Tháng' : (granularity === 'week' ? 'Tuần' : 'Ngày');
+    function compact(value) { return Intl.NumberFormat('vi-VN',{notation:'compact',maximumFractionDigits:1}).format(value); }
+    async function loadReports() {
+        const start=document.getElementById('start').value,end=document.getElementById('end').value,qs=`start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
+        try {
+            const [summaryResp,revenueResp,usageResp]=await Promise.all([fetch(`/Reports/SummaryJson?${qs}`),fetch(`/Reports/RevenueJson?${qs}`),fetch(`/Reports/UsageJson?${qs}`)]);
+            if(!summaryResp.ok||!revenueResp.ok||!usageResp.ok)throw new Error('Không thể tải dữ liệu báo cáo.');
+            const [summary,revenue,usage]=await Promise.all([summaryResp.json(),revenueResp.json(),usageResp.json()]);
+            document.getElementById('kpiRevenue').textContent=fmtCurrency(summary.totalRevenue);document.getElementById('kpiOrders').textContent=fmtNumber(summary.totalOrders);document.getElementById('kpiTokens').textContent=fmtNumber(summary.totalTokensUsed);document.getElementById('kpiUsers').textContent=fmtNumber(summary.activeUserCount);
+            rawRevenueItems=revenue.items||[];packageItems=revenue.byPackage||[];usageItems=usage.items||[];renderRevenue();renderPackages();renderUsage();
+        } catch(error) { console.error(error); document.getElementById('revenueChart').innerHTML=emptyChart(error.message);document.getElementById('packageChart').innerHTML=emptyChart(error.message);document.getElementById('tokenChart').innerHTML=emptyChart(error.message); }
+    }
 
-            const map = new Map();
-            rawRevenueItems.forEach(i => {
-                const bucket = bucketDate(i.date, granularity);
-                const key = bucket.getTime();
-                if (!map.has(key)) {
-                    map.set(key, { bucket, amount: 0, orderCount: 0 });
-                }
-                const entry = map.get(key);
-                entry.amount += i.amount;
-                entry.orderCount += i.orderCount;
-            });
-
-            const items = Array.from(map.values()).sort((a, b) => a.bucket - b.bucket);
-
-            const revTbody = document.querySelector('#revenueTable tbody');
-            revTbody.innerHTML = '';
-            items.forEach(i => {
-                const tr = document.createElement('tr');
-                const label = formatBucketLabel(i.bucket, granularity);
-                tr.innerHTML = `<td>${label}</td><td>${fmtCurrency(i.amount)}</td><td>${fmtNumber(i.orderCount)}</td>`;
-                revTbody.appendChild(tr);
-            });
-            if (items.length === 0) {
-                revTbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
-            }
-        }
-
-        document.querySelectorAll('.granularity-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.granularity-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentGranularity = btn.getAttribute('data-value');
-                renderRevenueTable();
-            });
-        });
-
-        async function loadReports() {
-            try {
-                const start = document.getElementById('start').value;
-                const end = document.getElementById('end').value;
-                const qs = `start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`;
-
-                const summaryResp = await fetch(`/Reports/SummaryJson?${qs}`);
-                if (!summaryResp.ok) {
-                    console.error('SummaryJson failed:', summaryResp.status, await summaryResp.text());
-                    return;
-                }
-                const summary = await summaryResp.json();
-                document.getElementById('kpiRevenue').textContent = fmtCurrency(summary.totalRevenue);
-                document.getElementById('kpiOrders').textContent = fmtNumber(summary.totalOrders);
-                document.getElementById('kpiTokens').textContent = fmtNumber(summary.totalTokensUsed);
-                document.getElementById('kpiUsers').textContent = fmtNumber(summary.activeUserCount);
-
-                const revResp = await fetch(`/Reports/RevenueJson?${qs}`);
-                if (!revResp.ok) {
-                    console.error('RevenueJson failed:', revResp.status, await revResp.text());
-                    return;
-                }
-                const rev = await revResp.json();
-
-                rawRevenueItems = rev.items || [];
-                renderRevenueTable();
-
-                const pkgTbody = document.querySelector('#packageTable tbody');
-                pkgTbody.innerHTML = '';
-                (rev.byPackage || []).forEach(p => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${p.packageName}</td><td>${fmtCurrency(p.amount)}</td><td>${fmtNumber(p.orderCount)}</td>`;
-                    pkgTbody.appendChild(tr);
-                });
-                if ((rev.byPackage || []).length === 0) {
-                    pkgTbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
-                }
-
-                const usageResp = await fetch(`/Reports/UsageJson?${qs}`);
-                if (!usageResp.ok) {
-                    console.error('UsageJson failed:', usageResp.status, await usageResp.text());
-                    return;
-                }
-                const usage = await usageResp.json();
-
-                const utbody = document.querySelector('#usageTable tbody');
-                utbody.innerHTML = '';
-                (usage.items || []).forEach((u, idx) => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${idx + 1}</td><td>${u.userName}</td><td><strong>${fmtNumber(u.totalTokens)}</strong></td>`;
-                    utbody.appendChild(tr);
-                });
-                if ((usage.items || []).length === 0) {
-                    utbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Không có dữ liệu</td></tr>';
-                }
-            } catch (err) {
-                console.error('loadReports error:', err);
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const today = new Date();
-            const weekAgo = new Date();
-            weekAgo.setDate(today.getDate() - 6);
-
-            document.getElementById('start').value = weekAgo.toISOString().split('T')[0];
-            document.getElementById('end').value = today.toISOString().split('T')[0];
-
-            document.getElementById('start').addEventListener('change', loadReports);
-            document.getElementById('end').addEventListener('change', loadReports);
-
-            loadReports();
-        });
-    </script>
+    document.addEventListener('DOMContentLoaded',()=>{
+        const today=new Date(),start=new Date();start.setDate(today.getDate()-6);document.getElementById('start').value=localDateValue(start);document.getElementById('end').value=localDateValue(today);
+        document.querySelectorAll('.granularity-btn').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.granularity-btn').forEach(x=>x.classList.remove('active'));btn.classList.add('active');currentGranularity=btn.dataset.value;renderRevenue();}));
+        document.querySelectorAll('.details-tab').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.details-tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.details-pane').forEach(x=>x.classList.remove('active'));btn.classList.add('active');document.getElementById(btn.dataset.pane).classList.add('active');}));
+        document.querySelectorAll('.period-btn').forEach(btn=>btn.addEventListener('click',()=>{const end=new Date(),start=new Date();start.setDate(end.getDate()-Number(btn.dataset.days)+1);document.getElementById('start').value=localDateValue(start);document.getElementById('end').value=localDateValue(end);loadReports();}));
+        document.getElementById('start').addEventListener('change',loadReports);document.getElementById('end').addEventListener('change',loadReports);loadReports();
+    });
+</script>
 }

@@ -505,10 +505,10 @@
 
 <div class="container mt-4">
     <div class="page-head d-flex justify-content-between align-items-center mb-3">
-        <h2>📄 Danh sách tài liệu</h2>
+        <h2><i class="bi bi-file-earmark-text me-2"></i>Danh sách tài liệu</h2>
         @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
         {
-            <a asp-action="Upload" class="btn btn-primary">⬆️ Upload tài liệu</a>
+            <a asp-action="Upload" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload tài liệu</a>
         }
     </div>
 
@@ -517,7 +517,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">⚡ Đang xử lý Embedding</h5>
+                    <h5 class="modal-title"><i class="bi bi-activity me-2"></i>Đang xử lý embedding</h5>
                     <button type="button" class="btn-close" id="modalCloseBtn" aria-label="Close" disabled></button>
                 </div>
                 <div class="modal-body">
@@ -584,7 +584,7 @@
                     <th>Môn học</th>
                     <th>Trạng thái</th>
                     <th>Ngày upload</th>
-                    <th>Thao tác</th>
+                    <th class="table-action-column"><span class="visually-hidden">Thao tác</span></th>
                 </tr>
             </thead>
             <tbody>
@@ -601,39 +601,45 @@
                             @{
                                 var (badge, label) = d.Status.ToString() switch
                                 {
-                                    "Pending" => ("warning", "⏳ Chờ xử lý"),
-                                    "Processing" => ("info", "⚙️ Đang xử lý"),
-                                    "Ready" => ("success", "✅ Sẵn sàng"),
-                                    "Failed" => ("danger", "❌ Lỗi"),
+                                    "Pending" => ("warning", "Chờ xử lý"),
+                                    "Processing" => ("info", "Đang xử lý"),
+                                    "Ready" => ("success", "Sẵn sàng"),
+                                    "Failed" => ("danger", "Lỗi"),
                                     _ => ("secondary", d.Status.ToString())
                                 };
                             }
                             <span class="badge bg-@badge">@label</span>
                         </td>
                         <td>@d.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@d.Id" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
-                            <a asp-action="Download" asp-route-id="@d.Id" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>
-                            <button type="button" class="btn btn-sm btn-secondary me-1" title="Xem các mảnh nội dung (Chunks)" onclick="showChunks(@(d.Id))">🧩</button>
+                        <td class="table-action-column">
+                            <div class="dropdown row-actions">
+                                <button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end row-actions-menu">
+                                    <li><a asp-action="Details" asp-route-id="@d.Id" class="dropdown-item"><i class="bi bi-eye"></i>Xem chi tiết</a></li>
+                                    <li><a asp-action="Download" asp-route-id="@d.Id" class="dropdown-item"><i class="bi bi-download"></i>Tải file gốc</a></li>
+                                    <li><button type="button" class="dropdown-item" onclick="showChunks(@(d.Id))"><i class="bi bi-layout-text-sidebar-reverse"></i>Xem các đoạn nội dung</button></li>
                                 @{
                                     bool canTriggerEmbedding = User.IsInRole("Admin")
                                         || (User.IsInRole("Lecturer") && leaderIds.Contains(d.SubjectId));
                                 }
                                 @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
                                 {
-                                    <a asp-action="Edit" asp-route-id="@d.Id" class="btn btn-sm btn-warning" title="Sửa tiêu đề">✏️</a>
+                                    <li><hr class="dropdown-divider" /></li>
+                                    <li><a asp-action="Edit" asp-route-id="@d.Id" class="dropdown-item"><i class="bi bi-pencil"></i>Sửa tiêu đề</a></li>
                                     @if (d.Status != SmartEdu.Shared.Enums.DocumentStatus.Ready && canTriggerEmbedding)
                                     {
-                                        <form asp-action="TriggerEmbedding" asp-route-id="@d.Id" method="post" class="d-inline trigger-form" data-document-id="@d.Id">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
-                                        </form>
+                                        <li><form asp-action="TriggerEmbedding" asp-route-id="@d.Id" method="post" class="trigger-form" data-document-id="@d.Id">
+                                            @Html.AntiForgeryToken()<button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat"></i>Tạo embedding</button>
+                                        </form></li>
                                     }
-                                    <form asp-action="Delete" asp-route-id="@d.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa tài liệu này?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-danger" title="Xóa">🗑️</button>
-                                    </form>
+                                    <li><form asp-action="Delete" asp-route-id="@d.Id" method="post" onsubmit="return confirm('Xóa tài liệu này?');">
+                                        @Html.AntiForgeryToken()<button type="submit" class="dropdown-item dropdown-item-danger"><i class="bi bi-trash"></i>Xóa tài liệu</button>
+                                    </form></li>
                                 }
+                                </ul>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -646,7 +652,7 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">🧩 Chi tiết nội dung tài liệu (Chunks)</h5>
+                    <h5 class="modal-title"><i class="bi bi-layout-text-sidebar-reverse me-2"></i>Các đoạn nội dung tài liệu</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -705,17 +711,17 @@
 
         if (state === 'done') {
         ringEl.classList.add('done');
-        ringCount.innerHTML = '<span class="ring-icon">✅</span>';
+        ringCount.innerHTML = '<span class="ring-icon"><i class="bi bi-check-lg"></i></span>';
         statusLabel.textContent = 'Hoàn tất!';
         statusSub.textContent = 'Tài liệu đã sẵn sàng để sử dụng trong Chat RAG.';
         } else if (state === 'failed') {
         ringEl.classList.add('failed');
-        ringCount.innerHTML = '<span class="ring-icon">❌</span>';
+        ringCount.innerHTML = '<span class="ring-icon"><i class="bi bi-x-lg"></i></span>';
         statusLabel.textContent = 'Xử lý thất bại';
         statusSub.textContent = 'Đã xảy ra lỗi trong quá trình embedding, vui lòng thử lại.';
         } else if (state === 'reused') {
         ringEl.classList.add('done');
-        ringCount.innerHTML = '<span class="ring-icon">♻️</span>';
+        ringCount.innerHTML = '<span class="ring-icon"><i class="bi bi-arrow-repeat"></i></span>';
         statusLabel.textContent = 'Tái sử dụng dữ liệu có sẵn';
         statusSub.textContent = 'Nội dung trùng khớp, không cần embedding lại.';
         } else {
@@ -820,8 +826,8 @@
 
         if (cfg) {
             const scopeLabel = cfg.scope === 'Global'
-                ? '🌐 Toàn hệ thống'
-                : `📘 ${cfg.subjectName ? escapeHtml(cfg.subjectName) : 'Môn học #' + cfg.subjectId}`;
+                ? 'Toàn hệ thống'
+                : `${cfg.subjectName ? escapeHtml(cfg.subjectName) : 'Môn học #' + cfg.subjectId}`;
             cfgEl.innerHTML = `
             <span><strong>Size</strong> ${cfg.chunkSize}</span>
             <span><strong>Overlap</strong> ${cfg.chunkOverlap}</span>
@@ -1004,10 +1010,10 @@
 
         function statusBadgeHtml(status) {
         const map = {
-        "Pending": ["warning", "⏳ Chờ xử lý"],
-        "Processing": ["info", "⚙️ Đang xử lý"],
-        "Ready": ["success", "✅ Sẵn sàng"],
-        "Failed": ["danger", "❌ Lỗi"]
+        "Pending": ["warning", "Chờ xử lý"],
+        "Processing": ["info", "Đang xử lý"],
+        "Ready": ["success", "Sẵn sàng"],
+        "Failed": ["danger", "Lỗi"]
         };
         const [cls, label] = map[status] || ["secondary", status];
         return `<span class="badge bg-${cls}">${label}</span>`;
@@ -1025,24 +1031,18 @@
         const sizeKb = (doc.fileSize / 1024.0).toFixed(1);
         const createdAt = new Date(doc.createdAt).toLocaleString("vi-VN");
 
-        let actionsHtml = `
-        <a href="/Document/Details/${doc.id}" class="btn btn-sm btn-info" title="Xem chi tiết">🔍</a>
-        <a href="/Document/Download/${doc.id}" class="btn btn-sm btn-primary" title="Tải file gốc">⬇️</a>
-        <button type="button" class="btn btn-sm btn-secondary me-1" title="Xem chunks" onclick="showChunks(${doc.id})">🧩</button>
-        `;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+        let staffActionsHtml = '';
 
         if (isStaffView) {
-        actionsHtml += `<a href="/Document/Edit/${doc.id}" class="btn btn-sm btn-warning" title="Sửa tiêu đề">✏️</a>`;
+        staffActionsHtml += `<li><hr class="dropdown-divider"></li><li><a href="/Document/Edit/${doc.id}" class="dropdown-item"><i class="bi bi-pencil"></i>Sửa tiêu đề</a></li>`;
         if (doc.status !== "Ready" && canTriggerEmbeddingForSubject(doc.subjectId)) {
-        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
-        actionsHtml += `
-        <form action="/Document/TriggerEmbedding/${doc.id}" method="post" class="d-inline trigger-form" data-document-id="${doc.id}">
-        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
-        <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
-        </form>
-        `;
+        staffActionsHtml += `<li class="trigger-action-item"><form action="/Document/TriggerEmbedding/${doc.id}" method="post" class="trigger-form" data-document-id="${doc.id}"><input type="hidden" name="__RequestVerificationToken" value="${token}" /><button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat"></i>Tạo embedding</button></form></li>`;
         }
+        staffActionsHtml += `<li class="delete-action-item"><form action="/Document/Delete/${doc.id}" method="post" onsubmit="return confirm('Xóa tài liệu này?');"><input type="hidden" name="__RequestVerificationToken" value="${token}" /><button type="submit" class="dropdown-item dropdown-item-danger"><i class="bi bi-trash"></i>Xóa tài liệu</button></form></li>`;
         }
+
+        const actionsHtml = `<div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu"><li><a href="/Document/Details/${doc.id}" class="dropdown-item"><i class="bi bi-eye"></i>Xem chi tiết</a></li><li><a href="/Document/Download/${doc.id}" class="dropdown-item"><i class="bi bi-download"></i>Tải file gốc</a></li><li><button type="button" class="dropdown-item" onclick="showChunks(${doc.id})"><i class="bi bi-layout-text-sidebar-reverse"></i>Xem các đoạn nội dung</button></li>${staffActionsHtml}</ul></div>`;
 
         tr.innerHTML = `
         <td>${doc.id}</td>
@@ -1053,7 +1053,7 @@
         <td>${doc.subjectName ?? ''}</td>
         <td>${statusBadgeHtml(doc.status)}</td>
         <td>${createdAt}</td>
-        <td>${actionsHtml}</td>
+        <td class="table-action-column">${actionsHtml}</td>
         `;
 
         tbody.prepend(tr);
@@ -1080,20 +1080,25 @@
         const triggerForm = actionsCell.querySelector('.trigger-form');
 
         if (status === "Ready") {
-        if (triggerForm) triggerForm.remove();
+        if (triggerForm) (triggerForm.closest('li') || triggerForm).remove();
         } else if ((status === "Failed" || status === "Pending") && !triggerForm && canTriggerEmbeddingForSubject(subjectId)) {
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
-        const editBtn = actionsCell.querySelector('a[href^="/Document/Edit/"]');
+        const actionMenu = actionsCell.querySelector('.row-actions-menu');
+        const deleteItem = actionsCell.querySelector('.delete-action-item');
+        if (!actionMenu) return;
+        const newItem = document.createElement('li');
+        newItem.className = 'trigger-action-item';
         const newForm = document.createElement('form');
         newForm.action = `/Document/TriggerEmbedding/${documentId}`;
         newForm.method = 'post';
-        newForm.className = 'd-inline trigger-form';
+        newForm.className = 'trigger-form';
         newForm.setAttribute('data-document-id', documentId);
         newForm.innerHTML = `
         <input type="hidden" name="__RequestVerificationToken" value="${token}" />
-        <button type="submit" class="btn btn-sm btn-success" title="Kích hoạt Embedding">⚡</button>
+        <button type="submit" class="dropdown-item"><i class="bi bi-arrow-repeat"></i>Tạo embedding</button>
         `;
-        if (editBtn) editBtn.after(newForm); else actionsCell.appendChild(newForm);
+        newItem.appendChild(newForm);
+        if (deleteItem) actionMenu.insertBefore(newItem, deleteItem); else actionMenu.appendChild(newItem);
         attachTriggerFormHandler(newForm);
         }
         }

@@ -1,1420 +1,361 @@
-﻿@model IEnumerable<SmartEdu.Shared.DTOs.SubjectDto>
+@model IEnumerable<SmartEdu.Shared.DTOs.SubjectDto>
 
 @{
-    ViewData["Title"] = "So sánh AI Model";
+    ViewData["Title"] = "AI Model Benchmark";
 }
 
 <style>
-    .benchmark-page {
-        max-width: 1500px;
-        margin: 0 auto;
-        padding: 24px 16px 50px;
+    :root {
+        --bm-ink: #17211b;
+        --bm-muted: #67736b;
+        --bm-line: #dde5df;
+        --bm-paper: #ffffff;
+        --bm-soft: #f4f7f4;
+        --bm-green: #246b4b;
+        --bm-green-dark: #194d37;
+        --bm-lime: #cfe36a;
+        --bm-gold: #e5a43b;
+        --bm-coral: #dc725f;
+        --bm-blue: #5a7ea8;
     }
 
-    .benchmark-header {
-        padding: 28px;
-        margin-bottom: 24px;
-        color: white;
-        border-radius: 20px;
-        background: linear-gradient(135deg, #1d4ed8, #4338ca);
-        box-shadow: 0 18px 45px rgba(37, 99, 235, 0.22);
-    }
+    .benchmark-page { max-width: 1440px; margin: 0 auto; padding: 24px 20px 64px; color: var(--bm-ink); }
+    .benchmark-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.5fr .8fr; gap: 30px; padding: 36px 40px; border-radius: 28px; background: #173f31; color: #fff; box-shadow: 0 18px 50px rgba(20,55,42,.16); }
+    .benchmark-hero::after { content: ""; position: absolute; right: -90px; top: -130px; width: 360px; height: 360px; border: 70px solid rgba(207,227,106,.13); border-radius: 50%; }
+    .hero-copy { position: relative; z-index: 1; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 16px; color: #dbe7df; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+    .eyebrow-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--bm-lime); box-shadow: 0 0 0 5px rgba(207,227,106,.12); }
+    .benchmark-hero h1 { max-width: 720px; margin: 0 0 12px; font-size: clamp(30px,4vw,48px); font-weight: 720; line-height: 1.08; letter-spacing: -.035em; }
+    .benchmark-hero p { max-width: 680px; margin: 0; color: #c9d8cf; font-size: 16px; line-height: 1.7; }
+    .hero-note { position: relative; z-index: 1; align-self: end; padding: 18px; border: 1px solid rgba(255,255,255,.14); border-radius: 18px; background: rgba(255,255,255,.08); backdrop-filter: blur(8px); }
+    .hero-note strong { display: block; margin-bottom: 5px; color: var(--bm-lime); font-size: 14px; }
+    .hero-note span { color: #d5e0da; font-size: 13px; line-height: 1.55; }
 
-        .benchmark-header h1 {
-            margin: 0 0 8px;
-            font-size: 30px;
-            font-weight: 750;
-        }
+    .benchmark-tabs { position: sticky; top: 74px; z-index: 8; display: inline-flex; gap: 5px; margin: 22px 0; padding: 5px; border: 1px solid var(--bm-line); border-radius: 14px; background: rgba(255,255,255,.92); box-shadow: 0 8px 28px rgba(23,33,27,.07); backdrop-filter: blur(10px); }
+    .benchmark-tab { display: inline-flex; align-items: center; gap: 9px; padding: 11px 18px; color: var(--bm-muted); font-size: 14px; font-weight: 700; border: 0; border-radius: 10px; background: transparent; transition: color .2s, background .2s, transform .2s; }
+    .benchmark-tab:hover { color: var(--bm-ink); transform: translateY(-1px); }
+    .benchmark-tab.active { color: #fff; background: var(--bm-green); box-shadow: 0 6px 16px rgba(36,107,75,.22); }
 
-        .benchmark-header p {
-            max-width: 950px;
-            margin: 0;
-            opacity: 0.9;
-        }
+    .benchmark-panel { display: none; }
+    .benchmark-panel.active { display: block; animation: panel-in .38s ease both; }
+    @@keyframes panel-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .workspace { display: grid; grid-template-columns: minmax(300px, .72fr) minmax(0, 1.55fr); gap: 22px; align-items: start; }
+    .setup-card, .results-shell { border: 1px solid var(--bm-line); border-radius: 22px; background: var(--bm-paper); box-shadow: 0 10px 35px rgba(30,52,40,.055); }
+    .setup-card { position: sticky; top: 146px; padding: 24px; }
+    .section-kicker { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: var(--bm-green); font-size: 12px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+    .setup-card h2, .results-heading h2 { margin: 0; font-size: 22px; font-weight: 750; letter-spacing: -.02em; }
+    .setup-description { margin: 8px 0 22px; color: var(--bm-muted); font-size: 14px; line-height: 1.6; }
+    .form-stack { display: grid; gap: 16px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .benchmark-label { display: flex; justify-content: space-between; margin-bottom: 7px; color: #38443c; font-size: 13px; font-weight: 700; }
+    .label-help { color: #98a29b; font-size: 11px; font-weight: 500; }
+    .benchmark-input, .benchmark-select { width: 100%; padding: 11px 12px; color: var(--bm-ink); font-size: 14px; border: 1px solid #ccd7cf; border-radius: 10px; background: #fbfcfb; outline: none; transition: border-color .2s, box-shadow .2s, background .2s; }
+    .benchmark-input:focus, .benchmark-select:focus { border-color: var(--bm-green); background: #fff; box-shadow: 0 0 0 4px rgba(36,107,75,.09); }
+    .model-stack { display: grid; gap: 8px; }
+    .model-pill { display: flex; align-items: center; gap: 11px; padding: 11px 12px; border: 1px solid var(--bm-line); border-radius: 11px; background: var(--bm-soft); }
+    .model-mark { display: grid; place-items: center; flex: 0 0 30px; height: 30px; color: var(--bm-green); border-radius: 9px; background: #e2eee7; }
+    .model-meta { min-width: 0; }
+    .model-meta strong { display: block; font-size: 13px; }
+    .model-meta code { display: block; overflow: hidden; color: var(--bm-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+    .benchmark-button { width: 100%; display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 5px; padding: 13px 18px; color: #fff; font-weight: 750; border: 0; border-radius: 11px; background: var(--bm-green); box-shadow: 0 8px 20px rgba(36,107,75,.2); transition: transform .2s, background .2s, box-shadow .2s; }
+    .benchmark-button:hover { background: var(--bm-green-dark); transform: translateY(-2px); box-shadow: 0 11px 24px rgba(36,107,75,.25); }
+    .benchmark-button:disabled { opacity: .65; transform: none; }
 
-    .benchmark-tabs {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 22px;
-        padding: 6px;
-        border: 1px solid #e5e7eb;
-        border-radius: 14px;
-        background: white;
-    }
+    .results-shell { min-height: 540px; padding: 24px; }
+    .results-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--bm-line); }
+    .results-heading p { margin: 6px 0 0; color: var(--bm-muted); font-size: 13px; }
+    .results-status { padding: 6px 10px; color: var(--bm-green); font-size: 11px; font-weight: 750; border-radius: 999px; background: #e7f1eb; }
+    .empty-state { display: grid; place-items: center; min-height: 420px; text-align: center; }
+    .empty-icon { display: grid; place-items: center; width: 76px; height: 76px; margin: 0 auto 18px; color: var(--bm-green); font-size: 29px; border-radius: 24px; background: #edf4ef; transform: rotate(-3deg); }
+    .empty-state h3 { margin: 0 0 7px; font-size: 18px; }
+    .empty-state p { max-width: 390px; margin: 0; color: var(--bm-muted); font-size: 14px; line-height: 1.6; }
+    .benchmark-loading { display: none; place-items: center; min-height: 420px; }
+    .benchmark-loading.active { display: grid; }
+    .loading-orbit { position: relative; width: 58px; height: 58px; margin-bottom: 18px; border: 2px solid #dfe8e2; border-radius: 50%; }
+    .loading-orbit::before { content: ""; position: absolute; inset: -2px; border: 2px solid transparent; border-top-color: var(--bm-green); border-radius: 50%; animation: spin .8s linear infinite; }
+    .loading-orbit::after { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: var(--bm-lime); }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .loading-copy { text-align: center; color: var(--bm-muted); font-size: 14px; }
+    .loading-copy strong { display: block; margin-bottom: 4px; color: var(--bm-ink); }
+    .benchmark-error { display: none; margin-top: 16px; padding: 12px 14px; color: #8b352c; font-size: 13px; border: 1px solid #efc9c2; border-radius: 10px; background: #fff4f1; }
+    .benchmark-error.active { display: block; }
 
-    .benchmark-tab {
-        flex: 1;
-        padding: 12px 18px;
-        color: #475569;
-        font-weight: 650;
-        border: 0;
-        border-radius: 10px;
-        background: transparent;
-        transition: 0.2s ease;
-    }
+    .results-content { padding-top: 20px; animation: result-in .45s ease both; }
+    @@keyframes result-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+    .winner-banner { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; padding: 14px 16px; border: 1px solid #dce7b1; border-radius: 14px; background: #f7fae9; }
+    .winner-icon { display: grid; place-items: center; flex: 0 0 38px; height: 38px; color: #5b6e13; border-radius: 11px; background: var(--bm-lime); }
+    .winner-banner strong { display: block; font-size: 14px; }
+    .winner-banner span { color: var(--bm-muted); font-size: 12px; }
+    .chart-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin-bottom: 20px; }
+    .chart-card { padding: 16px; border: 1px solid var(--bm-line); border-radius: 15px; background: #fbfcfb; }
+    .chart-title { margin-bottom: 16px; color: #47534b; font-size: 12px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+    .bar-list { display: grid; gap: 13px; }
+    .bar-row-head { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-size: 12px; }
+    .bar-row-head span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-row-head strong { white-space: nowrap; }
+    .bar-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e7ece8; }
+    .bar-fill { width: 0; height: 100%; border-radius: inherit; background: var(--bar-color,var(--bm-green)); animation: grow-bar .75s .1s cubic-bezier(.22,.8,.3,1) forwards; }
+    @@keyframes grow-bar { to { width: var(--bar-width); } }
+    .result-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 14px; }
+    .result-card { position: relative; overflow: hidden; border: 1px solid var(--bm-line); border-radius: 16px; background: #fff; transition: transform .22s, box-shadow .22s; }
+    .result-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(29,54,40,.09); }
+    .result-card.is-winner { border-color: #b9cc68; }
+    .winner-tag { position: absolute; right: 12px; top: 12px; z-index: 1; padding: 4px 8px; color: #42500d; font-size: 10px; font-weight: 800; border-radius: 999px; background: var(--bm-lime); }
+    .result-card-header { padding: 16px 18px; border-bottom: 1px solid var(--bm-line); background: #f8faf8; }
+    .result-card-header h3 { margin: 0 0 4px; padding-right: 58px; font-size: 15px; overflow-wrap: anywhere; }
+    .result-card-header small { color: var(--bm-muted); }
+    .result-card-body { padding: 17px; }
+    .metrics-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 16px; }
+    .metric-box { padding: 11px; border-radius: 10px; background: var(--bm-soft); }
+    .metric-label { display: block; margin-bottom: 3px; color: var(--bm-muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+    .metric-value { font-size: 17px; font-weight: 760; }
+    .detail-title { display: flex; align-items: center; gap: 7px; margin: 15px 0 9px; font-size: 13px; font-weight: 750; }
+    .chunk-list { display: grid; gap: 8px; }
+    .chunk-item { padding: 11px; border-left: 3px solid #aac0b1; border-radius: 4px 9px 9px 4px; background: var(--bm-soft); }
+    .chunk-header { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 5px; font-size: 11px; font-weight: 750; }
+    .chunk-source { margin-bottom: 5px; color: var(--bm-green); font-size: 11px; }
+    .chunk-content { display: -webkit-box; overflow: hidden; color: #58635c; font-size: 12px; line-height: 1.55; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+    .answer-box { max-height: 300px; overflow-y: auto; padding: 13px; color: #465149; white-space: pre-wrap; font-size: 13px; line-height: 1.65; border-radius: 10px; background: var(--bm-soft); }
+    .card-error { color: #8b352c; font-size: 13px; line-height: 1.5; }
 
-        .benchmark-tab.active {
-            color: white;
-            background: #2563eb;
-            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
-        }
-
-    .benchmark-panel {
-        display: none;
-    }
-
-        .benchmark-panel.active {
-            display: block;
-        }
-
-    .benchmark-card {
-        padding: 24px;
-        margin-bottom: 22px;
-        border: 1px solid #e5e7eb;
-        border-radius: 18px;
-        background: white;
-        box-shadow: 0 8px 30px rgba(15, 23, 42, 0.06);
-    }
-
-        .benchmark-card h2 {
-            margin-bottom: 6px;
-            color: #0f172a;
-            font-size: 21px;
-            font-weight: 750;
-        }
-
-    .benchmark-card-description {
-        margin-bottom: 22px;
-        color: #64748b;
-    }
-
-    .benchmark-label {
-        display: block;
-        margin-bottom: 7px;
-        color: #334155;
-        font-weight: 650;
-    }
-
-    .benchmark-input,
-    .benchmark-select {
-        width: 100%;
-        padding: 11px 13px;
-        color: #0f172a;
-        border: 1px solid #cbd5e1;
-        border-radius: 10px;
-        background: white;
-        outline: none;
-    }
-
-        .benchmark-input:focus,
-        .benchmark-select:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
-        }
-
-    .benchmark-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 18px;
-    }
-
-    .benchmark-grid-3 {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 18px;
-    }
-
-    .model-list {
-        display: grid;
-        gap: 10px;
-    }
-
-    .model-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 13px;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        background: #f8fafc;
-    }
-
-    .model-name {
-        overflow-wrap: anywhere;
-        color: #0f172a;
-        font-family: monospace;
-        font-size: 13px;
-    }
-
-    .benchmark-button {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        min-width: 190px;
-        padding: 12px 18px;
-        color: white;
-        font-weight: 700;
-        border: 0;
-        border-radius: 11px;
-        background: #2563eb;
-        transition: 0.2s ease;
-    }
-
-        .benchmark-button:hover {
-            background: #1d4ed8;
-            transform: translateY(-1px);
-        }
-
-        .benchmark-button:disabled {
-            cursor: not-allowed;
-            opacity: 0.65;
-            transform: none;
-        }
-
-    .benchmark-actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 22px;
-    }
-
-    .benchmark-results {
-        margin-top: 24px;
-    }
-
-    .result-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-        gap: 18px;
-    }
-
-    .result-card {
-        overflow: hidden;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        background: white;
-    }
-
-    .result-card-header {
-        padding: 16px 18px;
-        color: white;
-        background: linear-gradient(135deg, #2563eb, #4f46e5);
-    }
-
-        .result-card-header h3 {
-            margin: 0 0 4px;
-            font-size: 17px;
-            overflow-wrap: anywhere;
-        }
-
-        .result-card-header small {
-            opacity: 0.88;
-        }
-
-    .result-card-body {
-        padding: 18px;
-    }
-
-    .metrics-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-bottom: 16px;
-    }
-
-    .metric-box {
-        padding: 12px;
-        border: 1px solid #e2e8f0;
-        border-radius: 11px;
-        background: #f8fafc;
-    }
-
-    .metric-label {
-        display: block;
-        margin-bottom: 4px;
-        color: #64748b;
-        font-size: 12px;
-    }
-
-    .metric-value {
-        color: #0f172a;
-        font-size: 18px;
-        font-weight: 750;
-    }
-
-    .chunk-item {
-        padding: 12px;
-        margin-top: 10px;
-        border: 1px solid #e2e8f0;
-        border-radius: 11px;
-        background: #f8fafc;
-    }
-
-    .chunk-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 7px;
-        color: #334155;
-        font-weight: 700;
-    }
-
-    .chunk-content {
-        color: #475569;
-        font-size: 14px;
-        line-height: 1.6;
-        white-space: pre-wrap;
-    }
-
-    .answer-box {
-        max-height: 430px;
-        overflow-y: auto;
-        padding: 14px;
-        color: #334155;
-        white-space: pre-wrap;
-        line-height: 1.65;
-        border: 1px solid #e2e8f0;
-        border-radius: 11px;
-        background: #f8fafc;
-    }
-
-    .benchmark-loading {
-        display: none;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 28px;
-        color: #475569;
-    }
-
-        .benchmark-loading.active {
-            display: flex;
-        }
-
-    .benchmark-error {
-        display: none;
-        padding: 14px 16px;
-        margin-top: 18px;
-        color: #991b1b;
-        border: 1px solid #fecaca;
-        border-radius: 11px;
-        background: #fef2f2;
-        white-space: pre-wrap;
-    }
-
-        .benchmark-error.active {
-            display: block;
-        }
-
-    .provider-badge {
-        display: inline-flex;
-        padding: 4px 9px;
-        margin-bottom: 8px;
-        color: #1e40af;
-        font-size: 12px;
-        font-weight: 700;
-        border-radius: 999px;
-        background: #dbeafe;
-    }
-
-    @@media (max-width: 900px) {
-        .benchmark-grid,
-        .benchmark-grid-3 {
-            grid-template-columns: 1fr;
-        }
-    }
+    @@media (max-width: 1050px) { .workspace { grid-template-columns: 1fr; } .setup-card { position: static; } .benchmark-hero { grid-template-columns: 1fr; } .hero-note { max-width: 500px; } }
+    @@media (max-width: 700px) { .benchmark-page { padding: 14px 10px 45px; } .benchmark-hero { padding: 26px 22px; border-radius: 20px; } .benchmark-tabs { top: 62px; display: flex; } .benchmark-tab { flex: 1; padding: 10px 12px; font-size: 12px; } .form-row, .chart-grid { grid-template-columns: 1fr; } .setup-card, .results-shell { padding: 18px; border-radius: 17px; } .results-heading { align-items: center; } }
+    @@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 </style>
 
-<div class="benchmark-page">
+<main class="benchmark-page">
+    <header class="benchmark-hero">
+        <div class="hero-copy">
+            <div class="eyebrow"><span class="eyebrow-dot"></span> SmartEdu Lab</div>
+           <h1 style="color: white;">Đặt các mô hình lên cùng một thước đo.</h1>
+            <p>Đánh giá khả năng tìm đúng ngữ cảnh và chất lượng câu trả lời bằng dữ liệu thật của môn học — rõ ràng, trực quan và dễ đối chiếu.</p>
+        </div>
+        <aside class="hero-note">
+            <strong><i class="bi bi-lightbulb me-1"></i> Cách đọc kết quả</strong>
+            <span>Độ bám sát, liên quan, đầy đủ và điểm tổng hợp càng cao càng tốt. Hallucination càng thấp càng đáng tin cậy.</span>
+        </aside>
+    </header>
 
-    <section class="benchmark-header">
-        <h1>
-            <i class="bi bi-cpu"></i>
-            AI Model Benchmark
-        </h1>
+    <nav class="benchmark-tabs" aria-label="Chế độ benchmark">
+        <button type="button" class="benchmark-tab active" data-panel="embeddingPanel"><i class="bi bi-bezier2"></i> Tìm kiếm chunk</button>
+        <button type="button" class="benchmark-tab" data-panel="chatPanel"><i class="bi bi-chat-square-dots"></i> Trả lời AI</button>
+    </nav>
 
-        <p>
-            So sánh khả năng tìm kiếm chunk giữa hai embedding model
-            và so sánh câu trả lời của Gemini, Groq và OpenRouter dựa trên
-            tài liệu đã lưu trong hệ thống.
-        </p>
+    <section id="embeddingPanel" class="benchmark-panel active">
+        <div class="workspace">
+            <aside class="setup-card">
+                <div class="section-kicker"><i class="bi bi-sliders2"></i> Thiết lập phép thử</div>
+                <h2>Khả năng tìm chunk</h2>
+                <p class="setup-description">Cùng một câu hỏi được mã hóa bởi hai embedding model để đo model nào tìm đúng nội dung tốt hơn.</p>
+                <div class="form-stack">
+                    <div><label class="benchmark-label" for="embeddingSubjectId">Môn học</label><select id="embeddingSubjectId" class="benchmark-select"><option value="">Chọn môn học</option>@if (Model != null) { foreach (var subject in Model) { <option value="@subject.Id">@subject.Name</option> } }</select></div>
+                    <div><label class="benchmark-label" for="embeddingQuery">Câu hỏi tìm kiếm</label><input id="embeddingQuery" class="benchmark-input" placeholder="Ví dụ: RAG hoạt động như thế nào?" /></div>
+                    <div class="form-row">
+                        <div><label class="benchmark-label" for="candidateLimit">Chunk kiểm tra <span class="label-help">1–100</span></label><input id="candidateLimit" class="benchmark-input" type="number" min="1" max="100" value="10" /></div>
+                        <div><label class="benchmark-label" for="embeddingTopK">Top K <span class="label-help">1–20</span></label><input id="embeddingTopK" class="benchmark-input" type="number" min="1" max="20" value="3" /></div>
+                    </div>
+                    <div><label class="benchmark-label" for="expectedChunkIds">Chunk đúng mong đợi <span class="label-help">Không bắt buộc</span></label><input id="expectedChunkIds" class="benchmark-input" placeholder="Ví dụ: 12, 15, 18" /></div>
+                    <div>
+                        <label class="benchmark-label">Mô hình tham gia</label>
+                        <div class="model-stack">
+                            <div class="model-pill"><span class="model-mark"><i class="bi bi-vector-pen"></i></span><div class="model-meta"><strong>Multilingual E5</strong><code>intfloat/multilingual-e5-base</code></div></div>
+                            <div class="model-pill"><span class="model-mark"><i class="bi bi-vector-pen"></i></span><div class="model-meta"><strong>Multilingual MPNet</strong><code>paraphrase-multilingual-mpnet-base-v2</code></div></div>
+                        </div>
+                    </div>
+                    <button id="runEmbeddingButton" type="button" class="benchmark-button"><i class="bi bi-play-circle"></i> Bắt đầu so sánh</button>
+                </div>
+                <div id="embeddingError" class="benchmark-error" role="alert"></div>
+            </aside>
+            <div class="results-shell">
+                <div class="results-heading"><div><div class="section-kicker"><i class="bi bi-graph-up"></i> Báo cáo trực quan</div><h2>Kết quả truy xuất</h2><p>So sánh tốc độ, độ tương đồng và Recall@@K.</p></div><span class="results-status">Embedding</span></div>
+                <div id="embeddingLoading" class="benchmark-loading"><div style="
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+"><div class="loading-orbit"></div><div class="loading-copy"><strong>Đang phân tích dữ liệu</strong>Việc tạo embedding có thể mất một chút thời gian.</div></div></div>
+                <div id="embeddingResults" class="benchmark-results"><div class="empty-state"><div><div class="empty-icon"><i class="bi bi-bar-chart-line"></i></div><h3>Chưa có phép thử nào</h3><p>Chọn môn học, nhập câu hỏi rồi bắt đầu. Biểu đồ và model nổi bật sẽ xuất hiện tại đây.</p></div></div></div>
+            </div>
+        </div>
     </section>
 
-    <div class="benchmark-tabs">
-        <button type="button"
-                class="benchmark-tab active"
-                data-panel="embeddingPanel">
+    <section id="chatPanel" class="benchmark-panel">
+        <div class="workspace">
+            <aside class="setup-card">
+                <div class="section-kicker"><i class="bi bi-sliders2"></i> Thiết lập phép thử</div>
+                <h2>Chất lượng trả lời</h2>
+                <p class="setup-description">Ba model nhận cùng câu hỏi và context để việc so sánh công bằng hơn.</p>
+                <div class="form-stack">
+                    <div><label class="benchmark-label" for="chatSubjectId">Môn học</label><select id="chatSubjectId" class="benchmark-select"><option value="">Chọn môn học</option>@if (Model != null) { foreach (var subject in Model) { <option value="@subject.Id">@subject.Name</option> } }</select></div>
+                    <div><label class="benchmark-label" for="chatQuestion">Câu hỏi</label><input id="chatQuestion" class="benchmark-input" placeholder="Ví dụ: RAG mang lại lợi ích gì?" /></div>
+                    <div><label class="benchmark-label" for="expectedKeywords">Từ khóa mong đợi <span class="label-help">Phân cách bằng dấu phẩy</span></label><input id="expectedKeywords" class="benchmark-input" placeholder="độ chính xác, tài liệu, hallucination" /></div>
+                    <div class="form-row">
+                        <div><label class="benchmark-label" for="chatTopK">Chunk context <span class="label-help">1–10</span></label><input id="chatTopK" class="benchmark-input" type="number" min="1" max="10" value="5" /></div>
+                        <div><label class="benchmark-label" for="maxOutputTokens">Output token</label><input id="maxOutputTokens" class="benchmark-input" type="number" min="100" max="8192" value="500" /></div>
+                    </div>
+                    <div>
+                        <label class="benchmark-label">Mô hình tham gia</label>
+                        <div class="model-stack">
+                            <div class="model-pill"><span class="model-mark"><i class="bi bi-google"></i></span><div class="model-meta"><strong>Gemini</strong><code>gemini-2.5-flash</code></div></div>
+                            <div class="model-pill"><span class="model-mark"><i class="bi bi-speedometer2"></i></span><div class="model-meta"><strong>Groq</strong><code>llama-3.3-70b-versatile</code></div></div>
+                            <div class="model-pill"><span class="model-mark"><i class="bi bi-signpost-split"></i></span><div class="model-meta"><strong>OpenRouter</strong><code>deepseek/deepseek-chat</code></div></div>
+                        </div>
+                    </div>
+                    <button id="runChatButton" type="button" class="benchmark-button"><i class="bi bi-play-circle"></i> So sánh 3 mô hình</button>
+                </div>
+                <div id="chatError" class="benchmark-error" role="alert"></div>
+            </aside>
+            <div class="results-shell">
+                <div class="results-heading"><div><div class="section-kicker"><i class="bi bi-graph-up"></i> Báo cáo trực quan</div><h2>Kết quả trả lời</h2><p>So sánh độ tin cậy, liên quan, đầy đủ và hiệu suất.</p></div><span class="results-status">Generative AI</span></div>
+                <div id="chatLoading" class="benchmark-loading"><div style="
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    text-align: center;
+">
+    <div class="loading-orbit"></div>
 
-            <i class="bi bi-diagram-3"></i>
-            Embedding / Tìm chunk
-        </button>
-
-        <button type="button"
-                class="benchmark-tab"
-                data-panel="chatPanel">
-
-            <i class="bi bi-chat-square-text"></i>
-            Chat / Sinh câu trả lời
-        </button>
+    <div class="loading-copy">
+        <strong>Đang hỏi 3 mô hình</strong>
+        <span>Các phản hồi đang được xử lý song song.</span>
     </div>
-
-    <!-- EMBEDDING BENCHMARK -->
-    <section id="embeddingPanel"
-             class="benchmark-panel active">
-
-        <div class="benchmark-card">
-            <h2>So sánh Embedding Model</h2>
-
-            <p class="benchmark-card-description">
-                Hệ thống tạo embedding cho câu hỏi và các chunk bằng từng
-                model, sau đó tính Cosine Similarity để tìm nội dung phù hợp.
-            </p>
-
-            <div class="benchmark-grid">
-                <div>
-                    <label for="embeddingSubjectId"
-                           class="benchmark-label">
-
-                        Môn học
-                    </label>
-
-                    <select id="embeddingSubjectId"
-                            class="benchmark-select">
-
-                        <option value="">
-                            -- Chọn môn học --
-                        </option>
-
-                        @if (Model != null)
-                        {
-                            foreach (var subject in Model)
-                            {
-                                <option value="@subject.Id">
-                                    @subject.Name
-                                </option>
-                            }
-                        }
-                    </select>
-                </div>
-
-                <div>
-                    <label for="embeddingQuery"
-                           class="benchmark-label">
-
-                        Câu hỏi tìm kiếm
-                    </label>
-
-                    <input id="embeddingQuery"
-                           class="benchmark-input"
-                           placeholder="Ví dụ: Trí tuệ nhân tạo là gì?" />
-                </div>
-            </div>
-
-            <div class="benchmark-grid-3 mt-3">
-                <div>
-                    <label for="candidateLimit"
-                           class="benchmark-label">
-
-                        Số chunk kiểm tra
-                    </label>
-
-                    <input id="candidateLimit"
-                           class="benchmark-input"
-                           type="number"
-                           min="1"
-                           max="100"
-                           value="10" />
-                </div>
-
-                <div>
-                    <label for="embeddingTopK"
-                           class="benchmark-label">
-
-                        Top K kết quả
-                    </label>
-
-                    <input id="embeddingTopK"
-                           class="benchmark-input"
-                           type="number"
-                           min="1"
-                           max="20"
-                           value="3" />
-                </div>
-
-                <div>
-                    <label for="expectedChunkIds"
-                           class="benchmark-label">
-
-                        Chunk đúng mong đợi
-                    </label>
-
-                    <input id="expectedChunkIds"
-                           class="benchmark-input"
-                           placeholder="Ví dụ: 12,15,18" />
-                </div>
-            </div>
-
-            <div class="mt-3">
-                <span class="benchmark-label">
-                    Embedding models
-                </span>
-
-                <div class="model-list">
-                    <div class="model-item">
-                        <input type="checkbox"
-                               checked
-                               disabled />
-
-                        <span class="model-name">
-                            intfloat/multilingual-e5-base
-                        </span>
-                    </div>
-
-                    <div class="model-item">
-                        <input type="checkbox"
-                               checked
-                               disabled />
-
-                        <span class="model-name">
-                            sentence-transformers/paraphrase-multilingual-mpnet-base-v2
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="benchmark-actions">
-                <button id="runEmbeddingButton"
-                        type="button"
-                        class="benchmark-button">
-
-                    <i class="bi bi-play-fill"></i>
-                    Chạy so sánh
-                </button>
-            </div>
-
-            <div id="embeddingError"
-                 class="benchmark-error">
-            </div>
-
-            <div id="embeddingLoading"
-                 class="benchmark-loading">
-
-                <div class="spinner-border text-primary"
-                     role="status">
-                </div>
-
-                <span>
-                    Đang tạo embedding và so sánh các chunk...
-                </span>
-            </div>
-
-            <div id="embeddingResults"
-                 class="benchmark-results">
-            </div>
-        </div>
-    </section>
-
-    <!-- CHAT BENCHMARK -->
-    <section id="chatPanel"
-             class="benchmark-panel">
-
-        <div class="benchmark-card">
-            <h2>So sánh 3 Chat AI</h2>
-
-            <p class="benchmark-card-description">
-                Hệ thống tự tìm các chunk phù hợp trong dữ liệu đã lưu.
-                Cùng một context sẽ được gửi cho Gemini, Groq và
-                OpenRouter để so sánh kết quả.
-            </p>
-
-            <div class="benchmark-grid">
-                <div>
-                    <label for="chatSubjectId"
-                           class="benchmark-label">
-
-                        Môn học
-                    </label>
-
-                    <select id="chatSubjectId"
-                            class="benchmark-select">
-
-                        <option value="">
-                            -- Chọn môn học --
-                        </option>
-
-                        @if (Model != null)
-                        {
-                            foreach (var subject in Model)
-                            {
-                                <option value="@subject.Id">
-                                    @subject.Name
-                                </option>
-                            }
-                        }
-                    </select>
-                </div>
-
-                <div>
-                    <label for="chatTopK"
-                           class="benchmark-label">
-
-                        Số chunk dùng làm context
-                    </label>
-
-                    <input id="chatTopK"
-                           class="benchmark-input"
-                           type="number"
-                           min="1"
-                           max="10"
-                           value="5" />
-                </div>
-            </div>
-
-            <div class="mt-3">
-                <label for="chatQuestion"
-                       class="benchmark-label">
-
-                    Câu hỏi
-                </label>
-
-                <input id="chatQuestion"
-                       class="benchmark-input"
-                       placeholder="Ví dụ: RAG mang lại lợi ích gì?" />
-            </div>
-
-            <div class="benchmark-grid mt-3">
-                <div>
-                    <label for="expectedKeywords"
-                           class="benchmark-label">
-
-                        Từ khóa mong đợi
-                    </label>
-
-                    <input id="expectedKeywords"
-                           class="benchmark-input"
-                           placeholder="Ví dụ: hallucination,độ chính xác,tài liệu" />
-                </div>
-
-                <div>
-                    <label for="maxOutputTokens"
-                           class="benchmark-label">
-
-                        Giới hạn output token
-                    </label>
-
-                    <input id="maxOutputTokens"
-                           class="benchmark-input"
-                           type="number"
-                           min="100"
-                           max="8192"
-                           value="500" />
-                </div>
-            </div>
-
-            <div class="mt-3">
-                <span class="benchmark-label">
-                    Chat models
-                </span>
-
-                <div class="benchmark-grid-3">
-                    <div class="model-item">
-                        <div>
-                            <strong>Google Gemini</strong>
-
-                            <div class="model-name">
-                                gemini-2.5-flash
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="model-item">
-                        <div>
-                            <strong>Groq</strong>
-
-                            <div class="model-name">
-                                llama-3.3-70b-versatile
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="model-item">
-                        <div>
-                            <strong>OpenRouter</strong>
-
-                            <div class="model-name">
-                                deepseek/deepseek-chat
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="benchmark-actions">
-                <button id="runChatButton"
-                        type="button"
-                        class="benchmark-button">
-
-                    <i class="bi bi-play-fill"></i>
-                    So sánh 3 AI
-                </button>
-            </div>
-
-            <div id="chatError"
-                 class="benchmark-error">
-            </div>
-
-            <div id="chatLoading"
-                 class="benchmark-loading">
-
-                <div class="spinner-border text-primary"
-                     role="status">
-                </div>
-
-                <span>
-                    Đang tìm chunk và chờ phản hồi từ 3 AI...
-                </span>
-            </div>
-
-            <div id="chatResults"
-                 class="benchmark-results">
-            </div>
-        </div>
-    </section>
 </div>
+</div>
+                <div id="chatResults" class="benchmark-results"><div class="empty-state"><div><div class="empty-icon"><i class="bi bi-chat-left-text"></i></div><h3>Sẵn sàng để so sánh</h3><p>Nhập câu hỏi và từ khóa mong đợi. Kết quả sẽ được xếp hạng và minh họa bằng biểu đồ.</p></div></div></div>
+            </div>
+        </div>
+    </section>
+</main>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const tabs =
-            document.querySelectorAll(".benchmark-tab");
-
-        tabs.forEach(tab => {
-            tab.addEventListener("click", function () {
-                tabs.forEach(item =>
-                    item.classList.remove("active"));
-
-                document
-                    .querySelectorAll(".benchmark-panel")
-                    .forEach(panel =>
-                        panel.classList.remove("active"));
-
-                this.classList.add("active");
-
-                const panel =
-                    document.getElementById(
-                        this.dataset.panel);
-
-                if (panel) {
-                    panel.classList.add("active");
-                }
-            });
-        });
-
-        document
-            .getElementById("runEmbeddingButton")
-            .addEventListener(
-                "click",
-                runEmbeddingBenchmark);
-
-        document
-            .getElementById("runChatButton")
-            .addEventListener(
-                "click",
-                runChatBenchmark);
-    });
-
-    async function runEmbeddingBenchmark() {
-        const subjectId =
-            Number(
-                document
-                    .getElementById("embeddingSubjectId")
-                    .value
-            );
-
-        const query =
-            document
-                .getElementById("embeddingQuery")
-                .value
-                .trim();
-
-        const candidateLimit =
-            Number(
-                document
-                    .getElementById("candidateLimit")
-                    .value
-            );
-
-        const topK =
-            Number(
-                document
-                    .getElementById("embeddingTopK")
-                    .value
-            );
-
-        const expectedChunkIds =
-            parseNumberList(
-                document
-                    .getElementById("expectedChunkIds")
-                    .value
-            );
-
-        const errorElement =
-            document.getElementById("embeddingError");
-
-        hideError(errorElement);
-
-        if (!subjectId) {
-            showError(
-                errorElement,
-                "Vui lòng chọn môn học.");
-
-            return;
-        }
-
-        if (!query) {
-            showError(
-                errorElement,
-                "Vui lòng nhập câu hỏi tìm kiếm.");
-
-            return;
-        }
-
-        if (!candidateLimit ||
-            candidateLimit < 1 ||
-            candidateLimit > 100) {
-
-            showError(
-                errorElement,
-                "Số chunk kiểm tra phải từ 1 đến 100.");
-
-            return;
-        }
-
-        if (!topK || topK < 1 || topK > 20) {
-            showError(
-                errorElement,
-                "Top K phải từ 1 đến 20.");
-
-            return;
-        }
-
-        if (topK > candidateLimit) {
-            showError(
-                errorElement,
-                "Top K không được lớn hơn số chunk kiểm tra.");
-
-            return;
-        }
-
-        const body = {
-            subjectId: subjectId,
-            query: query,
-            models: [
-                "intfloat/multilingual-e5-base",
-                "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-            ],
-            candidateLimit: candidateLimit,
-            topK: topK,
-            expectedChunkIds: expectedChunkIds
-        };
-
-        const button =
-            document.getElementById(
-                "runEmbeddingButton");
-
-        const loading =
-            document.getElementById(
-                "embeddingLoading");
-
-        const results =
-            document.getElementById(
-                "embeddingResults");
-
-        button.disabled = true;
-        loading.classList.add("active");
-        results.innerHTML = "";
-
-        try {
-            const response = await fetch(
-                "/ModelBenchmark/CompareEmbedding",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body: JSON.stringify(body)
-                });
-
-            const result =
-                await readJsonResponse(response);
-
-            if (!response.ok || !result.success) {
-                throw new Error(
-                    result.message
-                    || "Không thể chạy embedding benchmark.");
-            }
-
-            renderEmbeddingResults(result.data);
-        }
-        catch (error) {
-            showError(
-                errorElement,
-                error.message);
-        }
-        finally {
-            button.disabled = false;
-            loading.classList.remove("active");
-        }
-    }
-
-    async function runChatBenchmark() {
-        const subjectId =
-            Number(
-                document
-                    .getElementById("chatSubjectId")
-                    .value
-            );
-
-        const question =
-            document
-                .getElementById("chatQuestion")
-                .value
-                .trim();
-
-        const topK =
-            Number(
-                document
-                    .getElementById("chatTopK")
-                    .value
-            );
-
-        const expectedKeywords =
-            parseTextList(
-                document
-                    .getElementById("expectedKeywords")
-                    .value
-            );
-
-        const maxOutputTokens =
-            Number(
-                document
-                    .getElementById("maxOutputTokens")
-                    .value
-            );
-
-        const errorElement =
-            document.getElementById("chatError");
-
-        hideError(errorElement);
-
-        if (!subjectId) {
-            showError(
-                errorElement,
-                "Vui lòng chọn môn học.");
-
-            return;
-        }
-
-        if (!question) {
-            showError(
-                errorElement,
-                "Vui lòng nhập câu hỏi.");
-
-            return;
-        }
-
-        if (!topK || topK < 1 || topK > 10) {
-            showError(
-                errorElement,
-                "Top K phải nằm trong khoảng từ 1 đến 10.");
-
-            return;
-        }
-
-        if (!maxOutputTokens ||
-            maxOutputTokens < 100 ||
-            maxOutputTokens > 8192) {
-
-            showError(
-                errorElement,
-                "Output token phải nằm trong khoảng 100 đến 8192.");
-
-            return;
-        }
-
-        const body = {
-            subjectId: subjectId,
-            question: question,
-            topK: topK,
-
-            embeddingModel:
-                "intfloat/multilingual-e5-base",
-
-            targets: [
-                {
-                    provider: "Gemini",
-                    model: "gemini-2.5-flash"
-                },
-                {
-                    provider: "Groq",
-                    model: "llama-3.3-70b-versatile"
-                },
-                {
-                    provider: "OpenRouter",
-                    model: "deepseek/deepseek-chat"
-                }
-            ],
-
-            expectedKeywords: expectedKeywords,
-            temperature: 0.3,
-            maxOutputTokens: maxOutputTokens
-        };
-
-        const button =
-            document.getElementById(
-                "runChatButton");
-
-        const loading =
-            document.getElementById(
-                "chatLoading");
-
-        const results =
-            document.getElementById(
-                "chatResults");
-
-        button.disabled = true;
-        loading.classList.add("active");
-        results.innerHTML = "";
-
-        try {
-            const response = await fetch(
-                "/ModelBenchmark/CompareChat",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body: JSON.stringify(body)
-                });
-
-            const result =
-                await readJsonResponse(response);
-
-            if (!response.ok || !result.success) {
-                throw new Error(
-                    result.message
-                    || "Không thể chạy chat benchmark.");
-            }
-
-            renderChatResults(result.data);
-        }
-        catch (error) {
-            showError(
-                errorElement,
-                error.message);
-        }
-        finally {
-            button.disabled = false;
-            loading.classList.remove("active");
-        }
-    }
-
-    function renderEmbeddingResults(items) {
-        const container =
-            document.getElementById(
-                "embeddingResults");
-
-        if (!items || items.length === 0) {
-            container.innerHTML =
-                "<p>Không có kết quả embedding.</p>";
-
-            return;
-        }
-
-        container.innerHTML = `
-            <h3 class="mb-3">
-                Kết quả Embedding
-            </h3>
-
-            <div class="result-grid">
-                ${items.map(createEmbeddingCard).join("")}
-            </div>
-        `;
-    }
-
-    function createEmbeddingCard(item) {
-        if (item.error) {
-            return `
-                <article class="result-card">
-                    <div class="result-card-header">
-                        <h3>${escapeHtml(item.model)}</h3>
-                    </div>
-
-                    <div class="result-card-body">
-                        <div class="benchmark-error active">
-                            ${escapeHtml(item.error)}
-                        </div>
-                    </div>
-                </article>
-            `;
-        }
-
-        const recall =
-            item.recallAtK === null
-            || item.recallAtK === undefined
-                ? "Chưa đánh giá"
-                : `${(
-                    Number(item.recallAtK) * 100
-                ).toFixed(2)}%`;
-
-        const chunks =
-            (item.topChunks || [])
-                .map(chunk => `
-                    <div class="chunk-item">
-                        <div class="chunk-header">
-                            <span>
-                                Chunk #${chunk.chunkId}
-                            </span>
-
-                            <span>
-                                Score:
-                                ${formatNumber(
-                                    chunk.score,
-                                    4)}
-                            </span>
-                        </div>
-
-                        <div class="small text-muted mb-1">
-                            ${escapeHtml(
-                                chunk.documentTitle
-                                || "Không xác định")}
-                        </div>
-
-                        <div class="chunk-content">
-                            ${escapeHtml(
-                                chunk.contentPreview
-                                || "")}
-                        </div>
-                    </div>
-                `)
-                .join("");
-
-        return `
-            <article class="result-card">
-                <div class="result-card-header">
-                    <h3>
-                        ${escapeHtml(item.model)}
-                    </h3>
-
-                    <small>
-                        Embedding retrieval result
-                    </small>
-                </div>
-
-                <div class="result-card-body">
-                    <div class="metrics-grid">
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Thời gian
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.elapsedMs} ms
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Số chiều vector
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.vectorDimensions}
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Top score
-                            </span>
-
-                            <span class="metric-value">
-                                ${formatNumber(
-                                    item.topScore,
-                                    4)}
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Average Top K
-                            </span>
-
-                            <span class="metric-value">
-                                ${formatNumber(
-                                    item.averageTopKScore,
-                                    4)}
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Recall@@K
-                            </span>
-
-                            <span class="metric-value">
-                                ${recall}
-                            </span>
-                        </div>
-                    </div>
-
-                    <h4 class="h6 fw-bold">
-                        Top chunks
-                    </h4>
-
-                    ${chunks || "<p>Không có chunk.</p>"}
-                </div>
-            </article>
-        `;
-    }
-
-    function renderChatResults(items) {
-        const container =
-            document.getElementById(
-                "chatResults");
-
-        if (!items || items.length === 0) {
-            container.innerHTML =
-                "<p>Không có kết quả chat.</p>";
-
-            return;
-        }
-
-        container.innerHTML = `
-            <h3 class="mb-3">
-                Kết quả Chat AI
-            </h3>
-
-            <div class="result-grid">
-                ${items.map(createChatCard).join("")}
-            </div>
-        `;
-    }
-
-    function createChatCard(item) {
-        if (item.error) {
-            return `
-                <article class="result-card">
-                    <div class="result-card-header">
-                        <h3>
-                            ${escapeHtml(item.model)}
-                        </h3>
-
-                        <small>
-                            ${escapeHtml(item.provider)}
-                        </small>
-                    </div>
-
-                    <div class="result-card-body">
-                        <div class="benchmark-error active">
-                            ${escapeHtml(item.error)}
-                        </div>
-                    </div>
-                </article>
-            `;
-        }
-
-        const chunks =
-            (item.retrievedChunks || [])
-                .map(chunk => `
-                    <div class="chunk-item">
-                        <div class="chunk-header">
-                            <span>
-                                Chunk #${chunk.chunkId}
-                            </span>
-
-                            <span>
-                                Score:
-                                ${formatNumber(
-                                    chunk.score,
-                                    4)}
-                            </span>
-                        </div>
-
-                        <div class="small text-muted mb-1">
-                            ${escapeHtml(
-                                chunk.documentTitle
-                                || "Không xác định")}
-                        </div>
-
-                        <div class="chunk-content">
-                            ${escapeHtml(
-                                chunk.contentPreview
-                                || "")}
-                        </div>
-                    </div>
-                `)
-                .join("");
-
-        return `
-            <article class="result-card">
-                <div class="result-card-header">
-                    <h3>
-                        ${escapeHtml(item.model)}
-                    </h3>
-
-                    <small>
-                        ${escapeHtml(item.provider)}
-                    </small>
-                </div>
-
-                <div class="result-card-body">
-                    <span class="provider-badge">
-                        ${escapeHtml(item.provider)}
-                    </span>
-
-                    <div class="metrics-grid">
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Thời gian
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.elapsedMs} ms
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Keyword coverage
-                            </span>
-
-                            <span class="metric-value">
-                                ${formatNumber(
-                                    item.keywordCoveragePercent,
-                                    2)}%
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Prompt tokens
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.promptTokens}
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Completion tokens
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.completionTokens}
-                            </span>
-                        </div>
-
-                        <div class="metric-box">
-                            <span class="metric-label">
-                                Tổng tokens
-                            </span>
-
-                            <span class="metric-value">
-                                ${item.totalTokens}
-                            </span>
-                        </div>
-                    </div>
-
-                    <h4 class="h6 fw-bold">
-                        Câu trả lời
-                    </h4>
-
-                    <div class="answer-box">
-                        ${escapeHtml(item.answer || "")}
-                    </div>
-
-                    <h4 class="h6 fw-bold mt-3">
-                        Chunk được sử dụng
-                    </h4>
-
-                    <div>
-                        ${chunks || "<p>Không có chunk.</p>"}
-                    </div>
-                </div>
-            </article>
-        `;
-    }
-
-    function parseNumberList(value) {
-        if (!value || !value.trim()) {
-            return [];
-        }
-
-        return value
-            .split(",")
-            .map(item => Number(item.trim()))
-            .filter(item =>
-                Number.isInteger(item)
-                && item > 0);
-    }
-
-    function parseTextList(value) {
-        if (!value || !value.trim()) {
-            return [];
-        }
-
-        return value
-            .split(",")
-            .map(item => item.trim())
-            .filter(Boolean);
-    }
-
-    async function readJsonResponse(response) {
-        const text = await response.text();
-
-        if (!text) {
-            return {};
-        }
-
-        try {
-            return JSON.parse(text);
-        }
-        catch {
-            throw new Error(
-                "Server không trả về JSON hợp lệ. " +
-                `HTTP ${response.status}: ${text}`);
-        }
-    }
-
-    function formatNumber(value, digits) {
-        const number = Number(value);
-
-        return Number.isFinite(number)
-            ? number.toFixed(digits)
-            : "0";
-    }
-
-    function showError(element, message) {
-        element.textContent =
-            message || "Đã xảy ra lỗi.";
-
-        element.classList.add("active");
-    }
-
-    function hideError(element) {
-        element.textContent = "";
-        element.classList.remove("active");
-    }
-
-    function escapeHtml(value) {
-        return String(value ?? "")
-            .replaceAll("&", "&amp;")
-            .replaceAll("<", "&lt;")
-            .replaceAll(">", "&gt;")
-            .replaceAll('"', "&quot;")
-            .replaceAll("'", "&#039;");
-    }
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll(".benchmark-tab").forEach(tab => tab.addEventListener("click", function () {
+        document.querySelectorAll(".benchmark-tab").forEach(x => x.classList.remove("active"));
+        document.querySelectorAll(".benchmark-panel").forEach(x => x.classList.remove("active"));
+        this.classList.add("active");
+        document.getElementById(this.dataset.panel)?.classList.add("active");
+    }));
+    document.getElementById("runEmbeddingButton").addEventListener("click", runEmbeddingBenchmark);
+    document.getElementById("runChatButton").addEventListener("click", runChatBenchmark);
+});
+
+async function runEmbeddingBenchmark() {
+    const body = {
+        subjectId: Number(value("embeddingSubjectId")), query: value("embeddingQuery").trim(),
+        models: ["intfloat/multilingual-e5-base", "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"],
+        candidateLimit: Number(value("candidateLimit")), topK: Number(value("embeddingTopK")),
+        expectedChunkIds: parseNumberList(value("expectedChunkIds"))
+    };
+    const error = document.getElementById("embeddingError"); hideError(error);
+    if (!body.subjectId) return showError(error, "Vui lòng chọn môn học.");
+    if (!body.query) return showError(error, "Vui lòng nhập câu hỏi tìm kiếm.");
+    if (body.candidateLimit < 1 || body.candidateLimit > 100) return showError(error, "Số chunk kiểm tra phải từ 1 đến 100.");
+    if (body.topK < 1 || body.topK > 20) return showError(error, "Top K phải từ 1 đến 20.");
+    if (body.topK > body.candidateLimit) return showError(error, "Top K không được lớn hơn số chunk kiểm tra.");
+    await executeBenchmark("/ModelBenchmark/CompareEmbedding", body, "runEmbeddingButton", "embeddingLoading", "embeddingResults", error, renderEmbeddingResults);
+}
+
+async function runChatBenchmark() {
+    const body = {
+        subjectId: Number(value("chatSubjectId")), question: value("chatQuestion").trim(), topK: Number(value("chatTopK")),
+        embeddingModel: "intfloat/multilingual-e5-base",
+        targets: [{provider:"Gemini",model:"gemini-2.5-flash"},{provider:"Groq",model:"llama-3.3-70b-versatile"},{provider:"OpenRouter",model:"deepseek/deepseek-chat"}],
+        expectedKeywords: parseTextList(value("expectedKeywords")), temperature: .3, maxOutputTokens: Number(value("maxOutputTokens"))
+    };
+    const error = document.getElementById("chatError"); hideError(error);
+    if (!body.subjectId) return showError(error, "Vui lòng chọn môn học.");
+    if (!body.question) return showError(error, "Vui lòng nhập câu hỏi.");
+    if (body.topK < 1 || body.topK > 10) return showError(error, "Top K phải từ 1 đến 10.");
+    if (body.maxOutputTokens < 100 || body.maxOutputTokens > 8192) return showError(error, "Output token phải từ 100 đến 8192.");
+    await executeBenchmark("/ModelBenchmark/CompareChat", body, "runChatButton", "chatLoading", "chatResults", error, renderChatResults);
+}
+
+async function executeBenchmark(url, body, buttonId, loadingId, resultsId, error, renderer) {
+    const button = document.getElementById(buttonId), loading = document.getElementById(loadingId), results = document.getElementById(resultsId);
+    button.disabled = true; loading.classList.add("active"); results.innerHTML = "";
+    try {
+        const response = await fetch(url, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body) });
+        const data = await readJsonResponse(response);
+        if (!response.ok || !data.success) throw new Error(data.message || "Không thể chạy benchmark.");
+        renderer(data.data || []);
+    } catch (e) { showError(error, e.message); results.innerHTML = emptyState("bi-exclamation-circle", "Chưa thể tạo báo cáo", "Kiểm tra cấu hình API và thử lại."); }
+    finally { button.disabled = false; loading.classList.remove("active"); }
+}
+
+function renderEmbeddingResults(items) {
+    const container = document.getElementById("embeddingResults"), valid = items.filter(x => !x.error);
+    if (!items.length) return container.innerHTML = emptyState("bi-inbox", "Không có kết quả", "Hãy thử lại với dữ liệu khác.");
+    const winner = valid[0];
+    container.innerHTML = `<div class="results-content">
+        ${winner ? winnerBanner(shortModel(winner.model), `Dẫn đầu theo Recall@@K, điểm tương đồng và tốc độ phản hồi.`) : ""}
+        <div class="chart-grid">
+            ${barChart("Điểm tương đồng trung bình", valid, x=>x.averageTopKScore, x=>shortModel(x.model), x=>formatNumber(x,3), false)}
+            ${barChart("Thời gian xử lý", valid, x=>x.elapsedMs, x=>shortModel(x.model), x=>`${x} ms`, true)}
+        </div>
+        <div class="result-grid">${items.map((x,i)=>embeddingCard(x,i===0&&!x.error)).join("")}</div>
+    </div>`;
+}
+
+function renderChatResults(items) {
+    const container = document.getElementById("chatResults"), valid = items.filter(x => !x.error);
+    if (!items.length) return container.innerHTML = emptyState("bi-inbox", "Không có kết quả", "Hãy thử lại với dữ liệu khác.");
+    const winner = valid[0];
+    container.innerHTML = `<div class="results-content">
+        ${winner ? winnerBanner(`${winner.provider} · ${shortModel(winner.model)}`, `Điểm tổng hợp ${formatNumber(winner.overallScore,1)}/100 · ${formatNumber(winner.tokensPerSecond,1)} token/giây.`) : ""}
+        <div class="chart-grid">
+            ${barChart("Điểm tổng hợp", valid, x=>x.overallScore, x=>x.provider, x=>`${formatNumber(x,1)}/100`, false)}
+            ${barChart("Độ bám sát tài liệu", valid, x=>x.groundednessPercent, x=>x.provider, x=>`${formatNumber(x,1)}%`, false)}
+            ${barChart("Mức độ liên quan", valid, x=>x.relevancePercent, x=>x.provider, x=>`${formatNumber(x,1)}%`, false)}
+            ${barChart("Độ đầy đủ", valid, x=>x.completenessPercent, x=>x.provider, x=>`${formatNumber(x,1)}%`, false)}
+            ${barChart("Hallucination", valid, x=>x.hallucinationPercent, x=>x.provider, x=>`${formatNumber(x,1)}%`, true)}
+            ${barChart("Tốc độ sinh token", valid, x=>x.tokensPerSecond, x=>x.provider, x=>`${formatNumber(x,1)} token/s`, false)}
+        </div>
+        <div class="result-grid">${items.map((x,i)=>chatCard(x,i===0&&!x.error)).join("")}</div>
+    </div>`;
+}
+
+function barChart(title, items, getValue, getLabel, format, lowerIsBetter) {
+    if (!items.length) return "";
+    const values = items.map(getValue), max = Math.max(...values, 1), colors = ["#246b4b","#e5a43b","#5a7ea8"];
+    return `<section class="chart-card"><div class="chart-title">${escapeHtml(title)} ${lowerIsBetter?'<i class="bi bi-arrow-down" title="Thấp hơn tốt hơn"></i>':''}</div><div class="bar-list">
+        ${items.map((x,i)=>{const v=getValue(x), width=Math.max(5,(v/max)*100); return `<div><div class="bar-row-head"><span>${escapeHtml(getLabel(x))}</span><strong>${escapeHtml(format(v))}</strong></div><div class="bar-track"><div class="bar-fill" style="--bar-width:${width}%;--bar-color:${colors[i%colors.length]}"></div></div></div>`}).join("")}
+    </div></section>`;
+}
+
+function embeddingCard(item, winner) {
+    if (item.error) return errorCard(item.model,item.error);
+    const recall = item.recallAtK == null ? "Chưa gán đáp án" : `${formatNumber(item.recallAtK*100,1)}%`;
+    return `<article class="result-card ${winner?'is-winner':''}">${winner?'<span class="winner-tag">Dẫn đầu</span>':''}<header class="result-card-header"><h3>${escapeHtml(shortModel(item.model))}</h3><small>${escapeHtml(item.model)}</small></header><div class="result-card-body">
+        <div class="metrics-grid">${metric("Thời gian",`${item.elapsedMs} ms`)}${metric("Vector",`${item.vectorDimensions} chiều`)}${metric("Top score",formatNumber(item.topScore,4))}${metric("Average",formatNumber(item.averageTopKScore,4))}${metric("Recall@@K",recall)}</div>
+        <div class="detail-title"><i class="bi bi-layers"></i> Chunk nổi bật</div><div class="chunk-list">${(item.topChunks||[]).map(chunkCard).join("")||"Không có chunk."}</div>
+    </div></article>`;
+}
+
+function chatCard(item, winner) {
+    if (item.error) return errorCard(`${item.provider} · ${item.model}`,item.error);
+    return `<article class="result-card ${winner?'is-winner':''}">${winner?'<span class="winner-tag">Dẫn đầu</span>':''}<header class="result-card-header"><h3>${escapeHtml(item.provider)}</h3><small>${escapeHtml(item.model)}</small></header><div class="result-card-body">
+        <div class="metrics-grid">${metric("Điểm tổng hợp",`${formatNumber(item.overallScore,1)}/100`)}${metric("Bám sát tài liệu",`${formatNumber(item.groundednessPercent,1)}%`)}${metric("Mức liên quan",`${formatNumber(item.relevancePercent,1)}%`)}${metric("Độ đầy đủ",`${formatNumber(item.completenessPercent,1)}%`)}${metric("Hallucination",`${formatNumber(item.hallucinationPercent,1)}%`)}${metric("Tốc độ",`${formatNumber(item.tokensPerSecond,1)} token/s`)}${metric("Thời gian",`${item.elapsedMs} ms`)}${metric("Tổng token",`${item.totalTokens}`)}</div>
+        <div class="detail-title"><i class="bi bi-chat-quote"></i> Câu trả lời</div><div class="answer-box">${escapeHtml(item.answer||"")}</div>
+        <div class="detail-title"><i class="bi bi-journal-text"></i> Nguồn ngữ cảnh</div><div class="chunk-list">${(item.retrievedChunks||[]).map(chunkCard).join("")||"Không có chunk."}</div>
+    </div></article>`;
+}
+
+function chunkCard(x) { return `<div class="chunk-item"><div class="chunk-header"><span>Chunk #${x.chunkId}</span><span>${formatNumber(x.score,4)}</span></div><div class="chunk-source">${escapeHtml(x.documentTitle||"Không xác định")}</div><div class="chunk-content">${escapeHtml(x.contentPreview||"")}</div></div>`; }
+function metric(label,value) { return `<div class="metric-box"><span class="metric-label">${label}</span><span class="metric-value">${value}</span></div>`; }
+function winnerBanner(name,detail) { return `<div class="winner-banner"><span class="winner-icon"><i class="bi bi-trophy"></i></span><div><strong>${escapeHtml(name)} đang có kết quả tốt nhất</strong><span>${escapeHtml(detail)}</span></div></div>`; }
+function errorCard(title,message) { return `<article class="result-card"><header class="result-card-header"><h3>${escapeHtml(title)}</h3><small>Không thể hoàn tất</small></header><div class="result-card-body card-error"><i class="bi bi-exclamation-triangle me-1"></i>${escapeHtml(message)}</div></article>`; }
+function emptyState(icon,title,text) { return `<div class="empty-state"><div><div class="empty-icon"><i class="bi ${icon}"></i></div><h3>${escapeHtml(title)}</h3><p>${escapeHtml(text)}</p></div></div>`; }
+function shortModel(name) { const parts=String(name||"").split("/"); return parts[parts.length-1]; }
+function value(id) { return document.getElementById(id).value; }
+function parseNumberList(v) { return v ? v.split(",").map(x=>Number(x.trim())).filter(x=>Number.isInteger(x)&&x>0) : []; }
+function parseTextList(v) { return v ? v.split(",").map(x=>x.trim()).filter(Boolean) : []; }
+async function readJsonResponse(response) { const text=await response.text(); if(!text)return {}; try{return JSON.parse(text)}catch{throw new Error(`Server không trả JSON hợp lệ (HTTP ${response.status}).`)} }
+function formatNumber(v,d) { const n=Number(v); return Number.isFinite(n)?n.toFixed(d):"0"; }
+function showError(el,msg) { el.textContent=msg||"Đã xảy ra lỗi."; el.classList.add("active"); }
+function hideError(el) { el.textContent=""; el.classList.remove("active"); }
+function escapeHtml(v) { return String(v??"").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
 </script>

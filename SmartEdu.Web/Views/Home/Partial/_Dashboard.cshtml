@@ -11,7 +11,7 @@
 <div class="page-head">
     <div>
         <div class="page-head-sub">Welcome back</div>
-        <h1 class="page-head-title">Hello, @userName 👋</h1>
+        <h1 class="page-head-title">Hello, @userName</h1>
     </div>
     <div class="d-flex gap-2 flex-wrap">
         <a class="btn btn-primary btn-icon" asp-controller="Chat" asp-action="Index">
@@ -75,7 +75,7 @@
                     <div class="kpi-value">—</div>
                     <div class="kpi-trend">Free tier</div>
                 </div>
-                <span class="kpi-icon bg-amber"><i class="bi bi-lightning-charge"></i></span>
+                <span class="kpi-icon bg-amber"><i class="bi bi-speedometer2"></i></span>
             </div>
         </div>
     </div>
@@ -140,7 +140,7 @@
                     <permission capability="CanBuyPackage">
                         <div class="col-md-6">
                             <a class="feature-card d-block text-decoration-none" asp-controller="Package" asp-action="List">
-                                <div class="feature-icon green"><i class="bi bi-stars"></i></div>
+                                <div class="feature-icon green"><i class="bi bi-check2-square"></i></div>
                                 <div class="feature-title">Buy tokens</div>
                                 <div class="feature-desc">Top up your token quota in seconds.</div>
                             </a>
@@ -174,7 +174,7 @@
 
         <role name="Student">
             <div class="surface-card mt-3">
-                <h5 class="mb-2"><i class="bi bi-stars me-2 text-warning"></i> Upgrade your plan</h5>
+                <h5 class="mb-2"><i class="bi bi-arrow-up-right-circle me-2 text-warning"></i> Upgrade your plan</h5>
                 <p class="text-muted small mb-3">Need more tokens? Pick a package that suits you.</p>
                 <a class="btn btn-primary w-100" asp-controller="Package" asp-action="List">View packages</a>
             </div>

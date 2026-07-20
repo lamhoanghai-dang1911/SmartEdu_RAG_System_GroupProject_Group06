@@ -60,13 +60,14 @@
                                         @student.FullName <br />
                                         <small class="text-muted">@student.Username</small>
                                     </td>
-                                    <td class="text-end align-middle px-3">
-                                        <form asp-action="RemoveStudent" method="post" class="d-inline" onsubmit="return confirm('Xóa sinh viên này khỏi môn học?');">
+                                    <td class="table-action-column align-middle px-3">
+                                        <div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu"><li>
+                                        <form asp-action="RemoveStudent" method="post" onsubmit="return confirm('Xóa sinh viên này khỏi môn học?');">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="subjectId" value="@subject?.Id" />
                                             <input type="hidden" name="studentId" value="@student.Id" />
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
-                                        </form>
+                                            <button type="submit" class="dropdown-item dropdown-item-danger"><i class="bi bi-person-dash"></i>Xóa khỏi môn học</button>
+                                        </form></li></ul></div>
                                     </td>
                                 </tr>
                             }
@@ -95,13 +96,14 @@
                                         @student.FullName <br />
                                         <small class="text-muted">@student.Username</small>
                                     </td>
-                                    <td class="text-end align-middle px-3">
-                                        <form asp-action="AssignStudent" method="post" class="d-inline">
+                                    <td class="table-action-column align-middle px-3">
+                                        <div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu"><li>
+                                        <form asp-action="AssignStudent" method="post">
                                             @Html.AntiForgeryToken()
                                             <input type="hidden" name="subjectId" value="@subject?.Id" />
                                             <input type="hidden" name="studentId" value="@student.Id" />
-                                            <button type="submit" class="btn btn-sm btn-primary">Thêm</button>
-                                        </form>
+                                            <button type="submit" class="dropdown-item"><i class="bi bi-person-plus"></i>Thêm vào môn học</button>
+                                        </form></li></ul></div>
                                     </td>
                                 </tr>
                             }

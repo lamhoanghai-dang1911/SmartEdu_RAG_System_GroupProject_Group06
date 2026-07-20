@@ -12,6 +12,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace SmartEdu.Business.Services
@@ -437,8 +438,10 @@ namespace SmartEdu.Business.Services
 
             var results = await Task.WhenAll(tasks);
 
+            CalculateOverallScores(results);
+
             return results
-                .OrderByDescending(x => x.KeywordCoveragePercent)
+                .OrderByDescending(x => x.OverallScore)
                 .ThenBy(x => x.ElapsedMs)
                 .ToList();
         }
@@ -492,6 +495,26 @@ namespace SmartEdu.Business.Services
 
                 stopwatch.Stop();
 
+                var groundedness = CalculateGroundedness(
+                    response.Answer,
+                    retrievedContext);
+                var relevance = CalculateRelevance(
+                    response.Answer,
+                    request.Question);
+                var keywordCoverage = CalculateKeywordCoverage(
+                    response.Answer,
+                    request.ExpectedKeywords);
+                var completeness = request.ExpectedKeywords?.Any(
+                    keyword => !string.IsNullOrWhiteSpace(keyword)) == true
+                    ? keywordCoverage
+                    : relevance;
+                var completionTokenCount = response.CompletionTokens > 0
+                    ? response.CompletionTokens
+                    : Tokenize(response.Answer).Count;
+                var tokensPerSecond = stopwatch.Elapsed.TotalSeconds > 0
+                    ? completionTokenCount / stopwatch.Elapsed.TotalSeconds
+                    : 0;
+
                 return new ChatModelBenchmarkResultDto
                 {
                     Provider = target.Provider,
@@ -499,10 +522,14 @@ namespace SmartEdu.Business.Services
                     ElapsedMs = stopwatch.ElapsedMilliseconds,
                     PromptTokens = response.PromptTokens,
                     CompletionTokens = response.CompletionTokens,
-                    KeywordCoveragePercent =
-                        CalculateKeywordCoverage(
-                            response.Answer,
-                            request.ExpectedKeywords),
+                    KeywordCoveragePercent = keywordCoverage,
+                    GroundednessPercent = groundedness,
+                    RelevancePercent = relevance,
+                    CompletenessPercent = completeness,
+                    HallucinationPercent = Math.Round(
+                        100 - groundedness,
+                        2),
+                    TokensPerSecond = Math.Round(tokensPerSecond, 2),
                     Answer = response.Answer,
                     RetrievedContext = retrievedContext,
                     RetrievedChunks = retrievedChunks,
@@ -988,6 +1015,91 @@ namespace SmartEdu.Business.Services
                 / validKeywords.Count
                 * 100,
                 2);
+        }
+
+        private static double CalculateGroundedness(
+            string answer,
+            string context)
+        {
+            var answerTerms = Tokenize(answer).Distinct().ToList();
+            var contextTerms = Tokenize(context).ToHashSet();
+
+            if (answerTerms.Count == 0)
+            {
+                return 0;
+            }
+
+            var supportedTerms = answerTerms.Count(contextTerms.Contains);
+            return Math.Round(
+                (double)supportedTerms / answerTerms.Count * 100,
+                2);
+        }
+
+        private static double CalculateRelevance(
+            string answer,
+            string question)
+        {
+            var questionTerms = Tokenize(question).Distinct().ToList();
+            var answerTerms = Tokenize(answer).ToHashSet();
+
+            if (questionTerms.Count == 0)
+            {
+                return 0;
+            }
+
+            var matchedTerms = questionTerms.Count(answerTerms.Contains);
+            return Math.Round(
+                (double)matchedTerms / questionTerms.Count * 100,
+                2);
+        }
+
+        private static List<string> Tokenize(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return new List<string>();
+            }
+
+            var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "và", "là", "của", "có", "được", "cho", "trong", "một",
+                "những", "các", "với", "để", "từ", "theo", "này", "đó",
+                "thì", "khi", "về", "như", "the", "and", "is", "are",
+                "of", "to", "in", "a", "an", "for", "on", "with"
+            };
+
+            return Regex.Matches(
+                    text.ToLowerInvariant(),
+                    @"[\p{L}\p{N}]+")
+                .Select(match => match.Value)
+                .Where(term => term.Length > 1 && !stopWords.Contains(term))
+                .ToList();
+        }
+
+        private static void CalculateOverallScores(
+            IEnumerable<ChatModelBenchmarkResultDto> results)
+        {
+            var successfulResults = results
+                .Where(result => string.IsNullOrWhiteSpace(result.Error))
+                .ToList();
+            var fastestRate = successfulResults.Count == 0
+                ? 0
+                : successfulResults.Max(result => result.TokensPerSecond);
+
+            foreach (var result in successfulResults)
+            {
+                var speedScore = fastestRate > 0
+                    ? result.TokensPerSecond / fastestRate * 100
+                    : 0;
+
+                result.OverallScore = Math.Round(
+                    result.GroundednessPercent * 0.30
+                    + result.RelevancePercent * 0.25
+                    + result.CompletenessPercent * 0.25
+                    + (100 - result.HallucinationPercent) * 0.10
+                    + speedScore * 0.10,
+                    2);
+            }
         }
 
         private static string CreatePreview(

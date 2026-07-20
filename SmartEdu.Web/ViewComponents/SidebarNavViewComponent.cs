@@ -163,6 +163,15 @@ namespace SmartEdu.Web.ViewComponents
             });
             TryAdd(admin, new SidebarItem
             {
+                Key = "model-benchmark",
+                Title = "Model Benchmark",
+                Icon = "bi-speedometer2",
+                Controller = "ModelBenchmark",
+                Action = "Index",
+                Allowed = user.CanManageUsers()
+            });
+            TryAdd(admin, new SidebarItem
+            {
                 Key = "chunking",
                 Title = "Chunking Config",
                 Icon = "bi-diagram-3",

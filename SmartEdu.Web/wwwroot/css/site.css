@@ -6,29 +6,29 @@
 
 :root {
     /* Brand */
-    --brand-blue: #4f6df5;
-    --brand-blue-600: #3f5ce0;
-    --brand-purple: #7c5cff;
-    --brand-cyan: #22c1c3;
-    --brand-amber: #ffb648;
-    --brand-pink: #ff6aa9;
+    --brand-blue: #246b4b;
+    --brand-blue-600: #194d37;
+    --brand-purple: #547864;
+    --brand-cyan: #5a7ea8;
+    --brand-amber: #e5a43b;
+    --brand-pink: #dc725f;
 
     /* Ink / surfaces */
-    --ink-900: #0b1120;
-    --ink-800: #111935;
-    --ink-700: #1b2447;
-    --ink-600: #2a3458;
-    --ink-500: #4b5476;
-    --ink-400: #6b7393;
-    --ink-300: #9aa0b4;
-    --ink-200: #d6d9e6;
-    --ink-100: #eef0f7;
-    --ink-50:  #f7f8fc;
-    --paper:   #f7f8fc;
+    --ink-900: #17211b;
+    --ink-800: #243129;
+    --ink-700: #35433a;
+    --ink-600: #4c5a51;
+    --ink-500: #67736b;
+    --ink-400: #7f8b83;
+    --ink-300: #a6afa9;
+    --ink-200: #d4ddd7;
+    --ink-100: #e9eeea;
+    --ink-50:  #f4f7f4;
+    --paper:   #f4f7f4;
     --surface: #ffffff;
     --surface-2: #fbfbfe;
-    --border:  #e6e8f1;
-    --border-strong: #d6d9e6;
+    --border:  #dde5df;
+    --border-strong: #ccd7cf;
 
     /* Semantic */
     --success: #1aa179;
@@ -53,7 +53,7 @@
 
     /* Type */
     --font-sans: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    --font-display: 'Sora', 'Inter', system-ui, sans-serif;
+    --font-display: 'Inter', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -483,9 +483,9 @@ a:hover { color: var(--brand-blue-600); }
     position: relative; overflow: hidden;
     padding: 5rem 1.5rem 4rem;
     background:
-        radial-gradient(1200px 500px at 90% -10%, rgba(124, 92, 255, 0.15), transparent 60%),
-        radial-gradient(900px 500px at 10% 0%, rgba(79, 109, 245, 0.18), transparent 60%),
-        linear-gradient(180deg, #ffffff, #f6f7fc);
+        radial-gradient(1200px 500px at 90% -10%, rgba(207, 227, 106, 0.14), transparent 60%),
+        radial-gradient(900px 500px at 10% 0%, rgba(36, 107, 75, 0.14), transparent 60%),
+        linear-gradient(180deg, #ffffff, #f4f7f4);
 }
 .hero-inner { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 3rem; align-items: center; }
 @media (max-width: 991.98px) { .hero-inner { grid-template-columns: 1fr; } }
@@ -616,7 +616,7 @@ a:hover { color: var(--brand-blue-600); }
 
 /* Stats */
 .stats-band {
-    background: linear-gradient(135deg, var(--ink-900), #1a2152);
+    background: linear-gradient(135deg, #173f31, #214b3a);
     color: #fff;
 }
 .stat-card { text-align: center; padding: 1.5rem 1rem; }
@@ -647,9 +647,9 @@ a:hover { color: var(--brand-blue-600); }
 }
 .pricing-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
 .pricing-card.featured {
-    background: linear-gradient(180deg, #fff, #f7f8ff);
-    border-color: rgba(79, 109, 245, 0.45);
-    box-shadow: 0 16px 36px -16px rgba(79, 109, 245, 0.35);
+    background: linear-gradient(180deg, #fff, #f3f7f4);
+    border-color: rgba(36, 107, 75, 0.4);
+    box-shadow: 0 16px 36px -16px rgba(36, 107, 75, 0.24);
 }
 .pricing-price { font-family: var(--font-display); font-weight: 800; font-size: 2rem; color: var(--ink-900); }
 .pricing-features { list-style: none; padding: 0; margin: 1rem 0 1.25rem; }
@@ -743,9 +743,9 @@ a:hover { color: var(--brand-blue-600); }
 .auth-shell {
     min-height: 100vh;
     background:
-        radial-gradient(900px 500px at 90% 10%, rgba(124, 92, 255, 0.18), transparent 60%),
-        radial-gradient(900px 500px at 10% 90%, rgba(79, 109, 245, 0.18), transparent 60%),
-        linear-gradient(180deg, #0f1530, #0b1120);
+        radial-gradient(900px 500px at 90% 10%, rgba(207, 227, 106, 0.14), transparent 60%),
+        radial-gradient(900px 500px at 10% 90%, rgba(84, 120, 100, 0.2), transparent 60%),
+        linear-gradient(180deg, #173f31, #102a21);
     display: flex; align-items: center; justify-content: center;
     padding: 2rem 1rem;
 }

@@ -22,6 +22,18 @@ namespace SmartEdu.Shared.DTOs
 
         public double KeywordCoveragePercent { get; set; }
 
+        public double GroundednessPercent { get; set; }
+
+        public double RelevancePercent { get; set; }
+
+        public double CompletenessPercent { get; set; }
+
+        public double HallucinationPercent { get; set; }
+
+        public double TokensPerSecond { get; set; }
+
+        public double OverallScore { get; set; }
+
         public string Answer { get; set; } = string.Empty;
 
         public string RetrievedContext { get; set; } = string.Empty;

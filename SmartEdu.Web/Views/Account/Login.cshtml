@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/harmony.css" asp-append-version="true" />
 </head>
 <body class="auth-body">
     <div class="auth-shell">
@@ -22,7 +23,7 @@
             @* LEFT side: brand + features *@
             <div class="auth-card-side d-none d-md-flex">
                 <a class="auth-brand-mark" asp-controller="Home" asp-action="Index">
-                    <span class="mark"><i class="bi bi-mortarboard-fill"></i></span>
+                    <span class="mark"><i class="bi bi-book"></i></span>
                     <span class="name">SmartEdu</span>
                 </a>
                 <div class="auth-illustration" aria-hidden="true">
@@ -44,10 +45,10 @@
             @* RIGHT side: form *@
             <div class="auth-card-body">
                 <a class="auth-mobile-brand d-md-none" asp-controller="Home" asp-action="Index">
-                    <span class="mark"><i class="bi bi-mortarboard-fill"></i></span>
+                    <span class="mark"><i class="bi bi-book"></i></span>
                     <span class="name">SmartEdu</span>
                 </a>
-                <div class="auth-card-title">Welcome back 👋</div>
+                <div class="auth-card-title">Welcome back</div>
                 <div class="auth-card-sub">Sign in to continue to SmartEdu.</div>
 
                 <form asp-action="Login" method="post" id="loginForm" novalidate>
@@ -93,7 +94,7 @@
         .auth-brand-mark .mark { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.18); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
         .auth-brand-mark .name { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; }
         .auth-mobile-brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink-900); text-decoration: none; margin-bottom: 1.25rem; }
-        .auth-mobile-brand .mark { width: 36px; height: 36px; border-radius: 10px; background: linear-gradient(135deg, var(--brand-blue), var(--brand-purple)); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+        .auth-mobile-brand .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
         .auth-mobile-brand .name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; }
         .auth-card-side-foot { margin-top: auto; font-size: 0.85rem; color: rgba(255,255,255,0.6); }
 
