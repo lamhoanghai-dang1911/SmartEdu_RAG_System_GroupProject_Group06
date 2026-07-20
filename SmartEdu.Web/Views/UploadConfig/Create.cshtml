@@ -10,11 +10,22 @@
         --slate-light: #9aa0b4;
     }
 
+    .config-shell {
+        display: grid;
+        grid-template-columns: 280px minmax(0, 1fr);
+        background: #fff;
+        border: 1px solid #e1e8e3;
+        border-radius: 18px;
+        box-shadow: 0 16px 40px rgba(25, 57, 43, .07);
+        overflow: hidden;
+    }
+    .config-aside { padding: 2rem; background: #f3f7f4; border-right: 1px solid #e1e8e3; }
+    .config-aside i { display:grid; place-items:center; width:42px; height:42px; border-radius:12px; background:#dfeee5; color:#216e52; font-size:1.15rem; }
+    .config-aside h3 { margin:1.25rem 0 .5rem; font-size:1rem; font-weight:700; color:#1c3027; }
+    .config-aside p { margin:0; color:#718078; font-size:.86rem; line-height:1.65; }
     .config-card {
         background: #fff;
-        border-radius: 16px;
-        box-shadow: 0 10px 32px -12px rgba(11, 17, 32, 0.14);
-        padding: 1.75rem;
+        padding: 2rem;
     }
 
     .page-head h2 {
@@ -26,9 +37,9 @@
     }
 
     .page-head .btn-secondary {
-        border-radius: 999px;
-        border: none;
-        background: #eef0f6;
+        border-radius: 10px;
+        border: 1px solid #dce5df;
+        background: #fff;
         color: #33384f;
         font-weight: 600;
         padding: 0.5rem 1.1rem;
@@ -47,8 +58,8 @@
     }
 
         .form-control:focus, .form-select:focus {
-            border-color: var(--brand-blue);
-            box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
+        border-color: #267457;
+        box-shadow: 0 0 0 3px rgba(38,116,87,.10);
         }
 
     .form-text {
@@ -62,14 +73,23 @@
         padding: 0.75rem 1.6rem;
         font-weight: 700;
         color: #fff;
-        background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+        background: #216e52;
+    }
+
+    .field-title { display:flex; align-items:center; gap:.5rem; }
+    .field-title i { color:#74837b; font-size:.9rem; }
+    .form-actions { display:flex; justify-content:flex-end; padding-top:.5rem; border-top:1px solid #edf1ee; margin-top:.5rem; }
+    @@media (max-width: 767px) { .config-shell { grid-template-columns:1fr; } .config-aside { border-right:0; border-bottom:1px solid #e1e8e3; } }
+
+    #thresholdGroup {
+        transition: opacity 0.2s ease;
     }
 </style>
 
 <div class="container mt-4">
     <div class="page-head d-flex justify-content-between align-items-center mb-3">
-        <h2>➕ Thêm cấu hình Upload</h2>
-        <a asp-action="Index" class="btn btn-secondary">⬅ Quay lại</a>
+        <div><h2>Thêm cấu hình tải lên</h2><p class="text-muted mb-0 mt-1 small">Thiết lập giới hạn phù hợp cho từng loại tài liệu.</p></div>
+        <a asp-action="Index" class="btn btn-secondary"><i class="bi bi-arrow-left me-2"></i>Quay lại</a>
     </div>
 
     @if (!ViewData.ModelState.IsValid)
@@ -84,36 +104,64 @@
         </div>
     }
 
-    <div class="config-card">
+    <div class="config-shell">
+      <aside class="config-aside"><i class="bi bi-sliders"></i><h3>Quy tắc tải tài liệu</h3><p>Cấu hình mới sẽ thay thế cấu hình đang dùng có cùng phạm vi. Hãy chọn đúng loại tệp và môn học trước khi lưu.</p></aside>
+      <div class="config-card">
         <form asp-action="Create" method="post" class="row g-3">
             @Html.AntiForgeryToken()
 
             <div class="col-md-6">
-                <label class="form-label">Giới hạn kích thước (MB)</label>
+                <label class="form-label field-title"><i class="bi bi-hdd"></i>Giới hạn kích thước (MB)</label>
                 <input asp-for="MaxFileSizeMB" type="number" class="form-control" min="1" max="500" />
                 <div class="form-text">Từ 1 đến 500 MB.</div>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Loại file</label>
-                <select asp-for="FileType" class="form-select">
-                    <option value="">🗂️ Áp dụng cho mọi loại file</option>
-                    <option value="pdf">📕 PDF</option>
-                    <option value="docx">📘 DOCX</option>
-                    <option value="pptx">📙 PPTX</option>
+                <label class="form-label field-title"><i class="bi bi-file-earmark"></i>Loại tệp</label>
+                <select asp-for="FileType" id="fileTypeSelect" class="form-select">
+                    <option value="">Áp dụng cho mọi loại tệp</option>
+                    <option value="pdf">PDF</option>
+                    <option value="docx">DOCX</option>
+                    <option value="pptx">PPTX</option>
                 </select>
             </div>
 
             <div class="col-md-6">
-                <label class="form-label">Môn học</label>
-                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" class="form-select">
-                    <option value="">🌐 Áp dụng cho mọi môn học</option>
+                <label class="form-label field-title"><i class="bi bi-book"></i>Môn học</label>
+                <select asp-for="SubjectId" asp-items="ViewBag.Subjects" id="subjectSelect" class="form-select">
+                    <option value="">Áp dụng cho mọi môn học</option>
                 </select>
             </div>
 
-            <div class="col-12">
-                <button type="submit" class="btn btn-save">💾 Lưu cấu hình</button>
+            <div class="col-md-6" id="thresholdGroup" style="display:none;">
+                <label class="form-label field-title"><i class="bi bi-intersect"></i>Ngưỡng phát hiện gần giống</label>
+                <input asp-for="NearDuplicateThreshold" type="number" step="0.01" class="form-control" min="0.5" max="1.0" placeholder="Mặc định: 0.90" />
+                <div class="form-text">Chỉ áp dụng khi cấu hình phạm vi toàn hệ thống. Từ 0.5 đến 1.0 — càng cao, hệ thống càng ít cảnh báo trùng lặp (chỉ bắt các trường hợp rất giống nhau). Để trống sẽ dùng mặc định 0.90.</div>
+            </div>
+
+            <div class="col-12 form-actions">
+                <button type="submit" class="btn btn-save"><i class="bi bi-check2 me-2"></i>Lưu cấu hình</button>
             </div>
         </form>
+      </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const subjectSelect = document.getElementById('subjectSelect');
+            const fileTypeSelect = document.getElementById('fileTypeSelect');
+            const thresholdGroup = document.getElementById('thresholdGroup');
+
+            function toggleThresholdVisibility() {
+                const isGlobal = (!subjectSelect.value) && (!fileTypeSelect.value);
+                thresholdGroup.style.display = isGlobal ? '' : 'none';
+            }
+
+            subjectSelect.addEventListener('change', toggleThresholdVisibility);
+            fileTypeSelect.addEventListener('change', toggleThresholdVisibility);
+            toggleThresholdVisibility();
+        });
+    </script>
+}

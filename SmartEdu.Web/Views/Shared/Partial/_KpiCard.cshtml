@@ -1,0 +1,29 @@
+@*
+    KPI tile used on dashboards.
+    Usage:
+        @await Html.PartialAsync("Partial/_KpiCard", new {
+            Label = "Subjects", Value = "—", Trend = "+2 this week", TrendDirection = "up",
+            Icon = "bi-book", IconBg = "blue"
+        })
+*@
+@{
+    var label = (ViewData["Label"] as string) ?? string.Empty;
+    var value = (ViewData["Value"] as string) ?? "—";
+    var trend = (ViewData["Trend"] as string) ?? string.Empty;
+    var trendDir = (ViewData["TrendDirection"] as string) ?? string.Empty;
+    var icon = (ViewData["Icon"] as string) ?? "bi-graph-up";
+    var iconBg = (ViewData["IconBg"] as string) ?? "blue";
+}
+<div class="kpi-card">
+    <div class="d-flex justify-content-between align-items-start">
+        <div>
+            <div class="kpi-label">@label</div>
+            <div class="kpi-value">@value</div>
+            @if (!string.IsNullOrWhiteSpace(trend))
+            {
+                <div class="kpi-trend @trendDir">@trend</div>
+            }
+        </div>
+        <span class="kpi-icon bg-@iconBg"><i class="bi @icon"></i></span>
+    </div>
+</div>

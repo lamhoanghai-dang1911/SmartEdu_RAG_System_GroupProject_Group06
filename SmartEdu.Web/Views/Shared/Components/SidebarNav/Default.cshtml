@@ -1,0 +1,31 @@
+@model List<SmartEdu.Web.ViewComponents.SidebarSection>
+@using SmartEdu.Web.ViewComponents
+@{
+    var routeData = ViewContext.RouteData.Values;
+    var area = (string?)routeData["area"];
+    var controller = (string?)routeData["controller"] ?? string.Empty;
+    var action = (string?)routeData["action"] ?? "Index";
+    var activeKey = ViewData["ActiveKey"] as string;
+}
+<nav class="app-sidenav" aria-label="Primary">
+    @foreach (var group in Model)
+    {
+        <div class="app-sidenav-group">
+            <div class="app-sidenav-title">@group.Title</div>
+            <ul class="app-sidenav-list">
+                @foreach (var item in group.Items)
+                {
+                    var isActive = !string.IsNullOrEmpty(activeKey)
+                        ? string.Equals(activeKey, item.Key, StringComparison.OrdinalIgnoreCase)
+                        : item.IsActive(area, controller, action);
+                    <li class="app-sidenav-item @(isActive ? "is-active" : string.Empty)">
+                        <a asp-controller="@item.Controller" asp-action="@item.Action" class="app-sidenav-link">
+                            <i class="bi @item.Icon app-sidenav-icon" aria-hidden="true"></i>
+                            <span class="app-sidenav-label">@item.Title</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</nav>

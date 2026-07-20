@@ -1,0 +1,18 @@
+@*
+    Standardized chart card.
+    Usage:
+        @await Html.PartialAsync("Partial/_ChartCard", new { Title = "Monthly revenue", Sub = "Last 12 months" })
+        <div> ... canvas ... </div>
+*@
+@{
+    var title = (ViewData["Title"] as string) ?? string.Empty;
+    var sub = (ViewData["Sub"] as string) ?? string.Empty;
+}
+<div class="chart-card">
+    <div class="chart-card-title">@title</div>
+    @if (!string.IsNullOrWhiteSpace(sub))
+    {
+        <div class="chart-card-sub">@sub</div>
+    }
+    @RenderBody()
+</div>

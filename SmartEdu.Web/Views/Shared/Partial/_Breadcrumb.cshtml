@@ -1,0 +1,40 @@
+@using SmartEdu.Web.Views.Shared
+@*
+    Breadcrumb (driven by ViewData["Breadcrumb"] which is a List<BreadcrumbItem>).
+    Each item is (string Label, string? Controller, string? Action, object? RouteValues, bool Active)
+*@
+@{
+    var items = ViewData["Breadcrumb"] as IEnumerable<BreadcrumbItem> ?? Enumerable.Empty<BreadcrumbItem>();
+}
+@if (items.Any())
+{
+    <nav aria-label="breadcrumb" class="app-breadcrumb">
+        <ol class="breadcrumb mb-0">
+            @foreach (var item in items)
+            {
+                if (item.Active)
+                {
+                    <li class="breadcrumb-item active" aria-current="page">@item.Label</li>
+                }
+                else
+                {
+                    <li class="breadcrumb-item">
+                        @if (!string.IsNullOrEmpty(item.Controller))
+                        {
+                            var rv = new Dictionary<string, string>();
+                            if (item.RouteValues is System.Collections.Generic.IDictionary<string, object?> od)
+                            {
+                                foreach (var kv in od) { rv[kv.Key] = kv.Value?.ToString() ?? string.Empty; }
+                            }
+                            <a asp-controller="@item.Controller" asp-action="@item.Action" asp-all-route-data="rv">@item.Label</a>
+                        }
+                        else
+                        {
+                            @item.Label
+                        }
+                    </li>
+                }
+            }
+        </ol>
+    </nav>
+}

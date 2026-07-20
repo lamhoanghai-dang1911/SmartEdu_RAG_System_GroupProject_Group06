@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using SmartEdu.Business.Interfaces;
 using SmartEdu.Business.Services;
@@ -24,6 +25,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
             builder.Services.AddScoped<IDocumentService, DocumentService>();
             builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IModelBenchmarkService,ModelBenchmarkService>();
             builder.Services.AddScoped<IPaymentService, PaymentService>();
             builder.Services.AddScoped<IPackageService, PackageService>();
             builder.Services.AddScoped<IUserSubscriptionService, UserSubscriptionService>();
@@ -67,6 +69,8 @@ namespace SmartEdu.Web
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
             builder.Services.AddScoped<IPermissionService, PermissionService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
@@ -76,6 +80,7 @@ namespace SmartEdu.Web
             builder.Services.AddScoped<SmartEdu.Business.Interfaces.IRealtimeNotifier, SmartEdu.Web.Realtime.SignalRNotifier>();
             builder.Services.AddScoped<IUploadConfigService, UploadConfigService>();
             builder.Services.AddScoped<IFreeTierService, FreeTierService>();
+            builder.Services.AddScoped<SmartEdu.Web.Services.SubjectAccessAuthorizer>();
 
             // Reports
             builder.Services.AddScoped<IReportService, ReportService>();
@@ -114,6 +119,14 @@ namespace SmartEdu.Web
                 options.MultipartBodyLengthLimit = 500 * 1024 * 1024;
             });
             var app = builder.Build();
+
+            // === Xử lý Forwarded Headers (bắt buộc khi chạy sau ngrok/reverse proxy) ===
+            // Phải đặt ngay sau app.Build() và TRƯỚC mọi middleware phụ thuộc vào scheme (HTTP/HTTPS),
+            // đặc biệt là UseHttpsRedirection và UseAuthentication, để cookie Secure policy hoạt động đúng.
+            app.UseForwardedHeaders(new ForwardedHeadersOptions
+            {
+                ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+            });
 
             using (var scope = app.Services.CreateScope())
             {

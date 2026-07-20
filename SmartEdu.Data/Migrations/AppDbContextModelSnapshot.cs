@@ -652,6 +652,9 @@ namespace SmartEdu.Data.Migrations
                     b.Property<int>("MaxFileSizeMB")
                         .HasColumnType("int");
 
+                    b.Property<double?>("NearDuplicateThreshold")
+                        .HasColumnType("float");
+
                     b.Property<int?>("SubjectId")
                         .HasColumnType("int");
 

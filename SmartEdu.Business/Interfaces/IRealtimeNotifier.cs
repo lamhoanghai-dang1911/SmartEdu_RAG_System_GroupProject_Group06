@@ -18,6 +18,7 @@ namespace SmartEdu.Business.Interfaces
         Task SendChatMessageAsync(string sessionId, string role, string content, object? citations, string? excludeConnectionId = null);
         Task SendDocumentCreatedAsync(DocumentDto document);
         Task SendDocumentDeletedAsync(int documentId, int subjectId);
+        Task SendDocumentUpdatedAsync(DocumentDto document);
         Task SendDocumentStatusChangedAsync(int documentId, int subjectId, string status);
         Task SendSessionDeletedAsync(int userId, string sessionId);
         Task SendSessionUpsertAsync(int userId, ChatSessionDto session);
@@ -27,6 +28,7 @@ namespace SmartEdu.Business.Interfaces
         Task SendSubjectDeletedAsync(int subjectId, IEnumerable<int> affectedUserIds);
         Task SendSubjectAssignedToLecturerAsync(int lecturerId, SubjectDto subject);
         Task SendSubjectUnassignedFromLecturerAsync(int lecturerId, int subjectId);
+        Task SendChatProgressAsync(string sessionId, string stage, string message);
 
     }
 }

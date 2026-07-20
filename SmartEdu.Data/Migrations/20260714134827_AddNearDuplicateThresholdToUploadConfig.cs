@@ -1,0 +1,28 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace SmartEdu.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddNearDuplicateThresholdToUploadConfig : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AddColumn<double>(
+                name: "NearDuplicateThreshold",
+                table: "UploadConfigs",
+                type: "float",
+                nullable: true);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.DropColumn(
+                name: "NearDuplicateThreshold",
+                table: "UploadConfigs");
+        }
+    }
+}

@@ -1,0 +1,24 @@
+@*
+    Document processing log modal — included by Document/Details to show real-time logs.
+    Usage:
+        @await Html.PartialAsync("Partial/_DocumentLogModal", documentId)
+*@
+@model int
+<div class="modal fade" id="documentLogModal" tabindex="-1" aria-labelledby="documentLogModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentLogModalLabel">
+                    <i class="bi bi-activity me-2"></i>Processing log
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="documentLogContent" class="small text-muted mb-0" style="white-space: pre-wrap;">Loading…</pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

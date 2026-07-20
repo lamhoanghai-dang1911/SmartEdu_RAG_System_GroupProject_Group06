@@ -1,43 +1,85 @@
-﻿@model IEnumerable<SmartEdu.Shared.DTOs.UserDto>
+@model IEnumerable<SmartEdu.Shared.DTOs.UserDto>
 @{
     ViewData["Title"] = "Quản lý tài khoản";
+    var users = Model?.ToList() ?? new List<SmartEdu.Shared.DTOs.UserDto>();
 }
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>👤 Quản lý người dùng</h2>
-        <a asp-action="CreateUser" class="btn btn-primary">+ Thêm người dùng mới</a>
-    </div>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success">@TempData["Success"]</div>
-    }
+<style>
+    .users-page { max-width: 1280px; margin: 0 auto; padding: 28px 20px 56px; color: #1b2922; }
+    .users-head { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:22px; }
+    .users-eyebrow { display:flex; align-items:center; gap:7px; margin-bottom:5px; color:#738078; font-size:.78rem; font-weight:650; }
+    .users-eyebrow i { color:#267457; }
+    .users-head h1 { margin:0; font-size:1.75rem; font-weight:750; letter-spacing:-.035em; }
+    .users-head p { margin:6px 0 0; color:#748078; font-size:.9rem; }
+    .users-add { display:inline-flex; align-items:center; gap:8px; padding:.68rem 1rem; color:#fff; background:#216e52; border:0; border-radius:10px; font-weight:650; text-decoration:none; box-shadow:0 8px 18px rgba(33,110,82,.15); transition:transform .18s ease, background .18s ease; }
+    .users-add:hover { color:#fff; background:#195d44; transform:translateY(-1px); }
+    .users-card { overflow:visible; background:#fff; border:1px solid #dfe7e1; border-radius:16px; box-shadow:0 12px 34px rgba(31,60,46,.055); }
+    .users-card-head { display:flex; justify-content:space-between; align-items:center; padding:20px 22px; border-bottom:1px solid #e7ece8; }
+    .users-card-head h2 { margin:0; font-size:1.05rem; font-weight:700; }
+    .users-count { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; color:#5f7168; background:#f0f5f1; border-radius:7px; font-size:.76rem; font-weight:650; }
+    .users-table { margin:0; }
+    .users-table thead th { padding:12px 20px; color:#748078; background:#f7f9f7; border-bottom:1px solid #dfe7e1; font-size:.7rem; font-weight:700; letter-spacing:.055em; text-transform:uppercase; }
+    .users-table tbody td { padding:13px 20px; color:#2d3a33; border-color:#edf1ee; vertical-align:middle; }
+    .users-table tbody tr { transition:background .16s ease; }
+    .users-table tbody tr:hover { background:#fafcfb; }
+    .user-cell { display:flex; align-items:center; gap:11px; }
+    .user-avatar { display:grid; place-items:center; flex:0 0 36px; height:36px; color:#285d47; background:#e5f0e9; border-radius:10px; font-size:.8rem; font-weight:750; text-transform:uppercase; }
+    .user-name { font-weight:650; line-height:1.25; }
+    .user-handle { margin-top:2px; color:#8a958f; font-size:.75rem; }
+    .role-label { display:inline-flex; align-items:center; gap:6px; padding:5px 9px; border:1px solid transparent; border-radius:7px; font-size:.74rem; font-weight:650; }
+    .role-admin { color:#795b1c; background:#fbf5e6; border-color:#eee1ba; }
+    .role-lecturer { color:#285f4a; background:#eaf4ee; border-color:#d2e8da; }
+    .role-student { color:#526179; background:#f0f3f7; border-color:#dde3ea; }
+    .role-label i { font-size:.78rem; }
+    .account-state { display:inline-flex; align-items:center; gap:6px; color:#65736c; font-size:.79rem; }
+    .account-state::before { content:""; width:7px; height:7px; border-radius:50%; background:#55a878; box-shadow:0 0 0 3px #e8f4ed; }
+    .action-col { width:64px; text-align:right; }
+    .user-menu { min-width:190px; padding:6px; border:1px solid #dde5df; border-radius:11px; box-shadow:0 14px 35px rgba(23,48,36,.12); }
+    .user-menu .dropdown-item { display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:7px; font-size:.84rem; }
+    .user-menu .dropdown-item-danger { color:#b14444; }
+    .user-menu .dropdown-item-danger:hover { background:#fff1f1; }
+    @@media (max-width: 767px) { .users-page { padding:20px 12px 40px; } .users-head { align-items:flex-start; flex-direction:column; } .users-add { width:100%; justify-content:center; } .users-table thead th:nth-child(2), .users-table tbody td:nth-child(2), .users-table thead th:nth-child(4), .users-table tbody td:nth-child(4) { display:none; } .users-table thead th, .users-table tbody td { padding:12px; } }
+</style>
 
-    <table class="table table-hover table-bordered">
-        <thead class="table-dark">
-            <tr>
-                <th>Username</th>
-                <th>Họ tên</th>
-                <th>Vai trò</th>
-                <th>Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var user in Model)
-            {
-                <tr>
-                    <td>@user.Username</td>
-                    <td>@user.FullName</td>
-                    <td><span class="badge bg-info text-dark">@user.Role</span></td>
-                    <td>
-                        <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post"
-                              onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-danger">🗑️ Xóa</button>
-                        </form>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+<main class="users-page">
+    <header class="users-head">
+        <div>
+            <div class="users-eyebrow"><i class="bi bi-shield-check"></i>Quản trị hệ thống</div>
+            <h1>Người dùng</h1>
+            <p>Quản lý tài khoản và quyền truy cập trong một nơi.</p>
+        </div>
+        <a asp-action="CreateUser" class="users-add"><i class="bi bi-person-plus"></i>Thêm người dùng</a>
+    </header>
+
+    @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+    <section class="users-card">
+        <div class="users-card-head">
+            <h2>Danh sách tài khoản</h2>
+            <span class="users-count"><i class="bi bi-people"></i>@users.Count tài khoản</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table users-table align-middle">
+                <thead><tr><th>Người dùng</th><th>Họ và tên</th><th>Vai trò</th><th>Trạng thái</th><th class="action-col"><span class="visually-hidden">Thao tác</span></th></tr></thead>
+                <tbody>
+                @foreach (var user in users)
+                {
+                    var role = user.Role.ToString();
+                    var roleClass = role == "Admin" ? "role-admin" : role == "Lecturer" ? "role-lecturer" : "role-student";
+                    var roleIcon = role == "Admin" ? "bi-shield-check" : role == "Lecturer" ? "bi-person-workspace" : "bi-mortarboard";
+                    var roleName = role == "Admin" ? "Quản trị viên" : role == "Lecturer" ? "Giảng viên" : "Sinh viên";
+                    var initial = !string.IsNullOrWhiteSpace(user.FullName) ? user.FullName.Trim()[0].ToString() : user.Username?.FirstOrDefault().ToString() ?? "U";
+                    <tr>
+                        <td><div class="user-cell"><span class="user-avatar">@initial</span><div><div class="user-name">@user.Username</div><div class="user-handle">Tài khoản SmartEdu</div></div></div></td>
+                        <td>@user.FullName</td>
+                        <td><span class="role-label @roleClass"><i class="bi @roleIcon"></i>@roleName</span></td>
+                        <td><span class="account-state">Đang hoạt động</span></td>
+                        <td class="action-col"><div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end user-menu"><li><form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tài khoản này?');">@Html.AntiForgeryToken()<button type="submit" class="dropdown-item dropdown-item-danger"><i class="bi bi-trash3"></i>Xóa người dùng</button></form></li></ul></div></td>
+                    </tr>
+                }
+                @if (!users.Any()) { <tr><td colspan="5"><div class="empty-state py-5"><div class="empty-state-title">Chưa có tài khoản</div><div class="empty-state-desc">Tài khoản mới sẽ xuất hiện tại đây.</div></div></td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>

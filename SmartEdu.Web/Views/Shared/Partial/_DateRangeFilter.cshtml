@@ -1,0 +1,20 @@
+@*
+    Date-range filter input pill.
+    Usage:
+        @await Html.PartialAsync("Partial/_DateRangeFilter", new {
+            FormId = "reportFilter",
+            From = ViewBag.From, To = ViewBag.To
+        })
+*@
+@{
+    var formId = (ViewData["FormId"] as string) ?? "dateRangeForm";
+    var from = (ViewData["From"] as string) ?? string.Empty;
+    var to = (ViewData["To"] as string) ?? string.Empty;
+}
+<form id="@formId" method="get" class="date-range-filter">
+    <i class="bi bi-calendar3 ms-2 text-muted"></i>
+    <input type="date" name="from" value="@from" aria-label="From" />
+    <span class="text-muted">→</span>
+    <input type="date" name="to" value="@to" aria-label="To" />
+    <button class="btn btn-sm btn-primary ms-1" type="submit">Apply</button>
+</form>

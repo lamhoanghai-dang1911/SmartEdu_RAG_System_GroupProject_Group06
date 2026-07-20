@@ -84,6 +84,25 @@ public class ChatService : IChatService
                 s => s.Subject
             );
             session = reloaded.FirstOrDefault() ?? session;
+                // Notify other tabs of this user that a new session was created/updated
+                try
+                {
+                    var dto = new ChatSessionDto
+                    {
+                        Id = session.Id,
+                        SessionId = session.SessionId,
+                        Title = session.Title,
+                        SubjectId = session.SubjectId,
+                        SubjectName = session.Subject?.Name,
+                        MessageCount = session.Messages?.Count ?? 0,
+                        CreatedAt = session.CreatedAt
+                    };
+                    await _realtime.SendSessionUpsertAsync(request.UserId, dto);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to broadcast session upsert: {ex}");
+                }
         }
         else if (session.UserId != request.UserId)
         {
@@ -110,7 +129,25 @@ public class ChatService : IChatService
             Console.WriteLine($"Failed to broadcast user message: {ex}");
         }
 
+        try
+        {
+            await _realtime.SendChatProgressAsync(request.SessionId, "embedding", "🔍 Đang phân tích câu hỏi...");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast progress (embedding): {ex}");
+        }
+
         float[] queryVector = await GetHuggingFaceEmbeddingAsync(request.Question);
+
+        try
+        {
+            await _realtime.SendChatProgressAsync(request.SessionId, "retrieving", "📚 Đang tìm tài liệu liên quan...");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast progress (retrieving): {ex}");
+        }
 
         var chunks = await _chunkRepo.GetAllWithIncludeAsync(
             c => c.EmbeddingSet != null
@@ -172,6 +209,15 @@ public class ChatService : IChatService
             citationIndex++;
         }
 
+        try
+        {
+            await _realtime.SendChatProgressAsync(request.SessionId, "generating", "✍️ Đang soạn câu trả lời...");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to broadcast progress (generating): {ex}");
+        }
+
         var (answer, promptTokens, completionTokens) = await GenerateGeminiResponseAsync(contentBuilder.ToString(), request.Question);
 
         // === Hậu kiểm: chỉ giữ citation có số [n] thực sự xuất hiện trong câu trả lời ===
@@ -224,9 +270,8 @@ public class ChatService : IChatService
                 usedNumbers.Add(num);
             }
         }
-
         if (usedNumbers.Count == 0)
-            return allCitations;
+            return new List<CitationDto>();
 
         return allCitations.Where(c => usedNumbers.Contains(c.Number)).ToList();
     }

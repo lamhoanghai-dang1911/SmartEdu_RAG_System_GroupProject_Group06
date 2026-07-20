@@ -478,5 +478,13 @@ namespace SmartEdu.Business.Services
                 ls => ls.LecturerId == lecturerId && ls.SubjectId == subjectId);
             return rels.Any();
         }
+
+        public async Task<HashSet<int>> GetLeaderSubjectIdsAsync(int lecturerId)
+        {
+            var rels = await _uow.LecturerSubjects.GetAllAsync(
+                ls => ls.LecturerId == lecturerId && ls.IsLeader);
+
+            return rels.Select(ls => ls.SubjectId).ToHashSet();
+        }
     }
 }

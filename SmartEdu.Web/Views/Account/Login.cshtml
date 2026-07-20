@@ -1,556 +1,125 @@
 ﻿@model LoginViewModel
 @{
-    ViewData["Title"] = "Đăng nhập";
+    ViewData["Title"] = "Sign in";
+    Layout = null;
 }
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-            :root {
-                --ink-navy: #0b1120;
-                --deep-indigo: #171d3d;
-                --brand-blue: #0d6efd;
-                --brand-purple: #6610f2;
-                --amber: #ffb648;
-                --amber-dark: #f5a52c;
-                --paper: #f7f8fc;
-                --slate: #5a6072;
-                --slate-light: #9aa0b4;
-                --danger: #e5484d;
-            }
-
-            * {
-                box-sizing: border-box;
-            }
-
-            html, body {
-                height: 100%;
-                margin: 0;
-            }
-
-            body {
-                font-family: 'Inter', sans-serif;
-                color: #1c2033;
-                background: var(--paper);
-                overflow-x: hidden;
-            }
-
-            .auth-shell {
-                min-height: 100vh;
-                display: flex;
-            }
-
-            /* ============ LEFT PANEL ============ */
-            .auth-brand {
-                position: relative;
-                flex: 1 1 46%;
-                min-height: 100vh;
-                overflow: hidden;
-                background: radial-gradient(circle at 20% 20%, #1b2560 0%, var(--ink-navy) 55%, #06070f 100%);
-                display: flex;
-                flex-direction: column;
-                justify-content: space-between;
-                padding: 3rem 3.25rem;
-                color: #fff;
-            }
-
-                .auth-brand::before {
-                    content: "";
-                    position: absolute;
-                    inset: -20%;
-                    background: radial-gradient(circle at 30% 30%, rgba(13, 110, 253, 0.35), transparent 45%), radial-gradient(circle at 75% 70%, rgba(102, 16, 242, 0.35), transparent 45%);
-                    filter: blur(10px);
-                    animation: driftGlow 16s ease-in-out infinite alternate;
-                }
-
-            @@keyframes driftGlow {
-                0% {
-                    transform: translate(0, 0) scale(1);
-                }
-
-                100% {
-                    transform: translate(4%, -3%) scale(1.08);
-                }
-            }
-
-            .auth-brand-top {
-                position: relative;
-                z-index: 2;
-                display: flex;
-                align-items: center;
-                gap: 0.65rem;
-                font-family: 'Sora', sans-serif;
-                font-weight: 700;
-                font-size: 1.35rem;
-                letter-spacing: 0.2px;
-            }
-
-                .auth-brand-top .cap {
-                    font-size: 1.6rem;
-                    filter: drop-shadow(0 0 12px rgba(255, 182, 72, 0.55));
-                }
-
-            /* Orbit signature element */
-            .orbit-stage {
-                position: relative;
-                z-index: 2;
-                width: 100%;
-                max-width: 360px;
-                aspect-ratio: 1 / 1;
-                margin: 1.5rem auto;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .orbit-core {
-                font-size: 3.75rem;
-                filter: drop-shadow(0 0 24px rgba(255, 182, 72, 0.45));
-                animation: coreFloat 5s ease-in-out infinite;
-            }
-
-            @@keyframes coreFloat {
-                0%, 100% {
-                    transform: translateY(0);
-                }
-
-                50% {
-                    transform: translateY(-10px);
-                }
-            }
-
-            .orbit-ring {
-                position: absolute;
-                inset: 0;
-                border: 1px dashed rgba(255, 255, 255, 0.14);
-                border-radius: 50%;
-            }
-
-                .orbit-ring.r2 {
-                    inset: 14%;
-                    border-color: rgba(255, 255, 255, 0.1);
-                }
-
-            .orbit-item {
-                position: absolute;
-                inset: 0;
-                animation: spin linear infinite;
-            }
-
-                .orbit-item span {
-                    position: absolute;
-                    top: -14px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    font-size: 1.35rem;
-                    display: inline-block;
-                    animation: counterSpin linear infinite;
-                }
-
-                .orbit-item.i1 {
-                    animation-duration: 14s;
-                }
-
-                .orbit-item.i2 {
-                    animation-duration: 20s;
-                    animation-direction: reverse;
-                    inset: 14%;
-                }
-
-                .orbit-item.i3 {
-                    animation-duration: 26s;
-                }
-
-                .orbit-item.i1 span {
-                    animation-duration: 14s;
-                }
-
-                .orbit-item.i2 span {
-                    animation-duration: 20s;
-                    animation-direction: reverse;
-                }
-
-                .orbit-item.i3 span {
-                    animation-duration: 26s;
-                }
-
-            @@keyframes spin {
-                from {
-                    transform: rotate(0deg);
-                }
-
-                to {
-                    transform: rotate(360deg);
-                }
-            }
-
-            @@keyframes counterSpin {
-                from {
-                    transform: translateX(-50%) rotate(0deg);
-                }
-
-                to {
-                    transform: translateX(-50%) rotate(-360deg);
-                }
-            }
-
-            .auth-brand-copy {
-                position: relative;
-                z-index: 2;
-            }
-
-                .auth-brand-copy h1 {
-                    font-family: 'Sora', sans-serif;
-                    font-weight: 700;
-                    font-size: 1.85rem;
-                    line-height: 1.3;
-                    margin-bottom: 0.75rem;
-                }
-
-                .auth-brand-copy p {
-                    color: rgba(255, 255, 255, 0.68);
-                    font-size: 0.98rem;
-                    line-height: 1.6;
-                    max-width: 380px;
-                }
-
-            .auth-brand-foot {
-                position: relative;
-                z-index: 2;
-                font-size: 0.82rem;
-                color: rgba(255, 255, 255, 0.4);
-            }
-
-            /* ============ RIGHT PANEL ============ */
-            .auth-form-side {
-                flex: 1 1 54%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 2.5rem 1.5rem;
-                background: var(--paper);
-            }
-
-            .auth-card {
-                width: 100%;
-                max-width: 400px;
-            }
-
-                .auth-card .eyebrow {
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    letter-spacing: 0.14em;
-                    text-transform: uppercase;
-                    color: var(--brand-blue);
-                    margin-bottom: 0.6rem;
-                    opacity: 0;
-                    animation: fadeUp 0.6s ease forwards;
-                    animation-delay: 0.05s;
-                }
-
-                .auth-card h2 {
-                    font-family: 'Sora', sans-serif;
-                    font-weight: 700;
-                    font-size: 1.9rem;
-                    margin-bottom: 0.35rem;
-                    color: #12162b;
-                    opacity: 0;
-                    animation: fadeUp 0.6s ease forwards;
-                    animation-delay: 0.12s;
-                }
-
-                .auth-card .subtext {
-                    color: var(--slate);
-                    font-size: 0.95rem;
-                    margin-bottom: 1.85rem;
-                    opacity: 0;
-                    animation: fadeUp 0.6s ease forwards;
-                    animation-delay: 0.18s;
-                }
-
-            @@keyframes fadeUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(14px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .field-group {
-                position: relative;
-                margin-bottom: 1.35rem;
-                opacity: 0;
-                animation: fadeUp 0.6s ease forwards;
-            }
-
-                .field-group:nth-of-type(1) {
-                    animation-delay: 0.24s;
-                }
-
-                .field-group:nth-of-type(2) {
-                    animation-delay: 0.3s;
-                }
-
-            .field-label {
-                display: block;
-                font-size: 0.85rem;
-                font-weight: 600;
-                color: #33384f;
-                margin-bottom: 0.4rem;
-            }
-
-            .field-shell {
-                position: relative;
-                display: flex;
-                align-items: center;
-                background: #fff;
-                border: 1.5px solid #e3e5ef;
-                border-radius: 12px;
-                transition: border-color 0.22s ease, box-shadow 0.22s ease, transform 0.15s ease;
-            }
-
-                .field-shell:focus-within {
-                    border-color: var(--brand-blue);
-                    box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.12);
-                    transform: translateY(-1px);
-                }
-
-                .field-shell .field-icon {
-                    width: 42px;
-                    text-align: center;
-                    color: var(--slate-light);
-                    font-size: 1rem;
-                    transition: color 0.2s ease;
-                }
-
-                .field-shell:focus-within .field-icon {
-                    color: var(--brand-blue);
-                }
-
-                .field-shell input {
-                    border: none;
-                    outline: none;
-                    background: transparent;
-                    flex: 1;
-                    padding: 0.72rem 0.25rem 0.72rem 0;
-                    font-size: 0.96rem;
-                    font-family: 'Inter', sans-serif;
-                    color: #1c2033;
-                }
-
-                    .field-shell input::placeholder {
-                        color: #b7bacb;
-                    }
-
-            .toggle-pass {
-                border: none;
-                background: transparent;
-                color: var(--slate-light);
-                width: 42px;
-                cursor: pointer;
-                font-size: 1rem;
-                transition: color 0.2s ease;
-            }
-
-                .toggle-pass:hover {
-                    color: var(--brand-blue);
-                }
-
-            .field-error {
-                display: block;
-                color: var(--danger);
-                font-size: 0.8rem;
-                margin-top: 0.35rem;
-                min-height: 1rem;
-            }
-
-            .validation-summary {
-                opacity: 0;
-                animation: fadeUp 0.5s ease forwards;
-            }
-
-                .validation-summary:empty {
-                    display: none;
-                }
-
-            .btn-login {
-                width: 100%;
-                border: none;
-                border-radius: 12px;
-                padding: 0.85rem 1rem;
-                font-weight: 700;
-                font-size: 1rem;
-                color: #fff;
-                background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple), var(--brand-blue));
-                background-size: 220% 220%;
-                position: relative;
-                overflow: hidden;
-                cursor: pointer;
-                transition: background-position 0.5s ease, transform 0.15s ease, box-shadow 0.25s ease;
-                box-shadow: 0 10px 24px -8px rgba(13, 110, 253, 0.55);
-                opacity: 0;
-                animation: fadeUp 0.6s ease forwards;
-                animation-delay: 0.38s;
-            }
-
-                .btn-login:hover {
-                    background-position: 100% 50%;
-                    box-shadow: 0 14px 30px -8px rgba(102, 16, 242, 0.55);
-                }
-
-                .btn-login:active {
-                    transform: scale(0.98);
-                }
-
-                .btn-login .ripple {
-                    position: absolute;
-                    border-radius: 50%;
-                    background: rgba(255, 255, 255, 0.55);
-                    transform: scale(0);
-                    animation: rippleAnim 0.6s ease-out;
-                    pointer-events: none;
-                }
-
-            @@keyframes rippleAnim {
-                to {
-                    transform: scale(3.5);
-                    opacity: 0;
-                }
-            }
-
-            .auth-hint {
-                text-align: center;
-                font-size: 0.85rem;
-                color: var(--slate);
-                margin-top: 1.5rem;
-                opacity: 0;
-                animation: fadeUp 0.6s ease forwards;
-                animation-delay: 0.46s;
-            }
-
-                .auth-hint strong {
-                    color: var(--brand-blue);
-                    font-weight: 600;
-                }
-
-            @@media (max-width: 900px) {
-                .auth-brand {
-                    display: none;
-                }
-
-                .auth-form-side {
-                    flex: 1 1 100%;
-                }
-            }
-
-            @@media (prefers-reduced-motion: reduce) {
-                *, *::before, *::after {
-                    animation-duration: 0.01ms !important;
-                    animation-iteration-count: 1 !important;
-                    transition-duration: 0.01ms !important;
-                }
-            }
-    </style>
-<body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · SmartEdu</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/harmony.css" asp-append-version="true" />
+</head>
+<body class="auth-body">
     <div class="auth-shell">
-
-        <!-- LEFT: brand panel -->
-        <div class="auth-brand">
-            <div class="auth-brand-top">
-                <span class="cap">🎓</span>
-                <span>SmartEdu</span>
+        <div class="auth-card">
+            @* LEFT side: brand + features *@
+            <div class="auth-card-side d-none d-md-flex">
+                <a class="auth-brand-mark" asp-controller="Home" asp-action="Index">
+                    <span class="mark"><i class="bi bi-book"></i></span>
+                    <span class="name">SmartEdu</span>
+                </a>
+                <div class="auth-illustration" aria-hidden="true">
+                    <div class="orb orb-a"></div>
+                    <div class="orb orb-b"></div>
+                    <div class="orb orb-c"></div>
+                    <div class="orb orb-d"></div>
+                </div>
+                <h2>Learn smarter,<br />with answers you can cite.</h2>
+                <p>Upload your course materials, ask anything, and get grounded answers from your own documents.</p>
+                <ul>
+                    <li><i class="bi bi-check2-circle"></i> RAG-powered chatbot with source citations</li>
+                    <li><i class="bi bi-check2-circle"></i> Subject-scoped for lecturers and students</li>
+                    <li><i class="bi bi-check2-circle"></i> Pay-as-you-go token plans</li>
+                </ul>
+                <div class="auth-card-side-foot">&copy; 2026 SmartEdu</div>
             </div>
 
-            <div class="orbit-stage" aria-hidden="true">
-                <div class="orbit-ring"></div>
-                <div class="orbit-ring r2"></div>
-                <div class="orbit-item i1"><span>📘</span></div>
-                <div class="orbit-item i2"><span>💡</span></div>
-                <div class="orbit-item i3"><span>✏️</span></div>
-                <div class="orbit-core">🎓</div>
-            </div>
-
-            <div class="auth-brand-copy">
-                <h1>Học tập thông minh,<br />tiến bộ mỗi ngày.</h1>
-                <p>Truy cập tài liệu, trò chuyện với trợ lý AI và theo dõi tiến độ học tập của bạn — tất cả trong một nền tảng duy nhất.</p>
-            </div>
-
-            <div class="auth-brand-foot">&copy; 2026 SmartEdu. Đồng hành cùng bạn trên hành trình tri thức.</div>
-        </div>
-
-        <!-- RIGHT: form panel -->
-        <div class="auth-form-side">
-            <div class="auth-card">
-                <div class="eyebrow">Chào mừng trở lại</div>
-                <h2>Đăng nhập</h2>
-                <p class="subtext">Nhập thông tin tài khoản để tiếp tục vào SmartEdu.</p>
+            @* RIGHT side: form *@
+            <div class="auth-card-body">
+                <a class="auth-mobile-brand d-md-none" asp-controller="Home" asp-action="Index">
+                    <span class="mark"><i class="bi bi-book"></i></span>
+                    <span class="name">SmartEdu</span>
+                </a>
+                <div class="auth-card-title">Welcome back</div>
+                <div class="auth-card-sub">Sign in to continue to SmartEdu.</div>
 
                 <form asp-action="Login" method="post" id="loginForm" novalidate>
                     @Html.AntiForgeryToken()
-                    <div asp-validation-summary="ModelOnly" class="validation-summary text-danger mb-3 fw-bold small"></div>
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger small mb-3" role="alert"></div>
 
-                    <div class="field-group">
-                        <label class="field-label">Tên đăng nhập</label>
-                        <div class="field-shell">
-                            <span class="field-icon">👤</span>
-                            <input asp-for="Username" placeholder="Nhập tên đăng nhập" autocomplete="username" required />
+                    <div class="mb-3">
+                        <label class="form-label" asp-for="Username">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input class="form-control" asp-for="Username" placeholder="Enter your username" autocomplete="username" required />
                         </div>
-                        <span asp-validation-for="Username" class="field-error"></span>
+                        <span asp-validation-for="Username" class="text-danger small"></span>
                     </div>
 
-                    <div class="field-group">
-                        <label class="field-label">Mật khẩu</label>
-                        <div class="field-shell">
-                            <span class="field-icon">🔒</span>
-                            <input asp-for="Password" id="passwordInput" type="password" placeholder="Nhập mật khẩu" autocomplete="current-password" required />
-                            <button type="button" class="toggle-pass" id="togglePass" aria-label="Hiện/ẩn mật khẩu">👁️</button>
+                    <div class="mb-2">
+                        <label class="form-label" asp-for="Password">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+                            <input class="form-control" asp-for="Password" id="passwordInput" type="password" placeholder="Enter your password" autocomplete="current-password" required />
+                            <button type="button" class="btn btn-light border" id="togglePass" aria-label="Toggle password visibility">
+                                <i class="bi bi-eye"></i>
+                            </button>
                         </div>
-                        <span asp-validation-for="Password" class="field-error"></span>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>
 
-                    <button type="submit" class="btn-login" id="loginBtn">Đăng nhập</button>
+                    <button type="submit" class="btn btn-primary w-100 mt-3" id="loginBtn">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign in
+                    </button>
                 </form>
 
-                <div class="auth-hint">Cần hỗ trợ? Liên hệ <strong>quản trị viên</strong> để được cấp tài khoản.</div>
+                <div class="auth-hint text-center mt-3 small text-muted">
+                    Need help? Contact your <strong>administrator</strong> for an account.
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-            // Toggle hiện/ẩn mật khẩu
-            (function () {
-                const toggleBtn = document.getElementById('togglePass');
-                const passInput = document.getElementById('passwordInput');
-                if (toggleBtn && passInput) {
-                    toggleBtn.addEventListener('click', function () {
-                        const isPass = passInput.getAttribute('type') === 'password';
-                        passInput.setAttribute('type', isPass ? 'text' : 'password');
-                        toggleBtn.textContent = isPass ? '🙈' : '👁️';
-                    });
-                }
-            })();
+    <style>
+        .auth-body { background: var(--ink-50); }
+        .auth-brand-mark { display: inline-flex; align-items: center; gap: 0.6rem; color: #fff !important; text-decoration: none; }
+        .auth-brand-mark .mark { width: 38px; height: 38px; border-radius: 10px; background: rgba(255,255,255,0.18); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+        .auth-brand-mark .name { font-family: var(--font-display); font-weight: 800; font-size: 1.2rem; }
+        .auth-mobile-brand { display: inline-flex; align-items: center; gap: 0.6rem; color: var(--ink-900); text-decoration: none; margin-bottom: 1.25rem; }
+        .auth-mobile-brand .mark { width: 36px; height: 36px; border-radius: 10px; background: var(--brand-blue); color: #fff; display: inline-flex; align-items: center; justify-content: center; }
+        .auth-mobile-brand .name { font-family: var(--font-display); font-weight: 800; font-size: 1.05rem; }
+        .auth-card-side-foot { margin-top: auto; font-size: 0.85rem; color: rgba(255,255,255,0.6); }
 
-            // Ripple effect khi bấm nút đăng nhập
-            (function () {
-                const btn = document.getElementById('loginBtn');
-                if (!btn) return;
-                btn.addEventListener('click', function (e) {
-                    const rect = btn.getBoundingClientRect();
-                    const ripple = document.createElement('span');
-                    const size = Math.max(rect.width, rect.height);
-                    ripple.className = 'ripple';
-                    ripple.style.width = ripple.style.height = size + 'px';
-                    ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
-                    ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
-                    btn.appendChild(ripple);
-                    setTimeout(() => ripple.remove(), 650);
+        .auth-illustration { position: relative; height: 140px; margin: 0.5rem 0 1rem; }
+        .auth-illustration .orb { position: absolute; border-radius: 50%; opacity: 0.85; filter: blur(0.5px); }
+        .auth-illustration .orb-a { width: 60px; height: 60px; left: 10%; top: 30%; background: rgba(255,255,255,0.5); animation: floatA 6s ease-in-out infinite; }
+        .auth-illustration .orb-b { width: 40px; height: 40px; right: 15%; top: 10%; background: rgba(255,182,72,0.85); animation: floatB 7s ease-in-out infinite; }
+        .auth-illustration .orb-c { width: 80px; height: 80px; right: 5%; bottom: 0; background: rgba(255,255,255,0.35); animation: floatA 8s ease-in-out -2s infinite; }
+        .auth-illustration .orb-d { width: 28px; height: 28px; left: 50%; bottom: 10%; background: rgba(255,106,169,0.85); animation: floatB 5s ease-in-out -1s infinite; }
+        @@keyframes floatA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+        @@keyframes floatB { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    </style>
+
+    <script>
+        (function () {
+            var btn = document.getElementById('togglePass');
+            var input = document.getElementById('passwordInput');
+            if (btn && input) {
+                btn.addEventListener('click', function () {
+                    var isPass = input.getAttribute('type') === 'password';
+                    input.setAttribute('type', isPass ? 'text' : 'password');
+                    btn.innerHTML = isPass ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
                 });
-            })();
+            }
+        })();
     </script>
 </body>
 </html>

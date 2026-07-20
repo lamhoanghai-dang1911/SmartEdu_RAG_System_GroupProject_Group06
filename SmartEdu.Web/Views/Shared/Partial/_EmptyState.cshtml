@@ -1,0 +1,21 @@
+@*
+    Empty state shown when a list has no records.
+    Usage:
+        @await Html.PartialAsync("Partial/_EmptyState", new {
+            Icon = "bi-book", Title = "No subjects yet",
+            Desc = "Create your first subject to get started."
+        })
+*@
+@{
+    var icon = (ViewData["Icon"] as string) ?? "bi-inbox";
+    var title = (ViewData["Title"] as string) ?? "Nothing here yet";
+    var desc = (ViewData["Desc"] as string) ?? string.Empty;
+}
+<div class="empty-state">
+    <div class="empty-state-icon"><i class="bi @icon"></i></div>
+    <div class="empty-state-title">@title</div>
+    @if (!string.IsNullOrWhiteSpace(desc))
+    {
+        <div class="empty-state-desc">@desc</div>
+    }
+</div>

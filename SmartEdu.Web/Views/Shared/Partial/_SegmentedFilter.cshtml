@@ -1,0 +1,30 @@
+@using SmartEdu.Web.Views.Shared
+@*
+    Segmented filter — a pill of buttons or anchors.
+    Usage:
+        @await Html.PartialAsync("Partial/_SegmentedFilter", new List<SegmentedItem> {
+            new() { Label = "All", Href = Url.Action("Index"), Active = true },
+            new() { Label = "Active", Href = Url.Action("Index", new { status = "active" }) },
+            new() { Label = "Archived", Href = Url.Action("Index", new { status = "archived" }) },
+        })
+*@
+@model IEnumerable<SegmentedItem>
+@{
+    var items = Model?.ToList() ?? new List<SegmentedItem>();
+}
+@if (items.Any())
+{
+    <div class="segmented" role="tablist">
+        @foreach (var item in items)
+        {
+            if (item.Active)
+            {
+                <a class="active" href="@(item.Href ?? "#")" role="tab" aria-selected="true">@item.Label</a>
+            }
+            else
+            {
+                <a class="" href="@(item.Href ?? "#")" role="tab" aria-selected="false">@item.Label</a>
+            }
+        }
+    </div>
+}

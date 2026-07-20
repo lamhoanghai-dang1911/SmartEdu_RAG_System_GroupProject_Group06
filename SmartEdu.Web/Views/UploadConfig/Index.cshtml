@@ -48,6 +48,63 @@
         border-left: 3px solid var(--danger);
     }
 
+    /* ===== Bộ lọc trạng thái ===== */
+    .status-filter {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        width: fit-content;
+        padding: 4px;
+        background: #e9efeb;
+        border-radius: 10px;
+    }
+
+        .status-filter .filter-label {
+            font-family: 'Sora', sans-serif;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--slate);
+            margin: 0 .7rem 0 .45rem;
+        }
+
+    .filter-pill {
+        border: 0;
+        background: transparent;
+        color: #12162b;
+        border-radius: 7px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0.42rem .9rem;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+        .filter-pill:hover {
+            color: #216e52;
+        }
+
+        .filter-pill.active-success {
+            background: #fff;
+            color: #216e52;
+            box-shadow: 0 2px 7px rgba(32,67,51,.10);
+        }
+
+        .filter-pill.active-neutral {
+            background: #fff;
+            color: #24372e;
+            box-shadow: 0 2px 7px rgba(32,67,51,.10);
+        }
+
+    .empty-row td {
+        text-align: center;
+        color: var(--slate);
+        padding: 1.5rem 1rem !important;
+    }
+
     .table-card {
         background: #fff;
         border-radius: 16px;
@@ -95,12 +152,17 @@
             background: rgba(13, 110, 253, 0.1) !important;
             color: var(--brand-blue) !important;
         }
+
+        .badge.bg-purple {
+            background: rgba(102, 16, 242, 0.1) !important;
+            color: var(--brand-purple) !important;
+        }
 </style>
 
 <div class="container mt-4">
     <div class="page-head d-flex justify-content-between align-items-center mb-3">
-        <h2>📦 Giới hạn kích thước Upload</h2>
-        <a asp-action="Create" class="btn btn-primary">➕ Thêm cấu hình mới</a>
+        <div><h2>Giới hạn tải lên</h2><p class="text-muted mb-0 mt-1 small">Quản lý kích thước, định dạng và phạm vi áp dụng cho tài liệu.</p></div>
+        <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Thêm cấu hình</a>
     </div>
 
     @if (TempData["Success"] != null)
@@ -119,15 +181,23 @@
         </div>
     }
 
+    <div class="status-filter">
+        <span class="filter-label">Lọc theo trạng thái</span>
+        <button type="button" class="filter-pill" data-filter="active"><i class="bi bi-check-circle me-1"></i>Đang dùng</button>
+        <button type="button" class="filter-pill" data-filter="replaced"><i class="bi bi-clock-history me-1"></i>Đã thay thế</button>
+        <button type="button" class="filter-pill" data-filter="all"><i class="bi bi-list-ul me-1"></i>Tất cả</button>
+    </div>
+
     <div class="table-card">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="table table-hover align-middle mb-0" id="configTable">
                 <thead>
                     <tr>
-                        <th>#</th>
+                        @* <th>#</th> *@
                         <th>Giới hạn (MB)</th>
                         <th>Loại file</th>
                         <th>Môn học</th>
+                        <th>Ngưỡng gần giống</th>
                         <th>Trạng thái</th>
                         <th>Cập nhật bởi</th>
                         <th>Ngày tạo</th>
@@ -136,8 +206,8 @@
                 <tbody>
                     @foreach (var c in Model.OrderByDescending(c => c.IsActive).ThenByDescending(c => c.CreatedAt))
                     {
-                        <tr>
-                            <td>@c.Id</td>
+                        <tr data-status="@(c.IsActive ? "active" : "replaced")">
+                            @* <td>@c.Id</td> *@
                             <td>@c.MaxFileSizeMB MB</td>
                             <td>
                                 @if (string.IsNullOrEmpty(c.FileType))
@@ -151,21 +221,72 @@
                             </td>
                             <td>@(c.SubjectName ?? "Mọi môn")</td>
                             <td>
-                                @if (c.IsActive)
+                                @if (c.NearDuplicateThreshold.HasValue)
                                 {
-                                    <span class="badge bg-success">✅ Đang dùng</span>
+                                    <span class="badge bg-purple">@($"{c.NearDuplicateThreshold.Value:P0}")</span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-secondary">🔁 Đã thay thế</span>
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (c.IsActive)
+                                {
+                                    <span class="badge bg-success">Đang dùng</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Đã thay thế</span>
                                 }
                             </td>
                             <td>@c.UpdatedByUserName</td>
                             <td>@c.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy HH:mm")</td>
                         </tr>
                     }
+                    <tr class="empty-row" id="emptyRow" style="display: none;">
+                        <td colspan="8">Không có cấu hình nào ở trạng thái này.</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const pills = document.querySelectorAll('.filter-pill');
+            const rows = document.querySelectorAll('#configTable tbody tr[data-status]');
+            const emptyRow = document.getElementById('emptyRow');
+
+            function applyFilter(filter) {
+                let visibleCount = 0;
+
+                rows.forEach(function (row) {
+                    const show = (filter === 'all') || (row.dataset.status === filter);
+                    row.style.display = show ? '' : 'none';
+                    if (show) visibleCount++;
+                });
+
+                emptyRow.style.display = visibleCount === 0 ? '' : 'none';
+
+                pills.forEach(function (pill) {
+                    pill.classList.remove('active-success', 'active-neutral');
+                    if (pill.dataset.filter === filter) {
+                        pill.classList.add(filter === 'active' ? 'active-success' : 'active-neutral');
+                    }
+                });
+            }
+
+            pills.forEach(function (pill) {
+                pill.addEventListener('click', function () {
+                    applyFilter(pill.dataset.filter);
+                });
+            });
+
+            // Mặc định khi vào trang: chỉ hiển thị các cấu hình đang dùng
+            applyFilter('active');
+        })();
+    </script>
+}
