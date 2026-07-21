@@ -84,7 +84,8 @@ namespace SmartEdu.Web.ViewComponents
                 Icon = "bi-book",
                 Controller = "Subject",
                 Action = "Index",
-                Allowed = user.CanViewSubjectsAsLecturer() || user.UiIsStudent()
+                // Subjects are for staff (Admin or Lecturer) only; students should not see this menu
+                Allowed = user.CanViewSubjectsAsLecturer()
             });
             TryAdd(learning, new SidebarItem
             {

@@ -26,6 +26,5 @@
     }
 </main>
 @section Scripts{
-<script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
-<script>document.addEventListener('DOMContentLoaded',async()=>{const connection=new signalR.HubConnectionBuilder().withUrl('/hubs/notifications').withAutomaticReconnect().build();connection.on('PaymentCompleted',()=>location.reload());try{await connection.start()}catch(error){console.error('Không thể kết nối thông báo realtime:',error)}});</script>
+<script>document.addEventListener('DOMContentLoaded',async()=>{try{if(typeof signalR==='undefined'){console.warn('signalR missing on MySubscription page');}const connection=new signalR.HubConnectionBuilder().withUrl('/hubs/notifications').withAutomaticReconnect().build();connection.on('PaymentCompleted',()=>location.reload());try{await connection.start()}catch(error){console.error('Không thể kết nối thông báo realtime:',error)}}catch(e){console.error(e)}});</script>
 }

@@ -73,7 +73,10 @@ namespace SmartEdu.Web.Extensions
             => user.UiIsStudent();
 
         public static bool CanViewOwnSubscription(this ClaimsPrincipal user)
-            => user.Identity?.IsAuthenticated ?? false;
+        {
+            // Only students should have a personal subscription UI; hide from Admins/Lecturers
+            return user.UiIsStudent();
+        }
 
         public static bool CanManageChunkingConfig(this ClaimsPrincipal user)
             => user.UiIsAdmin();

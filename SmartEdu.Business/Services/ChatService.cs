@@ -504,6 +504,16 @@ CÂU HỎI:
                 CreatedAt = DateTime.UtcNow
             });
             await _usageLogRepo.SaveChangesAsync();
+
+            // Notify realtime clients to refresh reports: the student and admins
+            try
+            {
+                await _realtime.SendReportsUpdatedAsync(request.UserId);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to broadcast reports update via SignalR: {ex}");
+            }
         }
 
         try

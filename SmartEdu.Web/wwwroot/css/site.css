@@ -64,6 +64,11 @@ html {
     font-size: 15px;
     scroll-behavior: smooth;
 }
+.modal-backdrop {
+    background-color: rgba(11, 17, 32, 0.18) !important;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+}
 
 @media (min-width: 768px) {
     html { font-size: 16px; }

@@ -29,6 +29,7 @@ namespace SmartEdu.Business.Interfaces
         Task SendSubjectAssignedToLecturerAsync(int lecturerId, SubjectDto subject);
         Task SendSubjectUnassignedFromLecturerAsync(int lecturerId, int subjectId);
         Task SendChatProgressAsync(string sessionId, string stage, string message);
+        Task SendReportsUpdatedAsync(int userId);
 
     }
 }

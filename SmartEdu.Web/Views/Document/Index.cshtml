@@ -501,6 +501,12 @@
             row-gap: 0.5rem;
         }
     }
+
+    /* Làm nhạt backdrop khi modal embedding đang mở */
+    .modal-backdrop {
+        background-color: rgba(11, 17, 32, 0.25) !important;
+        backdrop-filter: blur(2px);
+    }
 </style>
 
 <div class="container mt-4">
@@ -667,11 +673,11 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
     <script>
         document.addEventListener("DOMContentLoaded", function () {
         const modalEl = document.getElementById('documentLogModal');
-        const myModal = new window.bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+        // ✅ Mới - backdrop nhạt, có thể bấm ngoài để đóng khi đã xong
+const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: false });
         let intervalId = null;
         let docHubConnection = null;
 

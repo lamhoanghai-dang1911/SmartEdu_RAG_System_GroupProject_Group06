@@ -10,10 +10,47 @@
 </main>
 @section Scripts{
 <script>
-const fmt=n=>new Intl.NumberFormat('vi-VN').format(Number(n)||0),fmtCurrency=n=>`${fmt(n)} đ`;const statusLabels={Success:'<span class="badge bg-success">Thành công</span>',Pending:'<span class="badge bg-warning">Chờ xử lý</span>',Failed:'<span class="badge bg-danger">Thất bại</span>',Cancelled:'<span class="badge bg-secondary">Đã hủy</span>'};
-function localDate(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}function setRange(start,end){document.getElementById('start').value=localDate(start);document.getElementById('end').value=localDate(end)}function activate(button){document.querySelectorAll('.sr-quick button').forEach(x=>x.classList.remove('active'));button?.classList.add('active')}function escapeHtml(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
-function renderToken(item){const total=Number(item.totalTokens)||0,prompt=Number(item.promptTokens)||0,completion=Number(item.completionTokens)||0,promptPercent=total?prompt/total*100:50;document.getElementById('kpiTotal').textContent=fmt(total);document.querySelector('#usageTable tbody').innerHTML=`<tr><td>${fmt(prompt)}</td><td>${fmt(completion)}</td><td><strong>${fmt(total)}</strong></td></tr>`;document.getElementById('tokenChart').innerHTML=total?`<div class="token-split"><div class="token-donut" style="--prompt:${promptPercent}%"><div class="token-donut-center"><strong>${fmt(total)}</strong><span>token</span></div></div><div class="split-legend"><div class="split-item"><span class="split-dot" style="--dot:#246b4b"></span><div><small>Prompt token</small><strong>${fmt(prompt)}</strong></div></div><div class="split-item"><span class="split-dot" style="--dot:#5a7ea8"></span><div><small>Completion token</small><strong>${fmt(completion)}</strong></div></div></div></div>`:'<div class="empty-chart">Chưa có dữ liệu sử dụng token.</div>'}
-async function loadUsage(){try{const startDate=document.getElementById('start').value,endDate=document.getElementById('end').value,qs=`start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`,response=await fetch(`/StudentReports/UsageJson?${qs}`);if(!response.ok)throw new Error();const data=await response.json();renderToken((data.items||[])[0]||{totalTokens:0,promptTokens:0,completionTokens:0})}catch{document.getElementById('tokenChart').innerHTML='<div class="empty-chart">Không thể tải dữ liệu.</div>'}}
-async function loadOrders(){const response=await fetch('/StudentReports/OrdersJson'),data=await response.json(),items=data.items||[];document.getElementById('kpiTotalSpent').textContent=fmtCurrency(data.totalSpent);document.getElementById('kpiOrderCount').textContent=fmt(items.length);document.querySelector('#ordersTable tbody').innerHTML=items.length?items.map(o=>`<tr><td>#${o.orderId}</td><td>${escapeHtml(o.packageName)}</td><td>${fmtCurrency(o.amount)}</td><td>${statusLabels[o.status]||escapeHtml(o.status)}</td><td>${new Date(o.createdAt).toLocaleString('vi-VN')}</td><td>${o.paidAt?new Date(o.paidAt).toLocaleString('vi-VN'):'—'}</td></tr>`).join(''):'<tr><td colspan="6" class="text-center text-muted">Chưa có đơn hàng</td></tr>'}
-document.addEventListener('DOMContentLoaded',()=>{const todayButton=document.getElementById('btnToday'),weekButton=document.getElementById('btnWeek'),monthButton=document.getElementById('btnMonth'),today=new Date();setRange(today,today);todayButton.onclick=()=>{const d=new Date();setRange(d,d);activate(todayButton);loadUsage()};weekButton.onclick=()=>{const end=new Date(),start=new Date();start.setDate(end.getDate()-6);setRange(start,end);activate(weekButton);loadUsage()};monthButton.onclick=()=>{const now=new Date();setRange(new Date(now.getFullYear(),now.getMonth(),1),new Date(now.getFullYear(),now.getMonth()+1,0));activate(monthButton);loadUsage()};document.getElementById('start').onchange=document.getElementById('end').onchange=()=>{activate(null);loadUsage()};loadUsage();loadOrders()});
+    // ====== SignalR: Real-time Reports Updated (chạy SAU khi signalR đã load) ======
+    (function(){
+        try {
+            if (typeof signalR === 'undefined') {
+                console.error('SignalR client is not available on this page.');
+                return;
+            }
+
+            var currentUserId = '@(User?.FindFirst("UserId")?.Value ?? "")';
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/notifications')
+                .withAutomaticReconnect()
+                .build();
+
+            connection.on('ReportsUpdated', function (data) {
+                try {
+                    if (!currentUserId) return;
+                    if (String(data?.userId) === String(currentUserId)) {
+                        console.info('ReportsUpdated received for this student:', data);
+                        // Chỉ fetch lại dữ liệu, không reload cả trang
+                        loadUsage();
+                        loadOrders();
+                    }
+                } catch (e) {
+                    console.error('ReportsUpdated handler error:', e);
+                }
+            });
+
+            connection.start()
+                .then(function() { console.info('NotificationHub connected (Student Reports)'); })
+                .catch(function(err) { console.error('NotificationHub connect failed:', err); });
+        } catch(e) {
+            console.error('SignalR setup error:', e);
+        }
+    })();
+
+    // ====== Data & Rendering ======
+    const fmt=n=>new Intl.NumberFormat('vi-VN').format(Number(n)||0),fmtCurrency=n=>`${fmt(n)} đ`;const statusLabels={Success:'<span class="badge bg-success">Thành công</span>',Pending:'<span class="badge bg-warning">Chờ xử lý</span>',Failed:'<span class="badge bg-danger">Thất bại</span>',Cancelled:'<span class="badge bg-secondary">Đã hủy</span>'};
+    function localDate(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`}function setRange(start,end){document.getElementById('start').value=localDate(start);document.getElementById('end').value=localDate(end)}function activate(button){document.querySelectorAll('.sr-quick button').forEach(x=>x.classList.remove('active'));button?.classList.add('active')}function escapeHtml(v){return String(v??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+    function renderToken(item){const total=Number(item.totalTokens)||0,prompt=Number(item.promptTokens)||0,completion=Number(item.completionTokens)||0,promptPercent=total?prompt/total*100:50;document.getElementById('kpiTotal').textContent=fmt(total);document.querySelector('#usageTable tbody').innerHTML=`<tr><td>${fmt(prompt)}</td><td>${fmt(completion)}</td><td><strong>${fmt(total)}</strong></td></tr>`;document.getElementById('tokenChart').innerHTML=total?`<div class="token-split"><div class="token-donut" style="--prompt:${promptPercent}%"><div class="token-donut-center"><strong>${fmt(total)}</strong><span>token</span></div></div><div class="split-legend"><div class="split-item"><span class="split-dot" style="--dot:#246b4b"></span><div><small>Prompt token</small><strong>${fmt(prompt)}</strong></div></div><div class="split-item"><span class="split-dot" style="--dot:#5a7ea8"></span><div><small>Completion token</small><strong>${fmt(completion)}</strong></div></div></div></div>`:'<div class="empty-chart">Chưa có dữ liệu sử dụng token.</div>'}
+    async function loadUsage(){try{const startDate=document.getElementById('start').value,endDate=document.getElementById('end').value,qs=`start=${encodeURIComponent(startDate)}&end=${encodeURIComponent(endDate)}`,response=await fetch(`/StudentReports/UsageJson?${qs}`);if(!response.ok)throw new Error();const data=await response.json();renderToken((data.items||[])[0]||{totalTokens:0,promptTokens:0,completionTokens:0})}catch{document.getElementById('tokenChart').innerHTML='<div class="empty-chart">Không thể tải dữ liệu.</div>'}}
+    async function loadOrders(){const response=await fetch('/StudentReports/OrdersJson'),data=await response.json(),items=data.items||[];document.getElementById('kpiTotalSpent').textContent=fmtCurrency(data.totalSpent);document.getElementById('kpiOrderCount').textContent=fmt(items.length);document.querySelector('#ordersTable tbody').innerHTML=items.length?items.map(o=>`<tr><td>#${o.orderId}</td><td>${escapeHtml(o.packageName)}</td><td>${fmtCurrency(o.amount)}</td><td>${statusLabels[o.status]||escapeHtml(o.status)}</td><td>${new Date(o.createdAt).toLocaleString('vi-VN')}</td><td>${o.paidAt?new Date(o.paidAt).toLocaleString('vi-VN'):'—'}</td></tr>`).join(''):'<tr><td colspan="6" class="text-center text-muted">Chưa có đơn hàng</td></tr>'}
+    document.addEventListener('DOMContentLoaded',()=>{const todayButton=document.getElementById('btnToday'),weekButton=document.getElementById('btnWeek'),monthButton=document.getElementById('btnMonth'),today=new Date();setRange(today,today);todayButton.onclick=()=>{const d=new Date();setRange(d,d);activate(todayButton);loadUsage()};weekButton.onclick=()=>{const end=new Date(),start=new Date();start.setDate(end.getDate()-6);setRange(start,end);activate(weekButton);loadUsage()};monthButton.onclick=()=>{const now=new Date();setRange(new Date(now.getFullYear(),now.getMonth(),1),new Date(now.getFullYear(),now.getMonth()+1,0));activate(monthButton);loadUsage()};document.getElementById('start').onchange=document.getElementById('end').onchange=()=>{activate(null);loadUsage()};loadUsage();loadOrders()});
 </script>}

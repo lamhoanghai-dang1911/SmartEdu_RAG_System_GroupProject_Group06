@@ -90,7 +90,7 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>if(typeof signalR==='undefined'){console.warn('signalR missing on Subject index');}</script>
     <script>
         const isAdminView = @((canManage).ToString().ToLower());
         const tbody = document.querySelector("table tbody");

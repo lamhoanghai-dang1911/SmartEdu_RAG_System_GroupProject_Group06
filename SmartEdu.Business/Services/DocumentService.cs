@@ -1,8 +1,10 @@
 ﻿using DocumentFormat.OpenXml.Packaging;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SmartEdu.Business.Interfaces;
+using SmartEdu.Data;
 using SmartEdu.Data.Repositories;
 using SmartEdu.Shared.DTOs;
 using SmartEdu.Shared.Entities;
@@ -33,6 +35,7 @@ public class DocumentService : IDocumentService
     private readonly IRealtimeNotifier _realtime;
     private readonly IUploadConfigService _uploadConfigService;
     private const int MaxChunksForDuplicateCheck = 10;
+    private readonly AppDbContext _context;
 
     public DocumentService(
     IRepository<EntityDocument> docRepo,
@@ -47,7 +50,8 @@ public class DocumentService : IDocumentService
     IRepository<LecturerSubject> lecturerSubjectRepo,
     IRealtimeNotifier realtime,
     IRepository<Subject> subjectRepo,
-    IUploadConfigService uploadConfigService)
+    IUploadConfigService uploadConfigService,
+    AppDbContext context)
     {
         _docRepo = docRepo;
         _chunkRepo = chunkRepo;
@@ -62,8 +66,8 @@ public class DocumentService : IDocumentService
         _realtime = realtime;
         _subjectRepo = subjectRepo;
         _uploadConfigService = uploadConfigService;
+        _context = context;
     }
-
     public async Task<DocumentChunkDetailDto?> GetChunkDetailAsync(int chunkId)
     {
         var chunks = await _chunkRepo.GetAllWithIncludeAsync(c => c.Id == chunkId, c => c.EmbeddingSet, c => c.EmbeddingSet.Documents);
@@ -348,29 +352,88 @@ public class DocumentService : IDocumentService
 
             await SaveLogAsync(documentId, $"ChunkingConfig: size={activeConfig.ChunkSize}, overlap={activeConfig.ChunkOverlap}, strategy={activeConfig.Strategy}, scope={activeConfig.Scope}, subjectId={activeConfig.SubjectId}", "Info");
 
+            // ====== SỬA LỖI: Kiểm tra tất cả EmbeddingSet đã tồn tại (không chỉ Ready) ======
             var existingSets = await _embeddingSetRepo.GetAllAsync(
                 e => e.FileHash == doc.FileHash
                      && e.ChunkingConfigId == activeConfig.Id
-                     && e.Status == EmbeddingSetStatus.Ready
             );
             var existingSet = existingSets.FirstOrDefault();
 
             if (existingSet != null)
             {
+                // Nếu đã Ready → tái sử dụng ngay
+                if (existingSet.Status == EmbeddingSetStatus.Ready)
+                {
+                    doc.EmbeddingSetId = existingSet.Id;
+                    doc.Status = DocumentStatus.Ready;
+                    doc.UpdatedAt = DateTime.UtcNow;
+                    _docRepo.Update(doc);
+                    await _docRepo.SaveChangesAsync();
+                    await SaveLogAsync(documentId, "Tái sử dụng EmbeddingSet có sẵn (trùng nội dung + config)", "Info");
+                    await SaveLogAsync(documentId, "Document status set to Ready", "Info");
+
+                    await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+                    await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Reused");
+                    return;
+                }
+
+                // ====== SỬA LỖI: Processing bị kẹt quá 10 phút → coi như Failed, xử lý lại ======
+                if (existingSet.Status == EmbeddingSetStatus.Processing)
+                {
+                    var lastUpdate = existingSet.UpdatedAt ?? existingSet.CreatedAt;
+                    var processingTimeout = TimeSpan.FromMinutes(10);
+
+                    if (DateTime.UtcNow - lastUpdate < processingTimeout)
+                    {
+                        // Thật sự đang xử lý (chưa quá 10 phút) → gán document và chờ
+                        doc.EmbeddingSetId = existingSet.Id;
+                        doc.UpdatedAt = DateTime.UtcNow;
+                        _docRepo.Update(doc);
+                        await _docRepo.SaveChangesAsync();
+                        await SaveLogAsync(documentId, "EmbeddingSet đang được xử lý bởi tiến trình khác, đã gán document để chờ kết quả.", "Info");
+
+                        await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+                        return;
+                    }
+
+                    // Quá 10 phút → coi như bị kẹt, tiếp tục xử lý lại bên dưới
+                    await SaveLogAsync(documentId, $"EmbeddingSet bị kẹt ở Processing quá {processingTimeout.TotalMinutes} phút, reset để xử lý lại.", "Info");
+                }
+
+                // ====== Failed HOẶC Processing bị kẹt → xóa chunks cũ và reset ======
+                var oldChunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == existingSet.Id);
+                foreach (var chunk in oldChunks)
+                {
+                    _chunkRepo.Delete(chunk);
+                }
+                if (oldChunks.Any())
+                {
+                    await _chunkRepo.SaveChangesAsync();
+                }
+
+                // Reset EmbeddingSet để tái sử dụng
+                existingSet.Status = EmbeddingSetStatus.Processing;
+                existingSet.SourceDocumentId = doc.Id;
+                existingSet.CanonicalTitle = doc.Title;
+                existingSet.UpdatedAt = DateTime.UtcNow;
+                _embeddingSetRepo.Update(existingSet);
+                await _embeddingSetRepo.SaveChangesAsync();
+
+                await SaveLogAsync(documentId, "Reset EmbeddingSet cũ để xử lý lại.", "Info");
+
+                // Gán document vào embedding set
                 doc.EmbeddingSetId = existingSet.Id;
-                doc.Status = DocumentStatus.Ready;
                 doc.UpdatedAt = DateTime.UtcNow;
                 _docRepo.Update(doc);
                 await _docRepo.SaveChangesAsync();
-                await SaveLogAsync(documentId, "Tái sử dụng EmbeddingSet có sẵn (trùng nội dung + config)", "Info");
-                await SaveLogAsync(documentId, "Document status set to Ready", "Info");
 
-                await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
-                await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Reused");
+                // Tiếp tục xử lý chunking + embedding
+                await ProcessChunksAndEmbeddingsAsync(doc, existingSet, activeConfig, documentId);
                 return;
             }
 
-            var embeddingSet = new EmbeddingSet
+            // ====== Tạo mới EmbeddingSet ======
+            var newEmbeddingSet = new EmbeddingSet
             {
                 FileHash = doc.FileHash,
                 ChunkingConfigId = activeConfig.Id,
@@ -380,123 +443,41 @@ public class DocumentService : IDocumentService
                 CanonicalTitle = doc.Title,
                 CreatedAt = DateTime.UtcNow
             };
-            await _embeddingSetRepo.AddAsync(embeddingSet);
-            await _embeddingSetRepo.SaveChangesAsync();
 
-            var ext = Path.GetExtension(doc.FilePath).ToLowerInvariant();
-            var fileType = (doc.FileType ?? ext.TrimStart('.')).ToLowerInvariant();
-
-            List<(string Content, string SourceLocation)> chunks;
-
-            if (fileType == "pdf" || ext == ".pdf")
+            await _embeddingSetRepo.AddAsync(newEmbeddingSet);
+            try
             {
-                var segments = ExtractPdfSegments(doc.FilePath);
-                if (segments.Count == 0)
-                    throw new InvalidOperationException("Không thể trích xuất văn bản từ file PDF.");
-                chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
+                await _embeddingSetRepo.SaveChangesAsync();
             }
-            else if (fileType == "docx" || ext == ".docx")
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
             {
-                var segments = ExtractDocxSegments(doc.FilePath);
-                if (segments.Count == 0)
-                    throw new InvalidOperationException("Không thể trích xuất văn bản từ file DOCX.");
-                chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
-            }
-            else if (fileType == "pptx" || ext == ".pptx")
-            {
-                var segments = ExtractPptxSegments(doc.FilePath);
-                if (segments.Count == 0)
-                    throw new InvalidOperationException("Không thể trích xuất văn bản từ file PPTX.");
-                chunks = ChunkSegmentsBySlide(segments);
-            }
-            else
-            {
-                throw new InvalidOperationException("Chỉ hỗ trợ trích xuất văn bản cho PDF, DOCX và PPTX.");
-            }
+                // ====== SỬA LỖI CHÍNH: Detach entity bị lỗi khỏi DbContext ======
+                _context.Entry(newEmbeddingSet).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
 
-            if (chunks.Count == 0)
-                throw new InvalidOperationException("Không tạo được chunk nào từ nội dung tài liệu.");
+                // Tìm lại bản ghi đã tồn tại
+                var found = (await _embeddingSetRepo.GetAllAsync(
+                    e => e.FileHash == doc.FileHash && e.ChunkingConfigId == activeConfig.Id
+                )).FirstOrDefault();
 
-            var hfToken = _configuration["HuggingFace:Token"];
-            if (string.IsNullOrWhiteSpace(hfToken))
-                throw new InvalidOperationException("Hugging Face token không được cấu hình.");
-
-            var client = _httpFactory.CreateClient();
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hfToken);
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-            string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
-
-            int idx = 0;
-            var batchSize = 5;
-            var pendingCount = 0;
-            foreach (var (text, sourceLocation) in chunks)
-            {
-                await SaveLogAsync(documentId, $"Processing chunk {idx}", "Processing");
-
-                string formattedText = $"passage: {text}";
-                var payload = new { inputs = formattedText };
-                var json = JsonSerializer.Serialize(payload);
-                using var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var resp = await client.PostAsync(modelUrl, content);
-                if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-                    throw new InvalidOperationException("Server AI đang khởi động, vui lòng đợi 20 giây và bấm nút lại!");
-
-                resp.EnsureSuccessStatusCode();
-                var respJson = await resp.Content.ReadAsStringAsync();
-
-                using var docJson = JsonDocument.Parse(respJson);
-                var vector = new List<float>();
-                var root = docJson.RootElement;
-                if (root.ValueKind == JsonValueKind.Array)
+                if (found != null)
                 {
-                    var firstElement = root[0];
-                    var vectorArray = firstElement.ValueKind == JsonValueKind.Number ? root : firstElement;
-                    foreach (var el in vectorArray.EnumerateArray()) vector.Add(el.GetSingle());
+                    newEmbeddingSet = found;
+                    await SaveLogAsync(documentId, "Sử dụng EmbeddingSet đã được tạo bởi tiến trình khác.", "Info");
                 }
-
-                var chunkEntity = new DocumentChunk
+                else
                 {
-                    EmbeddingSetId = embeddingSet.Id,
-                    Content = text,
-                    ChunkIndex = idx++,
-                    SourceLocation = sourceLocation,     // ← thêm dòng này
-                    EmbeddingJson = JsonSerializer.Serialize(vector),
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                await _chunkRepo.AddAsync(chunkEntity);
-                pendingCount++;
-                if (pendingCount >= batchSize)
-                {
-                    await _chunkRepo.SaveChangesAsync();
-                    pendingCount = 0;
+                    throw; // Không tìm thấy → lỗi thật
                 }
-
-                var display = text.Length > 2000 ? text.Substring(0, 2000) + "...(truncated)" : text;
-                await SaveLogAsync(documentId, $"ChunkContent:{chunkEntity.ChunkIndex}:{display}", "ChunkContent");
-                await SaveLogAsync(documentId, $"Chunk {chunkEntity.ChunkIndex} embedded successfully", "Info");
-                await Task.Delay(300);
             }
-            if (pendingCount > 0) await _chunkRepo.SaveChangesAsync();
 
-            await SaveLogAsync(documentId, "All chunks saved", "Info");
-
-            embeddingSet.Status = EmbeddingSetStatus.Ready;
-            embeddingSet.UpdatedAt = DateTime.UtcNow;
-            _embeddingSetRepo.Update(embeddingSet);
-            await _embeddingSetRepo.SaveChangesAsync();
-
-            doc.EmbeddingSetId = embeddingSet.Id;
-            doc.Status = DocumentStatus.Ready;
+            // Gán document vào embedding set
+            doc.EmbeddingSetId = newEmbeddingSet.Id;
             doc.UpdatedAt = DateTime.UtcNow;
             _docRepo.Update(doc);
-            await SaveLogAsync(documentId, "Document status set to Ready", "Info");
             await _docRepo.SaveChangesAsync();
 
-            await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
-            await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Ready");
+            // Xử lý chunking + embedding
+            await ProcessChunksAndEmbeddingsAsync(doc, newEmbeddingSet, activeConfig, documentId);
         }
         catch (Exception)
         {
@@ -510,6 +491,138 @@ public class DocumentService : IDocumentService
             await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Failed");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Xử lý chunking và embedding cho document (tách ra để tránh code trùng lặp)
+    /// </summary>
+    private async Task ProcessChunksAndEmbeddingsAsync(
+        Document doc, EmbeddingSet embeddingSet, ChunkingConfig activeConfig, int documentId)
+    {
+        var ext = Path.GetExtension(doc.FilePath).ToLowerInvariant();
+        var fileType = (doc.FileType ?? ext.TrimStart('.')).ToLowerInvariant();
+
+        List<(string Content, string SourceLocation)> chunks;
+
+        if (fileType == "pdf" || ext == ".pdf")
+        {
+            var segments = ExtractPdfSegments(doc.FilePath);
+            if (segments.Count == 0)
+                throw new InvalidOperationException("Không thể trích xuất văn bản từ file PDF.");
+            chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
+        }
+        else if (fileType == "docx" || ext == ".docx")
+        {
+            var segments = ExtractDocxSegments(doc.FilePath);
+            if (segments.Count == 0)
+                throw new InvalidOperationException("Không thể trích xuất văn bản từ file DOCX.");
+            chunks = ChunkSegmentsByCharacter(segments, activeConfig.ChunkSize, activeConfig.ChunkOverlap);
+        }
+        else if (fileType == "pptx" || ext == ".pptx")
+        {
+            var segments = ExtractPptxSegments(doc.FilePath);
+            if (segments.Count == 0)
+                throw new InvalidOperationException("Không thể trích xuất văn bản từ file PPTX.");
+            chunks = ChunkSegmentsBySlide(segments);
+        }
+        else
+        {
+            throw new InvalidOperationException("Chỉ hỗ trợ trích xuất văn bản cho PDF, DOCX và PPTX.");
+        }
+
+        if (chunks.Count == 0)
+            throw new InvalidOperationException("Không tạo được chunk nào từ nội dung tài liệu.");
+
+        var hfToken = _configuration["HuggingFace:Token"];
+        if (string.IsNullOrWhiteSpace(hfToken))
+            throw new InvalidOperationException("Hugging Face token không được cấu hình.");
+
+        var client = _httpFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", hfToken);
+        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        string modelUrl = "https://router.huggingface.co/hf-inference/models/intfloat/multilingual-e5-base/pipeline/feature-extraction";
+
+        int idx = 0;
+        var batchSize = 5;
+        var pendingCount = 0;
+        foreach (var (text, sourceLocation) in chunks)
+        {
+            await SaveLogAsync(documentId, $"Processing chunk {idx}", "Processing");
+
+            string formattedText = $"passage: {text}";
+            var payload = new { inputs = formattedText };
+            var json = JsonSerializer.Serialize(payload);
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var resp = await client.PostAsync(modelUrl, content);
+            if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                throw new InvalidOperationException("Server AI đang khởi động, vui lòng đợi 20 giây và bấm nút lại!");
+
+            resp.EnsureSuccessStatusCode();
+            var respJson = await resp.Content.ReadAsStringAsync();
+
+            using var docJson = JsonDocument.Parse(respJson);
+            var vector = new List<float>();
+            var root = docJson.RootElement;
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                var firstElement = root[0];
+                var vectorArray = firstElement.ValueKind == JsonValueKind.Number ? root : firstElement;
+                foreach (var el in vectorArray.EnumerateArray()) vector.Add(el.GetSingle());
+            }
+
+            var chunkEntity = new DocumentChunk
+            {
+                EmbeddingSetId = embeddingSet.Id,
+                Content = text,
+                ChunkIndex = idx++,
+                SourceLocation = sourceLocation,
+                EmbeddingJson = JsonSerializer.Serialize(vector),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _chunkRepo.AddAsync(chunkEntity);
+            pendingCount++;
+            if (pendingCount >= batchSize)
+            {
+                await _chunkRepo.SaveChangesAsync();
+                pendingCount = 0;
+            }
+
+            var display = text.Length > 2000 ? text.Substring(0, 2000) + "...(truncated)" : text;
+            await SaveLogAsync(documentId, $"ChunkContent:{chunkEntity.ChunkIndex}:{display}", "ChunkContent");
+            await SaveLogAsync(documentId, $"Chunk {chunkEntity.ChunkIndex} embedded successfully", "Info");
+            await Task.Delay(300);
+        }
+        if (pendingCount > 0) await _chunkRepo.SaveChangesAsync();
+
+        await SaveLogAsync(documentId, "All chunks saved", "Info");
+
+        embeddingSet.Status = EmbeddingSetStatus.Ready;
+        embeddingSet.UpdatedAt = DateTime.UtcNow;
+        _embeddingSetRepo.Update(embeddingSet);
+        await _embeddingSetRepo.SaveChangesAsync();
+
+        doc.EmbeddingSetId = embeddingSet.Id;
+        doc.Status = DocumentStatus.Ready;
+        doc.UpdatedAt = DateTime.UtcNow;
+        _docRepo.Update(doc);
+        await SaveLogAsync(documentId, "Document status set to Ready", "Info");
+        await _docRepo.SaveChangesAsync();
+
+        await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
+        await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Ready");
+    }
+
+    /// <summary>
+    /// Kiểm tra lỗi có phải vi phạm ràng buộc unique không
+    /// </summary>
+    private bool IsUniqueConstraintViolation(DbUpdateException ex)
+    {
+        var sqlEx = ex.InnerException as Microsoft.Data.SqlClient.SqlException;
+        if (sqlEx == null) return false;
+        return sqlEx.Number == 2601 || sqlEx.Number == 2627;
     }
 
     private async Task SaveLogAsync(int documentId, string message, string status)

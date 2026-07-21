@@ -121,6 +121,24 @@ namespace SmartEdu.Web.Realtime
                 .SendAsync("SubjectUnassigned", new { subjectId });
         }
 
+        public async Task SendReportsUpdatedAsync(int userId)
+        {
+            try
+            {
+                // Notify the specific user to refresh their personal report
+                await _notifyHub.Clients.Group(NotificationHub.UserGroup(userId))
+                    .SendAsync("ReportsUpdated", new { userId });
+
+                // Notify admins to refresh the overall reports dashboard
+                await _notifyHub.Clients.Group(NotificationHub.AdminsGroupName)
+                    .SendAsync("ReportsUpdated", new { userId });
+            }
+            catch
+            {
+                // swallow - best-effort notification
+            }
+        }
+
         public async Task SendDocumentUpdatedAsync(DocumentDto document)
         {
             // Notify both the document list viewers and viewers of the specific document

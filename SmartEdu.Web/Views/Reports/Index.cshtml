@@ -128,6 +128,38 @@
 
 @section Scripts {
 <script>
+    // ====== SignalR: Real-time Reports Updated (chạy SAU khi signalR đã load) ======
+    (function(){
+        try {
+            if (typeof signalR === 'undefined') {
+                console.error('SignalR client is not available on this page.');
+                return;
+            }
+
+            var connection = new signalR.HubConnectionBuilder()
+                .withUrl('/hubs/notifications')
+                .withAutomaticReconnect()
+                .build();
+
+            // Khi student sử dụng chat → reload báo cáo admin (không cần reload cả trang)
+            connection.on('ReportsUpdated', function (data) {
+                try {
+                    console.info('ReportsUpdated received:', data);
+                    loadReports(); // Chỉ fetch lại dữ liệu, không reload cả trang
+                } catch (e) {
+                    console.error('ReportsUpdated handler error:', e);
+                }
+            });
+
+            connection.start()
+                .then(function() { console.info('NotificationHub connected (Admin Reports)'); })
+                .catch(function(err) { console.error('NotificationHub connect failed:', err); });
+        } catch(e) {
+            console.error('SignalR setup error:', e);
+        }
+    })();
+
+    // ====== Charts & Data ======
     const chartColors = ['#246b4b','#5a7ea8','#d39a3d','#779383','#b66d5e','#8a7397'];
     let rawRevenueItems = [], packageItems = [], usageItems = [], currentGranularity = 'day';
     const fmtNumber = n => new Intl.NumberFormat('vi-VN').format(Number(n)||0);

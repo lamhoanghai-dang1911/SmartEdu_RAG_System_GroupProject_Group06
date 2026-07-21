@@ -129,6 +129,31 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SignalR client (CDN) -->
+    @Html.Raw("<script src=\"https://cdn.jsdelivr.net/npm/@microsoft/signalr@7.0.5/dist/browser/signalr.min.js\"></script>")
+    <script>
+        // Ensure signalR global exists even if the UMD export used a different global name
+        (function () {
+            try {
+                console.debug('signalR available at layout (initial):', typeof window?.signalR);
+                if (typeof window !== 'undefined' && typeof window.signalR === 'undefined') {
+                    for (var k in window) {
+                        try {
+                            var v = window[k];
+                            if (v && typeof v.HubConnectionBuilder === 'function') {
+                                window.signalR = v;
+                                console.info('Mapped signalR from window.' + k);
+                                break;
+                            }
+                        } catch (ex) { }
+                    }
+                }
+                console.debug('signalR available at layout (final):', typeof window?.signalR);
+            } catch (e) {
+                console.warn('signalR debug failed', e);
+            }
+        })();
+    </script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <!-- Markdown renderer and sanitizer (available globally) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
