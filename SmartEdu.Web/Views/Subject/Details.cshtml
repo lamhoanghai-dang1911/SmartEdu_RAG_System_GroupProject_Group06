@@ -1,0 +1,116 @@
+@model SmartEdu.Shared.DTOs.SubjectDto
+@using SmartEdu.Shared.DTOs
+@using SmartEdu.Web.Extensions
+@{
+    ViewData["Title"] = "Subject details";
+    var students = ViewBag.EnrolledStudents as IEnumerable<UserDto> ?? Enumerable.Empty<UserDto>();
+    var studentList = students.ToList();
+    var canManage = ViewBag.CanManage is true;
+}
+
+<style>
+    .subject-detail { max-width: 1120px; margin: 0 auto; padding: 10px 0 44px; }
+    .subject-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 18px; }
+    .subject-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 12px; color: #758078; font-size: 11px; text-decoration: none; }
+    .subject-back:hover { color: #246b4b; }
+    .subject-detail-head h1 { margin: 0 0 6px; color: #202822; font-family: 'Sora', sans-serif; font-size: 27px; font-weight: 720; letter-spacing: -.035em; }
+    .subject-detail-head p { max-width: 680px; margin: 0; color: #737e76; font-size: 12px; line-height: 1.6; }
+    .subject-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+    .subject-actions .btn { display: inline-flex; align-items: center; gap: 6px; min-height: 39px; padding: 8px 12px; border-radius: 9px; font-size: 11px; }
+    .subject-detail-grid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(270px, .65fr); gap: 15px; }
+    .subject-panel { border: 1px solid #dde5df; border-radius: 14px; background: #fff; box-shadow: 0 7px 24px rgba(26,57,40,.045); overflow: hidden; }
+    .subject-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 15px 17px; border-bottom: 1px solid #e5ebe7; background: #fbfcfb; }
+    .subject-panel-head h2 { margin: 0; color: #303a33; font-family: 'Sora', sans-serif; font-size: 13px; }
+    .subject-count { padding: 4px 8px; color: #246b4b; border-radius: 999px; background: #eaf3ed; font-size: 9px; font-weight: 750; }
+    .subject-summary { display: grid; grid-template-columns: repeat(2, 1fr); }
+    .subject-summary-item { padding: 18px; }
+    .subject-summary-item + .subject-summary-item { border-left: 1px solid #e5ebe7; }
+    .subject-summary-label { margin-bottom: 6px; color: #87918a; font-size: 9px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+    .subject-summary-value { color: #303a33; font-size: 13px; font-weight: 650; }
+    .student-table { margin: 0; }
+    .student-table th { padding: 10px 16px !important; font-size: 9px !important; }
+    .student-table td { padding: 11px 16px !important; color: #58625b; font-size: 11px; }
+    .student-name { color: #303a33; font-weight: 650; }
+    .subject-empty { padding: 34px 18px; color: #849087; font-size: 11px; text-align: center; }
+    .subject-side-body { display: grid; gap: 10px; padding: 15px; }
+    .subject-link { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; padding: 11px; color: #3c473f; border: 1px solid #e1e7e3; border-radius: 10px; text-decoration: none; transition: .16s ease; }
+    .subject-link:hover { color: #246b4b; border-color: #aac2b3; background: #f6faf7; }
+    .subject-link-icon { width: 34px; height: 34px; display: grid; place-items: center; color: #246b4b; border-radius: 9px; background: #eaf3ed; }
+    .subject-link strong { display: block; margin-bottom: 2px; font-size: 11px; }
+    .subject-link small { display: block; color: #8a938d; font-size: 9px; }
+    .subject-link > i { color: #9aa39d; font-size: 10px; }
+    @@media (max-width: 820px) { .subject-detail-head { flex-direction: column; } .subject-actions { justify-content: flex-start; } .subject-detail-grid { grid-template-columns: 1fr; } }
+    @@media (max-width: 520px) { .subject-summary { grid-template-columns: 1fr; } .subject-summary-item + .subject-summary-item { border-top: 1px solid #e5ebe7; border-left: 0; } }
+</style>
+
+<div class="subject-detail">
+    <a asp-action="Index" class="subject-back"><i class="bi bi-arrow-left"></i> Back to subjects</a>
+
+    <header class="subject-detail-head">
+        <div>
+            <h1>@Model.Name</h1>
+            <p>@(string.IsNullOrWhiteSpace(Model.Description) ? "No description has been added for this subject." : Model.Description)</p>
+        </div>
+        <div class="subject-actions">
+            @if (canManage)
+            {
+                <a asp-action="ManageStudents" asp-route-id="@Model.Id" class="btn btn-light"><i class="bi bi-people"></i> Manage students</a>
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary"><i class="bi bi-pencil"></i> Edit subject</a>
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" onsubmit="return confirmAction('Delete this subject?')">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Delete</button>
+                </form>
+            }
+        </div>
+    </header>
+
+    @await Html.PartialAsync("Partial/_Alerts")
+
+    <div class="subject-detail-grid">
+        <section class="subject-panel">
+            <div class="subject-panel-head"><h2>Enrolled students</h2><span class="subject-count">@studentList.Count students</span></div>
+            @if (studentList.Count > 0)
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle student-table">
+                        <thead><tr><th>Student</th><th>Username</th><th>Student code</th></tr></thead>
+                        <tbody>
+                        @foreach (var student in studentList)
+                        {
+                            <tr><td class="student-name">@student.FullName</td><td>@student.Username</td><td>@(student.StudentCode ?? "—")</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="subject-empty"><i class="bi bi-people d-block mb-2 fs-5"></i>No students are enrolled in this subject yet.</div>
+            }
+        </section>
+
+        <aside class="d-grid gap-3">
+            <section class="subject-panel">
+                <div class="subject-panel-head"><h2>Subject information</h2></div>
+                <div class="subject-summary">
+                    <div class="subject-summary-item"><div class="subject-summary-label">Subject ID</div><div class="subject-summary-value">#@Model.Id</div></div>
+                    <div class="subject-summary-item"><div class="subject-summary-label">Created</div><div class="subject-summary-value">@Model.CreatedAt.ToVietnamTime().ToString("dd/MM/yyyy")</div></div>
+                </div>
+            </section>
+            <section class="subject-panel">
+                <div class="subject-panel-head"><h2>Related content</h2></div>
+                <div class="subject-side-body">
+                    <a asp-controller="Document" asp-action="Index" asp-route-subjectId="@Model.Id" class="subject-link">
+                        <span class="subject-link-icon"><i class="bi bi-file-earmark-text"></i></span><span><strong>Documents</strong><small>View documents for this subject</small></span><i class="bi bi-chevron-right"></i>
+                    </a>
+                    @if (canManage)
+                    {
+                        <a asp-controller="LecturerManagement" asp-action="Index" class="subject-link">
+                            <span class="subject-link-icon"><i class="bi bi-person-workspace"></i></span><span><strong>Lecturer assignments</strong><small>Assign lecturers and subject leader</small></span><i class="bi bi-chevron-right"></i>
+                        </a>
+                    }
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>

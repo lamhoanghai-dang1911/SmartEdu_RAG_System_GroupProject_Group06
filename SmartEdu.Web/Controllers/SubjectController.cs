@@ -40,6 +40,26 @@ namespace SmartEdu.Web.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Details(int id)
+        {
+            var subject = await _subjectService.GetByIdAsync(id);
+            if (subject is null) return NotFound();
+
+            if (User.IsInRole("Lecturer"))
+            {
+                var lecturerId = User.GetUserId();
+                if (!await _subjectService.IsLecturerAssignedToSubject(lecturerId, id))
+                    return Forbid();
+            }
+
+            var (enrolled, _) = await _subjectService.GetStudentEnrollmentStatus(id);
+            ViewBag.EnrolledStudents = enrolled;
+            ViewBag.CanManage = User.IsInRole("Admin");
+
+            return View(subject);
+        }
+
+        [HttpGet]
         [Authorize(Roles = "Admin")]
         public IActionResult Create() => View();
 

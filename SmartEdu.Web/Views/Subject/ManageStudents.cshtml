@@ -1,116 +1,167 @@
-﻿@model (IEnumerable<SmartEdu.Shared.DTOs.UserDto> Enrolled, IEnumerable<SmartEdu.Shared.DTOs.UserDto> NotEnrolled)
+@model (IEnumerable<SmartEdu.Shared.DTOs.UserDto> Enrolled, IEnumerable<SmartEdu.Shared.DTOs.UserDto> NotEnrolled)
 @{
     var subject = ViewBag.Subject as SmartEdu.Shared.DTOs.SubjectDto;
-    ViewData["Title"] = $"Quản lý lớp: {subject?.Name}";
+    var enrolled = Model.Enrolled.ToList();
+    var available = Model.NotEnrolled.ToList();
+    ViewData["Title"] = $"Quản lý sinh viên - {subject?.Name}";
 }
 
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>👥 Quản lý Sinh viên môn: <span class="text-primary">@subject?.Name</span></h2>
-        <a asp-action="Index" class="btn btn-secondary">Quay lại danh sách môn</a>
-    </div>
+<style>
+    .roster-page { max-width: 1160px; margin: 0 auto; padding: 10px 0 48px; }
+    .roster-back { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px; color: #768078; font-size: 11px; text-decoration: none; }
+    .roster-back:hover { color: #246b4b; }
+    .roster-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 18px; margin-bottom: 19px; }
+    .roster-eyebrow { margin-bottom: 5px; color: #758178; font-size: 9px; font-weight: 750; letter-spacing: .075em; text-transform: uppercase; }
+    .roster-head h1 { margin: 0 0 6px; color: #222b25; font-family: 'Sora', sans-serif; font-size: clamp(23px, 3vw, 29px); font-weight: 720; letter-spacing: -.035em; }
+    .roster-head p { margin: 0; color: #778179; font-size: 12px; }
+    .roster-stats { display: flex; gap: 8px; }
+    .roster-stat { min-width: 104px; padding: 10px 12px; border: 1px solid #dde5df; border-radius: 10px; background: #fff; }
+    .roster-stat span { display: block; margin-bottom: 2px; color: #89928c; font-size: 8px; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; }
+    .roster-stat strong { color: #2f3932; font-size: 17px; }
+    .import-panel { display: grid; grid-template-columns: 42px minmax(180px, .8fr) minmax(0, 1.2fr); align-items: center; gap: 13px; margin-bottom: 15px; padding: 15px 17px; border: 1px solid #dce5df; border-radius: 13px; background: #fff; box-shadow: 0 6px 22px rgba(26,57,40,.04); }
+    .import-icon { width: 42px; height: 42px; display: grid; place-items: center; color: #246b4b; border-radius: 11px; background: #e9f2ec; font-size: 17px; }
+    .import-copy h2 { margin: 0 0 3px; color: #333d36; font-family: 'Sora', sans-serif; font-size: 12px; }
+    .import-copy p { margin: 0; color: #89928c; font-size: 9px; line-height: 1.5; }
+    .import-form { display: flex; justify-content: flex-end; align-items: center; gap: 7px; }
+    .file-picker { min-width: 190px; height: 38px; display: inline-flex; align-items: center; gap: 8px; padding: 0 11px; color: #5f6962; border: 1px solid #d8e1db; border-radius: 8px; background: #fafcfa; font-size: 10px; cursor: pointer; overflow: hidden; }
+    .file-picker:hover { border-color: #9fb9a9; }
+    .file-picker i { flex: 0 0 auto; color: #246b4b; }
+    .file-picker span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .import-form .btn { min-height: 38px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 11px; border-radius: 8px; font-size: 10px; white-space: nowrap; }
+    .roster-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .roster-panel { border: 1px solid #dde5df; border-radius: 14px; background: #fff; box-shadow: 0 7px 24px rgba(26,57,40,.045); overflow: hidden; }
+    .roster-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 15px; border-bottom: 1px solid #e5ebe7; background: #fbfcfb; }
+    .roster-panel-title { display: flex; align-items: center; gap: 9px; }
+    .roster-panel-icon { width: 30px; height: 30px; display: grid; place-items: center; color: #246b4b; border-radius: 8px; background: #eaf3ed; font-size: 13px; }
+    .roster-panel-title h2 { margin: 0 0 2px; color: #343e37; font-family: 'Sora', sans-serif; font-size: 12px; }
+    .roster-panel-title p { margin: 0; color: #8a948d; font-size: 9px; }
+    .roster-count { padding: 4px 8px; color: #5f6a62; border: 1px solid #dde5df; border-radius: 999px; background: #fff; font-size: 9px; font-weight: 700; }
+    .roster-search { position: relative; margin: 11px 13px 5px; }
+    .roster-search i { position: absolute; top: 50%; left: 11px; color: #96a099; font-size: 11px; transform: translateY(-50%); }
+    .roster-search input { width: 100%; height: 36px; padding: 7px 10px 7px 31px; border: 1px solid #e0e7e2; border-radius: 8px; background: #fafcfa; color: #3c463f; font-size: 10px; outline: none; }
+    .roster-search input:focus { border-color: #91ad9c; box-shadow: 0 0 0 3px rgba(36,107,75,.08); }
+    .roster-list { max-height: 470px; padding: 6px 8px 9px; overflow-y: auto; }
+    .student-row { display: grid; grid-template-columns: 34px minmax(0,1fr) auto; align-items: center; gap: 10px; padding: 9px 7px; border-bottom: 1px solid #edf1ee; }
+    .student-row:last-child { border-bottom: 0; }
+    .student-avatar { width: 34px; height: 34px; display: grid; place-items: center; color: #496153; border-radius: 9px; background: #eef3f0; font-size: 10px; font-weight: 750; text-transform: uppercase; }
+    .student-info { min-width: 0; }
+    .student-info strong { display: block; margin-bottom: 2px; overflow: hidden; color: #374139; font-size: 10px; font-weight: 680; text-overflow: ellipsis; white-space: nowrap; }
+    .student-info span { display: block; overflow: hidden; color: #8a938d; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .student-action { width: 31px; height: 31px; display: grid; place-items: center; padding: 0; border: 1px solid #dce4de; border-radius: 8px; background: #fff; color: #597064; font-size: 12px; transition: .15s ease; }
+    .student-action.add:hover { color: #fff; border-color: #246b4b; background: #246b4b; }
+    .student-action.remove:hover { color: #a34c45; border-color: #e1b9b5; background: #fff6f5; }
+    .roster-empty { padding: 54px 20px; color: #8a948d; font-size: 10px; text-align: center; }
+    .roster-empty i { display: block; margin-bottom: 8px; color: #a7b2aa; font-size: 20px; }
+    .student-row[hidden] { display: none; }
+    @@media (max-width: 900px) { .import-panel { grid-template-columns: 42px 1fr; } .import-form { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; } }
+    @@media (max-width: 740px) { .roster-head { align-items: flex-start; flex-direction: column; } .roster-grid { grid-template-columns: 1fr; } }
+    @@media (max-width: 480px) { .roster-stats { width: 100%; } .roster-stat { flex: 1; min-width: 0; } .file-picker { width: 100%; } .import-form .btn { flex: 1; justify-content: center; } }
+</style>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show">
-            @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+<div class="roster-page">
+    <a asp-action="Details" asp-route-id="@subject?.Id" class="roster-back"><i class="bi bi-arrow-left"></i> Quay lại chi tiết môn học</a>
 
-    <div class="card shadow-sm border-info mb-4">
-        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">📥 Import danh sách sinh viên (Excel)</h5>
-            <a href="~/templates/StudentImportTemplate.xlsx" class="btn btn-sm btn-light" download>Tải file mẫu</a>
+    <header class="roster-head">
+        <div>
+            <div class="roster-eyebrow">Danh sách lớp</div>
+            <h1>@subject?.Name</h1>
+            <p>Quản lý sinh viên đang tham gia môn học và bổ sung thành viên mới.</p>
         </div>
-        <div class="card-body">
-            <form asp-action="ImportStudents" method="post" enctype="multipart/form-data" class="row g-3 align-items-center">
-                @Html.AntiForgeryToken()
-                <input type="hidden" name="id" value="@subject?.Id" />
-                <div class="col-auto">
-                    <input type="file" name="file" class="form-control" accept=".xlsx" required />
-                </div>
-                <div class="col-auto">
-                    <button type="submit" class="btn btn-info text-white">Bắt đầu Import</button>
-                </div>
-                <div class="col-auto">
-                    <small class="text-muted">Chỉ hỗ trợ file .xlsx theo mẫu.</small>
-                </div>
-            </form>
+        <div class="roster-stats">
+            <div class="roster-stat"><span>Đang học</span><strong>@enrolled.Count</strong></div>
+            <div class="roster-stat"><span>Có thể thêm</span><strong>@available.Count</strong></div>
         </div>
-    </div>
+    </header>
 
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm border-success">
-                <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">✅ Đang học (@Model.Enrolled.Count())</h5>
-                </div>
-                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
-                    <table class="table table-hover mb-0">
-                        <tbody>
-                            @if (!Model.Enrolled.Any())
-                            {
-                                <tr><td class="text-center text-muted py-3">Chưa có sinh viên nào.</td></tr>
-                            }
-                            @foreach (var student in Model.Enrolled)
-                            {
-                                <tr>
-                                    <td class="align-middle fw-semibold">
-                                        @student.FullName <br />
-                                        <small class="text-muted">@student.Username</small>
-                                    </td>
-                                    <td class="table-action-column align-middle px-3">
-                                        <div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu"><li>
-                                        <form asp-action="RemoveStudent" method="post" onsubmit="return confirm('Xóa sinh viên này khỏi môn học?');">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="subjectId" value="@subject?.Id" />
-                                            <input type="hidden" name="studentId" value="@student.Id" />
-                                            <button type="submit" class="dropdown-item dropdown-item-danger"><i class="bi bi-person-dash"></i>Xóa khỏi môn học</button>
-                                        </form></li></ul></div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+    @await Html.PartialAsync("Partial/_Alerts")
+
+    <section class="import-panel">
+        <div class="import-icon"><i class="bi bi-file-earmark-spreadsheet"></i></div>
+        <div class="import-copy"><h2>Nhập danh sách từ Excel</h2><p>Sử dụng file .xlsx đúng cấu trúc mẫu để thêm nhiều sinh viên cùng lúc.</p></div>
+        <form asp-action="ImportStudents" method="post" enctype="multipart/form-data" class="import-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@subject?.Id" />
+            <label class="file-picker" for="studentImportFile"><i class="bi bi-paperclip"></i><span id="selectedFileName">Chọn file Excel</span></label>
+            <input id="studentImportFile" type="file" name="file" class="visually-hidden" accept=".xlsx" required />
+            <a href="~/templates/StudentImportTemplate.xlsx" class="btn btn-light" download><i class="bi bi-download"></i> File mẫu</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-upload"></i> Nhập danh sách</button>
+        </form>
+    </section>
+
+    <div class="roster-grid">
+        <section class="roster-panel" data-roster-panel>
+            <div class="roster-panel-head">
+                <div class="roster-panel-title"><span class="roster-panel-icon"><i class="bi bi-people"></i></span><div><h2>Sinh viên trong lớp</h2><p>Những tài khoản đang tham gia môn học</p></div></div>
+                <span class="roster-count">@enrolled.Count</span>
             </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card shadow-sm border-secondary">
-                <div class="card-header bg-light text-dark">
-                    <h5 class="mb-0">➕ Thêm vào lớp (@Model.NotEnrolled.Count())</h5>
-                </div>
-                <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
-                    <table class="table table-hover mb-0">
-                        <tbody>
-                            @if (!Model.NotEnrolled.Any())
-                            {
-                                <tr><td class="text-center text-muted py-3">Tất cả sinh viên đã được thêm vào môn này.</td></tr>
-                            }
-                            @foreach (var student in Model.NotEnrolled)
-                            {
-                                <tr>
-                                    <td class="align-middle fw-semibold">
-                                        @student.FullName <br />
-                                        <small class="text-muted">@student.Username</small>
-                                    </td>
-                                    <td class="table-action-column align-middle px-3">
-                                        <div class="dropdown row-actions"><button type="button" class="row-actions-toggle" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Mở menu thao tác"><i class="bi bi-three-dots"></i></button><ul class="dropdown-menu dropdown-menu-end row-actions-menu"><li>
-                                        <form asp-action="AssignStudent" method="post">
-                                            @Html.AntiForgeryToken()
-                                            <input type="hidden" name="subjectId" value="@subject?.Id" />
-                                            <input type="hidden" name="studentId" value="@student.Id" />
-                                            <button type="submit" class="dropdown-item"><i class="bi bi-person-plus"></i>Thêm vào môn học</button>
-                                        </form></li></ul></div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+            <div class="roster-search"><i class="bi bi-search"></i><input type="search" placeholder="Tìm theo tên hoặc tài khoản" data-roster-search /></div>
+            <div class="roster-list">
+                @if (enrolled.Count == 0)
+                {
+                    <div class="roster-empty"><i class="bi bi-person-x"></i>Chưa có sinh viên nào trong môn học.</div>
+                }
+                @foreach (var student in enrolled)
+                {
+                    var initial = string.IsNullOrWhiteSpace(student.FullName) ? "?" : student.FullName.Trim()[0].ToString();
+                    <div class="student-row" data-search-text="@($"{student.FullName} {student.Username} {student.StudentCode}".ToLowerInvariant())">
+                        <span class="student-avatar">@initial</span>
+                        <div class="student-info"><strong>@student.FullName</strong><span>@@@student.Username · @(student.StudentCode ?? "Chưa có mã sinh viên")</span></div>
+                        <form asp-action="RemoveStudent" method="post" onsubmit="return confirmAction('Xóa sinh viên này khỏi môn học?');">
+                            @Html.AntiForgeryToken()<input type="hidden" name="subjectId" value="@subject?.Id" /><input type="hidden" name="studentId" value="@student.Id" />
+                            <button type="submit" class="student-action remove" title="Xóa khỏi môn học" aria-label="Xóa @student.FullName khỏi môn học"><i class="bi bi-person-dash"></i></button>
+                        </form>
+                    </div>
+                }
             </div>
-        </div>
+        </section>
+
+        <section class="roster-panel" data-roster-panel>
+            <div class="roster-panel-head">
+                <div class="roster-panel-title"><span class="roster-panel-icon"><i class="bi bi-person-plus"></i></span><div><h2>Thêm sinh viên</h2><p>Các tài khoản chưa tham gia môn học</p></div></div>
+                <span class="roster-count">@available.Count</span>
+            </div>
+            <div class="roster-search"><i class="bi bi-search"></i><input type="search" placeholder="Tìm theo tên hoặc tài khoản" data-roster-search /></div>
+            <div class="roster-list">
+                @if (available.Count == 0)
+                {
+                    <div class="roster-empty"><i class="bi bi-check2-circle"></i>Tất cả sinh viên đã được thêm vào môn học.</div>
+                }
+                @foreach (var student in available)
+                {
+                    var initial = string.IsNullOrWhiteSpace(student.FullName) ? "?" : student.FullName.Trim()[0].ToString();
+                    <div class="student-row" data-search-text="@($"{student.FullName} {student.Username} {student.StudentCode}".ToLowerInvariant())">
+                        <span class="student-avatar">@initial</span>
+                        <div class="student-info"><strong>@student.FullName</strong><span>@@@student.Username · @(student.StudentCode ?? "Chưa có mã sinh viên")</span></div>
+                        <form asp-action="AssignStudent" method="post">
+                            @Html.AntiForgeryToken()<input type="hidden" name="subjectId" value="@subject?.Id" /><input type="hidden" name="studentId" value="@student.Id" />
+                            <button type="submit" class="student-action add" title="Thêm vào môn học" aria-label="Thêm @student.FullName vào môn học"><i class="bi bi-plus-lg"></i></button>
+                        </form>
+                    </div>
+                }
+            </div>
+        </section>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const fileInput = document.getElementById('studentImportFile');
+            const fileName = document.getElementById('selectedFileName');
+            fileInput?.addEventListener('change', function () {
+                fileName.textContent = this.files?.[0]?.name || 'Chọn file Excel';
+            });
+
+            document.querySelectorAll('[data-roster-panel]').forEach(function (panel) {
+                const input = panel.querySelector('[data-roster-search]');
+                const rows = panel.querySelectorAll('.student-row');
+                input?.addEventListener('input', function () {
+                    const query = this.value.trim().toLocaleLowerCase('vi');
+                    rows.forEach(function (row) {
+                        row.hidden = query.length > 0 && !row.dataset.searchText.includes(query);
+                    });
+                });
+            });
+        })();
+    </script>
+}

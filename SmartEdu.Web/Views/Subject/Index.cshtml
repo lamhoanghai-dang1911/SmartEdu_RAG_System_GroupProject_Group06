@@ -73,7 +73,7 @@
                     }
                     else
                     {
-                        <tr>
+                        <tr data-empty-row="true">
                             <td colspan="5">
                                 <div class="empty-state">
                                     <div class="empty-state-icon"><i class="bi bi-book"></i></div>
@@ -93,7 +93,28 @@
     <script>if(typeof signalR==='undefined'){console.warn('signalR missing on Subject index');}</script>
     <script>
         const isAdminView = @((canManage).ToString().ToLower());
-        const tbody = document.querySelector("table tbody");
+        const tbody = document.querySelector(".data-card table tbody");
+
+        function removeSubjectEmptyRow() {
+            tbody?.querySelector('tr[data-empty-row="true"]')?.remove();
+        }
+
+        function syncSubjectEmptyState() {
+            if (!tbody || tbody.querySelector('tr[data-subject-id]')) return;
+            if (tbody.querySelector('tr[data-empty-row="true"]')) return;
+
+            const row = document.createElement('tr');
+            row.setAttribute('data-empty-row', 'true');
+            const cell = document.createElement('td');
+            cell.colSpan = 5;
+            cell.innerHTML = `<div class="empty-state">
+                <div class="empty-state-icon"><i class="bi bi-book"></i></div>
+                <div class="empty-state-title">No subjects yet</div>
+                <div class="empty-state-desc">${isAdminView ? 'Create your first subject to get started.' : 'Once your admin adds subjects, you\'ll see them here.'}</div>
+            </div>`;
+            row.appendChild(cell);
+            tbody.appendChild(row);
+        }
 
         function escapeHtmlSafe(s) {
             if (!s) return '';
@@ -134,10 +155,13 @@
 
         function upsertSubjectRow(s) {
             if (!tbody) return;
+            removeSubjectEmptyRow();
             const existing = tbody.querySelector('tr[data-subject-id="' + s.id + '"]');
             const html = buildSubjectRowHtml(s);
             if (existing) { existing.outerHTML = html; }
-            else { tbody.insertAdjacentHTML('beforeend', html); }
+            else {
+                tbody.insertAdjacentHTML('beforeend', html);
+            }
         }
 
         function removeSubjectRow(subjectId) {
@@ -146,8 +170,11 @@
             if (row) {
                 row.style.transition = "opacity 0.3s ease";
                 row.style.opacity = "0";
-                setTimeout(function () { row.remove(); }, 300);
-            }
+                setTimeout(function () {
+                    row.remove();
+                    syncSubjectEmptyState();
+                }, 300);
+            } else syncSubjectEmptyState();
         }
 
         const notifyHubConnection = new signalR.HubConnectionBuilder()

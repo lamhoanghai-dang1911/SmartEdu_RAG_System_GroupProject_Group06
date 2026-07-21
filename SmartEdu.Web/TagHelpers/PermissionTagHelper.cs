@@ -51,44 +51,63 @@ namespace SmartEdu.Web.TagHelpers
         {
             if (user == null || string.IsNullOrWhiteSpace(Capability)) return false;
 
-            switch (Capability)
+            switch (Capability.Trim())
             {
+                case nameof(PermissionKeys.CanManageSubjects):
                 case PermissionKeys.CanManageSubjects:
                     return user.CanManageSubjects();
+                case nameof(PermissionKeys.CanViewSubjectsAsLecturer):
                 case PermissionKeys.CanViewSubjectsAsLecturer:
                     return user.CanViewSubjectsAsLecturer();
+                case nameof(PermissionKeys.CanImportStudents):
                 case PermissionKeys.CanImportStudents:
                     return user.CanImportStudents();
+                case nameof(PermissionKeys.CanManageLecturers):
                 case PermissionKeys.CanManageLecturers:
                     return user.CanManageLecturers();
+                case nameof(PermissionKeys.CanViewDocuments):
                 case PermissionKeys.CanViewDocuments:
                     return user.CanViewDocuments();
+                case nameof(PermissionKeys.CanUploadDocuments):
                 case PermissionKeys.CanUploadDocuments:
                     return user.CanUploadDocuments();
+                case nameof(PermissionKeys.CanEditDocuments):
                 case PermissionKeys.CanEditDocuments:
                     return user.CanEditDocuments();
+                case nameof(PermissionKeys.CanDeleteDocuments):
                 case PermissionKeys.CanDeleteDocuments:
                     return user.CanDeleteDocuments();
+                case nameof(PermissionKeys.CanManageUsers):
                 case PermissionKeys.CanManageUsers:
                     return user.CanManageUsers();
+                case nameof(PermissionKeys.CanChangeOwnPassword):
                 case PermissionKeys.CanChangeOwnPassword:
                     return user.CanChangeOwnPassword();
+                case nameof(PermissionKeys.CanChat):
                 case PermissionKeys.CanChat:
                     return user.CanChat();
+                case nameof(PermissionKeys.CanViewOwnReports):
                 case PermissionKeys.CanViewOwnReports:
                     return user.CanViewOwnReports();
+                case nameof(PermissionKeys.CanViewAdminReports):
                 case PermissionKeys.CanViewAdminReports:
                     return user.CanViewAdminReports();
+                case nameof(PermissionKeys.CanBuyPackage):
                 case PermissionKeys.CanBuyPackage:
                     return user.CanBuyPackage();
+                case nameof(PermissionKeys.CanViewOwnSubscription):
                 case PermissionKeys.CanViewOwnSubscription:
                     return user.CanViewOwnSubscription();
+                case nameof(PermissionKeys.CanManageChunkingConfig):
                 case PermissionKeys.CanManageChunkingConfig:
                     return user.CanManageChunkingConfig();
+                case nameof(PermissionKeys.CanManageUploadConfig):
                 case PermissionKeys.CanManageUploadConfig:
                     return user.CanManageUploadConfig();
+                case nameof(PermissionKeys.CanManageFreeTier):
                 case PermissionKeys.CanManageFreeTier:
                     return user.CanManageFreeTier();
+                case nameof(PermissionKeys.CanTriggerEmbedding):
                 case PermissionKeys.CanTriggerEmbedding:
                     // Default safe: only admin/staff. Subject-level leader check happens in the controller/view.
                     return user.CanUploadDocuments();

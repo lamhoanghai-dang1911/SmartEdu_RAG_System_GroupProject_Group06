@@ -453,13 +453,90 @@
     #chunkList .list-group-item {
         border-radius: 12px !important;
         border: 1px solid #edeef5 !important;
-        margin-bottom: 0.5rem;
+        margin-bottom: 0.75rem;
+        padding: 1rem;
+        background: #fff;
     }
 
-        #chunkList .list-group-item strong {
-            font-family: 'Sora', sans-serif;
-            color: var(--brand-blue);
-        }
+    .chunk-card-header, .chunk-title-row, .chunk-source, .chunk-metrics, .chunk-metric {
+        display: flex;
+        align-items: center;
+    }
+
+    .chunk-card-header {
+        justify-content: space-between;
+        gap: .75rem;
+        margin-bottom: .75rem;
+    }
+
+    .chunk-title-row { gap: .5rem; }
+    .chunk-title {
+        font-family: 'Sora', sans-serif;
+        color: #182230;
+        font-size: .95rem;
+        font-weight: 700;
+    }
+
+    .chunk-id {
+        color: #7a8494;
+        font-size: .72rem;
+        background: #f3f5f7;
+        border-radius: 6px;
+        padding: .2rem .4rem;
+    }
+
+    .chunk-source {
+        gap: .35rem;
+        color: #667085;
+        font-size: .76rem;
+    }
+
+    .chunk-metrics {
+        flex-wrap: wrap;
+        gap: .45rem;
+        padding: .7rem;
+        margin-bottom: .8rem;
+        border-radius: 10px;
+        background: #f7f9f8;
+    }
+
+    .chunk-metric {
+        gap: .3rem;
+        padding: .3rem .55rem;
+        border: 1px solid #e5eae7;
+        border-radius: 999px;
+        background: #fff;
+        color: #52605a;
+        font-size: .74rem;
+    }
+
+    .chunk-metric strong { color: #183c31; font-weight: 700; }
+    .chunk-content {
+        white-space: pre-wrap;
+        color: #505b69;
+        font-size: .86rem;
+        line-height: 1.65;
+    }
+
+    .chunk-overlap-note {
+        margin-top: .75rem;
+        padding-top: .65rem;
+        border-top: 1px dashed #e0e5e2;
+        color: #758078;
+        font-size: .75rem;
+    }
+
+    .chunk-help {
+        display: flex;
+        gap: .55rem;
+        padding: .7rem .8rem;
+        margin-bottom: .8rem;
+        border-radius: 10px;
+        background: #eef6f2;
+        color: #36574c;
+        font-size: .78rem;
+        line-height: 1.5;
+    }
 
     @@media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
@@ -512,7 +589,7 @@
 <div class="container mt-4">
     <div class="page-head d-flex justify-content-between align-items-center mb-3">
         <h2><i class="bi bi-file-earmark-text me-2"></i>Danh sách tài liệu</h2>
-        @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
+        @if (User.IsInRole("Lecturer") && leaderIds.Count > 0)
         {
             <a asp-action="Upload" class="btn btn-primary"><i class="bi bi-upload me-1"></i>Upload tài liệu</a>
         }
@@ -630,7 +707,7 @@
                                     bool canTriggerEmbedding = User.IsInRole("Admin")
                                         || (User.IsInRole("Lecturer") && leaderIds.Contains(d.SubjectId));
                                 }
-                                @if (User.IsInRole("Lecturer") || User.IsInRole("Admin"))
+                                @if (User.IsInRole("Lecturer") && leaderIds.Contains(d.SubjectId))
                                 {
                                     <li><hr class="dropdown-divider" /></li>
                                     <li><a asp-action="Edit" asp-route-id="@d.Id" class="dropdown-item"><i class="bi bi-pencil"></i>Sửa tiêu đề</a></li>
@@ -649,6 +726,18 @@
                         </td>
                     </tr>
                 }
+                @if (!Model.Any())
+                {
+                    <tr data-empty-row="true">
+                        <td colspan="9">
+                            <div class="empty-state py-5">
+                                <div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div>
+                                <div class="empty-state-title">Chưa có tài liệu</div>
+                                <div class="empty-state-desc">Tài liệu phù hợp với bộ lọc sẽ xuất hiện tại đây.</div>
+                            </div>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
@@ -662,7 +751,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="chunkList" class="list-group" style="max-height:60vh; overflow-y:auto;"></div>
+                    <div class="chunk-help">
+                        <i class="bi bi-info-circle mt-1"></i>
+                        <span><strong>Size cấu hình</strong> là giới hạn khi chia tài liệu; <strong>size thực tế</strong> là số ký tự sau khi làm sạch. <strong>Overlap thực tế</strong> là số ký tự cuối của chunk trước được lặp lại ở đầu chunk hiện tại.</span>
+                    </div>
+                    <div id="chunkList" class="list-group" style="max-height:58vh; overflow-y:auto;"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -985,16 +1078,61 @@ const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: 
         for (const c of chunks) {
         const item = document.createElement('div');
         item.className = 'list-group-item';
-        const idx = document.createElement('div');
-        idx.innerHTML = `<strong>Chunk ${c.chunkIndex}</strong>`;
+
+        const header = document.createElement('div');
+        header.className = 'chunk-card-header';
+        const titleRow = document.createElement('div');
+        titleRow.className = 'chunk-title-row';
+        const title = document.createElement('span');
+        title.className = 'chunk-title';
+        title.textContent = `Chunk ${c.chunkIndex}`;
+        const id = document.createElement('span');
+        id.className = 'chunk-id';
+        id.textContent = `ID #${c.chunkId}`;
+        titleRow.append(title, id);
+        header.appendChild(titleRow);
+
+        if (c.sourceLocation) {
+        const source = document.createElement('div');
+        source.className = 'chunk-source';
+        source.innerHTML = '<i class="bi bi-geo-alt"></i>';
+        const sourceText = document.createElement('span');
+        sourceText.textContent = c.sourceLocation;
+        source.appendChild(sourceText);
+        header.appendChild(source);
+        }
+
+        const metrics = document.createElement('div');
+        metrics.className = 'chunk-metrics';
+        const metricItems = [
+        ['bi-arrows-angle-expand', 'Size thực tế', `${c.characterCount.toLocaleString('vi-VN')} ký tự`],
+        ['bi-fonts', 'Số từ', c.wordCount.toLocaleString('vi-VN')],
+        ['bi-sliders', 'Size cấu hình', c.configuredChunkSize ? `${c.configuredChunkSize.toLocaleString('vi-VN')} ký tự` : 'Không có'],
+        ['bi-intersect', 'Overlap cấu hình', c.configuredOverlap ? `${c.configuredOverlap.toLocaleString('vi-VN')} ký tự` : '0 ký tự'],
+        ['bi-link-45deg', 'Overlap thực tế', c.chunkIndex === chunks[0].chunkIndex ? 'Không áp dụng' : `${c.actualOverlap.toLocaleString('vi-VN')} ký tự`],
+        ['bi-diagram-3', 'Chiến lược', strategyLabel(c.chunkingStrategy)]
+        ];
+        for (const [icon, label, value] of metricItems) {
+        const metric = document.createElement('span');
+        metric.className = 'chunk-metric';
+        metric.innerHTML = `<i class="bi ${icon}"></i><span>${label}:</span><strong></strong>`;
+        metric.querySelector('strong').textContent = value;
+        metrics.appendChild(metric);
+        }
+
         const content = document.createElement('div');
-        content.style.whiteSpace = 'pre-wrap';
-        content.style.marginTop = '6px';
-        content.style.fontSize = '0.88rem';
-        content.style.color = '#5a6072';
+        content.className = 'chunk-content';
         content.textContent = c.content;
-        item.appendChild(idx);
-        item.appendChild(content);
+
+        const note = document.createElement('div');
+        note.className = 'chunk-overlap-note';
+        note.textContent = c.chunkIndex === chunks[0].chunkIndex
+        ? 'Đây là chunk đầu tiên nên không có nội dung chồng lặp từ chunk trước.'
+        : c.actualOverlap > 0
+        ? `${c.actualOverlap.toLocaleString('vi-VN')} ký tự đầu của chunk này trùng với phần cuối của chunk ${chunks[chunks.indexOf(c) - 1].chunkIndex}.`
+        : 'Không phát hiện phần ký tự chồng lặp chính xác với chunk trước.';
+
+        item.append(header, metrics, content, note);
         list.appendChild(item);
         }
         }
@@ -1002,6 +1140,16 @@ const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: 
         modal.show();
         } catch (e) { console.error(e); }
         };
+
+        function strategyLabel(strategy) {
+        const labels = {
+        FixedSize: 'Kích thước cố định',
+        Recursive: 'Phân tách đệ quy',
+        Semantic: 'Theo ngữ nghĩa',
+        Unknown: 'Không xác định'
+        };
+        return labels[strategy] || strategy || 'Không xác định';
+        }
 
         let listHubConnection = null;
         const currentSubjectFilter = "@(ViewBag.SelectedSubjectId?.ToString() ?? "")";
@@ -1026,9 +1174,10 @@ const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: 
         }
 
         function insertDocumentRow(doc) {
-        const tbody = document.querySelector(".table tbody");
+        const tbody = document.querySelector(".table-card .table tbody");
         if (!tbody) return;
-        if (document.querySelector(`tr[data-doc-id="${doc.id}"]`)) return;
+        tbody.querySelector('tr[data-empty-row="true"]')?.remove();
+        if (tbody.querySelector(`tr[data-doc-id="${doc.id}"]`)) return;
 
         const tr = document.createElement("tr");
         tr.setAttribute("data-doc-id", doc.id);
@@ -1067,6 +1216,21 @@ const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: 
         tr.style.transition = "opacity 0.3s ease";
         tr.style.opacity = "1";
         });
+        }
+
+        function syncDocumentEmptyState() {
+        const tbody = document.querySelector(".table-card .table tbody");
+        if (!tbody || tbody.querySelector('tr[data-doc-id]')) return;
+        if (tbody.querySelector('tr[data-empty-row="true"]')) return;
+
+        const row = document.createElement('tr');
+        row.setAttribute('data-empty-row', 'true');
+        row.innerHTML = `<td colspan="9"><div class="empty-state py-5">
+        <div class="empty-state-icon"><i class="bi bi-file-earmark-text"></i></div>
+        <div class="empty-state-title">Chưa có tài liệu</div>
+        <div class="empty-state-desc">Tài liệu phù hợp với bộ lọc sẽ xuất hiện tại đây.</div>
+        </div></td>`;
+        tbody.appendChild(row);
         }
 
         function updateDocumentRowStatus(documentId, status, subjectId) {
@@ -1125,8 +1289,11 @@ const myModal = new window.bootstrap.Modal(modalEl, { backdrop: true, keyboard: 
         if (row) {
         row.style.transition = "opacity 0.3s ease";
         row.style.opacity = "0";
-        setTimeout(() => row.remove(), 300);
-        }
+        setTimeout(() => {
+        row.remove();
+        syncDocumentEmptyState();
+        }, 300);
+        } else syncDocumentEmptyState();
         });
 
         listHubConnection.on("DocumentStatusChanged", (data) => {
