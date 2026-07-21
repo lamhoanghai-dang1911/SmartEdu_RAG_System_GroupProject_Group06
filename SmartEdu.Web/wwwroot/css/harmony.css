@@ -93,6 +93,8 @@ body { color: var(--h-text); background: var(--h-canvas); }
 .row-actions-menu .dropdown-divider { margin: 5px 4px; border-color: var(--h-line); }
 @media (min-width: 992px) {
     .table-responsive:has(.row-actions) { overflow: visible; }
+    .data-card:has(.row-actions) { overflow: visible; }
+    .data-card:has(.row-actions) .dropdown-menu.show { z-index: 1080; }
 }
 .modal-header, #duplicateModal .modal-header { color: var(--h-ink) !important; border-bottom: 1px solid var(--h-line) !important; background: #f8faf8 !important; }
 .modal-header .btn-close { filter: none !important; }

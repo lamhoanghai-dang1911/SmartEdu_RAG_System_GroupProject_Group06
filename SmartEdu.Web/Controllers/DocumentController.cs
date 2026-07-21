@@ -61,12 +61,6 @@ public class DocumentController : Controller
     public async Task<IActionResult> CanUpload(int subjectId)
     {
         if (subjectId <= 0) return Json(new { canUpload = false, message = "Vui lòng chọn môn học." });
-        // Only roles allowed to access Upload page are Lecturer and Admin (controller Upload GET is protected)
-        if (User.IsInRole("Admin"))
-        {
-            return Json(new { canUpload = true, userId = User.GetUserId() });
-        }
-
         if (!User.IsInRole("Lecturer"))
         {
             return Json(new { canUpload = false, message = "Bạn không có quyền upload tài liệu cho môn này. Chỉ trưởng môn được phép.", userId = User.GetUserId() });
@@ -223,34 +217,32 @@ public class DocumentController : Controller
         return View(doc);
     }
 
-    [Authorize(Roles = "Lecturer, Admin")]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> Upload()
     {
-            var subjects = User.IsInRole("Admin")
-                ? await _subjectService.GetAllAsync()
-                : await _subjectService.GetSubjectsByLecturerIdAsync(User.GetUserId());
-            ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
+        var userId = User.GetUserId();
+        var leaderSubjectIds = await _subjectService.GetLeaderSubjectIdsAsync(userId);
+        var subjects = (await _subjectService.GetSubjectsByLecturerIdAsync(userId))
+            .Where(subject => leaderSubjectIds.Contains(subject.Id));
+        ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
         return View();
     }
 
     [HttpGet]
-    [Authorize(Roles = "Lecturer, Admin")]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> GetAssignedSubjects()
     {
         int userId = User.GetUserId();
-        bool isAdmin = User.IsInRole("Admin");
-
-        IEnumerable<SmartEdu.Shared.DTOs.SubjectDto> subjects;
-        if (isAdmin)
-            subjects = await _subjectService.GetAllAsync();
-        else
-            subjects = await _subjectService.GetSubjectsByLecturerIdAsync(userId);
+        var leaderSubjectIds = await _subjectService.GetLeaderSubjectIdsAsync(userId);
+        var subjects = (await _subjectService.GetSubjectsByLecturerIdAsync(userId))
+            .Where(subject => leaderSubjectIds.Contains(subject.Id));
 
         return Json(subjects);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> Upload(IFormFile file, string title, int subjectId)
     {
         if (file == null || file.Length == 0)
@@ -260,9 +252,9 @@ public class DocumentController : Controller
         if (!int.TryParse(userIdClaim, out var userId))
             return Json(new { success = false, error = "Vui lòng đăng nhập lại." });
 
-        bool canAccess = await _permissionService.CanUserAccessSubject(userId, subjectId);
-        if (!canAccess)
-            return Json(new { success = false, error = "Bạn không có quyền upload tài liệu cho môn học này." });
+        bool isLeader = await _permissionService.IsLecturerLeaderAsync(userId, subjectId);
+        if (!isLeader)
+            return Json(new { success = false, error = "Chỉ giảng viên trưởng môn mới được upload tài liệu cho môn học này." });
 
         try
         {
@@ -347,6 +339,7 @@ public class DocumentController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> ConfirmDuplicate(int action)
     {
         var oldDocId = HttpContext.Session.GetInt32("OldDocumentId");
@@ -367,6 +360,10 @@ public class DocumentController : Controller
         var userIdClaim = User.FindFirst("UserId")?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
             return RedirectToAction("Login", "Account");
+
+        var authorizedSubjectId = HttpContext.Session.GetInt32("TempSubjectId") ?? 0;
+        if (authorizedSubjectId <= 0 || !await _permissionService.IsLecturerLeaderAsync(userId, authorizedSubjectId))
+            return Forbid();
 
         try
         {
@@ -497,25 +494,31 @@ public class DocumentController : Controller
     }
 
     [HttpGet]
-    [Authorize(Roles = "Lecturer, Admin")]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> Edit(int id)
     {
         var doc = await _documentService.GetByIdAsync(id);
         if (doc == null) return NotFound();
+        if (!await _permissionService.IsLecturerLeaderAsync(User.GetUserId(), doc.SubjectId))
+            return Forbid();
 
         return View(doc);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Roles = "Lecturer, Admin")]
+    [Authorize(Roles = "Lecturer")]
     public async Task<IActionResult> Edit(int id, string title)
     {
+        var existingDocument = await _documentService.GetByIdAsync(id);
+        if (existingDocument == null) return NotFound();
+        if (!await _permissionService.IsLecturerLeaderAsync(User.GetUserId(), existingDocument.SubjectId))
+            return Forbid();
+
         if (string.IsNullOrWhiteSpace(title))
         {
             ModelState.AddModelError("title", "Tiêu đề không được để trống.");
-            var doc = await _documentService.GetByIdAsync(id);
-            return View(doc);
+            return View(existingDocument);
         }
 
         try

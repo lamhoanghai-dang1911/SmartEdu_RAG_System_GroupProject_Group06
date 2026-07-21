@@ -361,49 +361,115 @@
             transition-duration: 0.01ms !important;
         }
     }
+
+    /* Upload workspace */
+    .upload-page { max-width: 1080px; margin: 0 auto; padding: 12px 0 48px; }
+    .upload-breadcrumb { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 18px; color: #778179; font-size: 12px; text-decoration: none; }
+    .upload-breadcrumb:hover { color: #246b4b; }
+    .upload-heading { margin-bottom: 24px; }
+    .upload-heading h1 { margin: 0 0 7px; color: #202822; font-family: 'Sora', sans-serif; font-size: clamp(24px, 3vw, 31px); font-weight: 700; letter-spacing: -.035em; }
+    .upload-heading p { max-width: 650px; margin: 0; color: #6f7972; font-size: 13px; line-height: 1.65; }
+    .upload-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(250px, .75fr); gap: 18px; align-items: start; }
+    .upload-card { padding: 0; border: 1px solid #dde5df; border-radius: 15px; box-shadow: 0 8px 28px rgba(26,57,40,.055); animation: none; opacity: 1; overflow: hidden; }
+    .upload-card-head { display: flex; align-items: center; gap: 12px; padding: 18px 20px; border-bottom: 1px solid #e5ebe7; background: #fbfcfb; }
+    .upload-card-head-icon { width: 38px; height: 38px; display: grid; place-items: center; flex: 0 0 auto; color: #246b4b; border: 1px solid #d5e2da; border-radius: 10px; background: #edf5f0; font-size: 17px; }
+    .upload-card-head h2 { margin: 0 0 2px; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; }
+    .upload-card-head p { margin: 0; color: #879089; font-size: 11px; }
+    .upload-form-body { padding: 21px 20px 20px; }
+    .upload-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .upload-field { margin-bottom: 17px; }
+    .upload-field .form-label { display: flex; justify-content: space-between; margin-bottom: 7px; color: #39423c; font-size: 12px; font-weight: 650; }
+    .field-required { color: #9a5b4e; font-size: 10px; font-weight: 600; }
+    .upload-field .form-control, .upload-field .form-select { min-height: 44px; padding: 9px 12px; border: 1px solid #d8e1db; border-radius: 9px; background-color: #fff; color: #2d3630; font-size: 13px; }
+    .upload-field .form-control:focus, .upload-field .form-select:focus { border-color: #4c8165; box-shadow: 0 0 0 3px rgba(36,107,75,.10); }
+    .file-drop { min-height: 158px; display: flex; align-items: center; justify-content: center; padding: 22px; border: 1.5px dashed #bdccc2; border-radius: 12px; background: #f9fbf9; cursor: pointer; transition: .18s ease; text-align: center; }
+    .file-drop:hover, .file-drop.has-file { border-color: #4c8165; background: #f2f7f4; }
+    .file-drop-icon { width: 42px; height: 42px; display: grid; place-items: center; margin: 0 auto 10px; color: #246b4b; border-radius: 12px; background: #e6f0ea; font-size: 19px; }
+    .file-drop strong { display: block; margin-bottom: 4px; color: #303a33; font-size: 13px; }
+    .file-drop span { color: #818b84; font-size: 11px; }
+    .file-drop-meta { display: block; margin-top: 8px; color: #246b4b !important; font-weight: 650; }
+    .upload-limits-box { margin: 12px 0 0; padding: 10px 12px; border: 1px solid #e1e8e3; border-radius: 10px; background: #fafcfa; }
+    .upload-limits-label { color: #778179; font-size: 9px; }
+    .limit-chip { padding: 4px 8px; border-color: #dde5df; border-radius: 7px; color: #5f6962; font-size: 10px; }
+    .limit-chip.matched { color: #246b4b; border-color: #8eb19e; background: #eef6f1; }
+    .upload-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+    .btn-upload, .btn-back { min-height: 41px; display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border-radius: 9px; font-size: 12px; box-shadow: none; }
+    .btn-upload { background: #246b4b; }
+    .btn-upload:hover:not(:disabled) { color: #fff; background: #1c583d; filter: none; }
+    .btn-back { order: -1; color: #58625b; border: 1px solid #dbe3dd; background: #fff; }
+    .upload-note { padding: 18px; border: 1px solid #dde5df; border-radius: 15px; background: #fff; box-shadow: 0 7px 24px rgba(26,57,40,.04); }
+    .upload-note h3 { margin: 0 0 14px; font-family: 'Sora', sans-serif; font-size: 13px; }
+    .upload-note-list { display: grid; gap: 14px; }
+    .upload-note-item { display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+    .upload-note-number { width: 28px; height: 28px; display: grid; place-items: center; color: #246b4b; border-radius: 8px; background: #edf5f0; font-size: 10px; font-weight: 750; }
+    .upload-note-item strong { display: block; margin-bottom: 2px; color: #3b453e; font-size: 11px; }
+    .upload-note-item p { margin: 0; color: #828b85; font-size: 10px; line-height: 1.5; }
+    .leader-note { display: flex; gap: 8px; margin-top: 16px; padding: 10px; color: #526158; border-radius: 9px; background: #f4f7f5; font-size: 10px; line-height: 1.5; }
+    .leader-note i { color: #246b4b; }
+    #uploadErrorAlert, #uploadPermissionAlert { font-size: 11px; }
+    @@media (max-width: 850px) { .upload-layout { grid-template-columns: 1fr; } .upload-note { order: -1; } }
+    @@media (max-width: 600px) { .upload-form-grid { grid-template-columns: 1fr; gap: 0; } .upload-actions { flex-direction: column-reverse; } .btn-upload, .btn-back { justify-content: center; width: 100%; } }
 </style>
 
-<div class="container mt-4" style="max-width:600px">
-    <div class="page-head">
-        <h2>⬆️ Upload tài liệu</h2>
-    </div>
+<div class="upload-page">
+    <a asp-action="Index" class="upload-breadcrumb"><i class="bi bi-arrow-left"></i> Danh sách tài liệu</a>
 
-    <div class="upload-card">
-        <div id="uploadErrorAlert" class="alert alert-danger" style="display:none;"></div>
+    <header class="upload-heading">
+        <h1>Thêm tài liệu môn học</h1>
+        <p>Tải lên tài liệu giảng dạy để hệ thống chuẩn bị nội dung cho tra cứu và hỏi đáp. Tài liệu sẽ được kiểm tra trước khi đưa vào xử lý.</p>
+    </header>
 
-        <form id="uploadForm" method="post" enctype="multipart/form-data">
-            @Html.AntiForgeryToken()
+    <div class="upload-layout">
+    <section class="upload-card">
+        <div class="upload-card-head">
+            <div class="upload-card-head-icon"><i class="bi bi-file-earmark-arrow-up"></i></div>
+            <div><h2>Thông tin tài liệu</h2><p>Các trường có dấu bắt buộc cần được điền đầy đủ.</p></div>
+        </div>
+        <div class="upload-form-body">
+            <div id="uploadErrorAlert" class="alert alert-danger" style="display:none;"></div>
 
-            <div class="mb-3">
-                <label class="form-label">Tiêu đề tài liệu</label>
-                <input name="title" class="form-control" placeholder="VD: Bài giảng Chương 1" required />
-            </div>
+            <form id="uploadForm" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <div class="upload-form-grid">
+                    <div class="upload-field">
+                        <label class="form-label" for="documentTitle"><span>Tiêu đề tài liệu</span><span class="field-required">Bắt buộc</span></label>
+                        <input id="documentTitle" name="title" class="form-control" placeholder="Ví dụ: Bài giảng chương 1" required />
+                    </div>
+                    <div class="upload-field">
+                        <label class="form-label" for="subjectSelect"><span>Môn học</span><span class="field-required">Bắt buộc</span></label>
+                        <select id="subjectSelect" name="subjectId" class="form-select" required><option value="">Chọn môn học phụ trách</option></select>
+                    </div>
+                </div>
 
-            <div class="mb-3">
-                <label class="form-label">Môn học</label>
-                <select name="subjectId" class="form-select" required>
-                    <option value="">-- Chọn môn học --</option>
-                </select>
-            </div>
+                <div id="uploadPermissionAlert" class="alert alert-danger" style="display:none;"></div>
 
-            <div id="uploadPermissionAlert" class="alert alert-danger" style="display:none;"></div>
+                <div class="upload-field">
+                    <label class="form-label" for="fileInput"><span>File tài liệu</span><span class="field-required">PDF, DOCX, PPTX</span></label>
+                    <label class="file-drop" id="fileDrop" for="fileInput">
+                        <span><span class="file-drop-icon"><i class="bi bi-cloud-arrow-up"></i></span><strong id="fileName">Chọn file từ máy tính</strong><span>Nhấn vào đây để duyệt file</span><span class="file-drop-meta" id="fileMeta"></span></span>
+                    </label>
+                    <input name="file" id="fileInput" type="file" class="visually-hidden" accept=".pdf,.docx,.pptx" required />
+                    <div id="fileSizeWarning" class="file-size-warning"></div>
+                    <div id="uploadLimitsBox" class="upload-limits-box"><div class="upload-limits-label"><i class="bi bi-info-circle"></i> Giới hạn theo định dạng</div><div id="uploadLimitsChips" class="upload-limits-chips"></div></div>
+                </div>
 
-            <div id="uploadLimitsBox" class="upload-limits-box">
-                <div class="upload-limits-label">📦 Giới hạn kích thước file cho môn này</div>
-                <div id="uploadLimitsChips" class="upload-limits-chips"></div>
-            </div>
+                <div class="upload-actions">
+                    <a asp-action="Index" class="btn btn-back"><i class="bi bi-x"></i> Hủy</a>
+                    <button type="submit" id="uploadBtn" class="btn btn-upload" disabled><i class="bi bi-arrow-up-circle"></i> Tải tài liệu lên</button>
+                </div>
+            </form>
+        </div>
+    </section>
 
-            <div class="mb-2">
-                <label class="form-label">File (PDF, DOCX hoặc PPTX)</label>
-                <input name="file" id="fileInput" type="file" class="form-control" accept=".pdf,.docx,.pptx" required />
-                <div id="fileSizeWarning" class="file-size-warning"></div>
-            </div>
-
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" id="uploadBtn" class="btn btn-upload" disabled>💾 Upload</button>
-                <a asp-action="Index" class="btn btn-back">← Quay lại</a>
-            </div>
-        </form>
+    <aside class="upload-note">
+        <h3>Trước khi tải lên</h3>
+        <div class="upload-note-list">
+            <div class="upload-note-item"><span class="upload-note-number">01</span><div><strong>Đặt tên rõ ràng</strong><p>Tiêu đề nên phản ánh đúng chương hoặc chủ đề của tài liệu.</p></div></div>
+            <div class="upload-note-item"><span class="upload-note-number">02</span><div><strong>Kiểm tra nội dung</strong><p>Ưu tiên file có văn bản đọc được, không chỉ chứa ảnh scan.</p></div></div>
+            <div class="upload-note-item"><span class="upload-note-number">03</span><div><strong>Đúng môn phụ trách</strong><p>Tài liệu chỉ có thể được thêm vào môn mà bạn đang là trưởng môn.</p></div></div>
+        </div>
+        <div class="leader-note"><i class="bi bi-shield-check"></i><span>Quyền tải lên và chỉnh sửa được xác thực lại trên máy chủ cho mỗi thao tác.</span></div>
+    </aside>
     </div>
 </div>
 
@@ -412,7 +478,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="dupModalTitle">⚠️ Phát hiện tài liệu trùng</h5>
+                <h5 class="modal-title" id="dupModalTitle"><i class="bi bi-files me-2"></i>Phát hiện tài liệu trùng</h5>
             </div>
             <div class="modal-body">
                 <p id="dupMessage"></p>
@@ -433,7 +499,7 @@
                         </div>
                         <div class="action-option" data-value="2">
                             <span class="opt-check"></span>
-                            <span class="opt-icon">♻️</span>
+                            <span class="opt-icon"><i class="bi bi-arrow-repeat"></i></span>
                             <div class="opt-title">Thay thế</div>
                             <div class="opt-desc">Ghi đè tài liệu cũ bằng tài liệu vừa upload.</div>
                         </div>
@@ -460,18 +526,30 @@
             const limitsChips = document.getElementById('uploadLimitsChips');
             const fileInput = document.getElementById('fileInput');
             const fileSizeWarning = document.getElementById('fileSizeWarning');
+            const fileDrop = document.getElementById('fileDrop');
+            const fileName = document.getElementById('fileName');
+            const fileMeta = document.getElementById('fileMeta');
 
             let currentLimits = null; // { pdf: 10, docx: 15, pptx: 50 }
 
             // Logic tải danh sách môn học
             async function loadSubjects() {
                 const resp = await fetch('/Document/GetAssignedSubjects');
-                if (!resp.ok) return;
+                if (!resp.ok) {
+                    alertEl.textContent = 'Không thể tải danh sách môn học bạn đang phụ trách.';
+                    alertEl.style.display = 'block';
+                    return;
+                }
                 const items = await resp.json();
                 items.forEach(s => {
                     const opt = new Option(s.name, s.id);
                     select.add(opt);
                 });
+                if (items.length === 0) {
+                    alertEl.textContent = 'Bạn chưa được phân công làm trưởng môn nên chưa thể tải tài liệu lên.';
+                    alertEl.style.display = 'block';
+                    select.disabled = true;
+                }
             }
 
             // Logic kiểm tra quyền upload
@@ -514,7 +592,7 @@
 
             function renderLimitsChips(highlightExt) {
                 if (!currentLimits) return;
-                const labels = { pdf: '📕 PDF', docx: '📘 DOCX', pptx: '📙 PPTX' };
+                const labels = { pdf: 'PDF', docx: 'DOCX', pptx: 'PPTX' };
                 limitsChips.innerHTML = Object.keys(currentLimits).map(type => {
                     const isMatched = highlightExt === type;
                     return `<span class="limit-chip ${isMatched ? 'matched' : ''}">${labels[type] || type.toUpperCase()}: ${currentLimits[type]}MB</span>`;
@@ -531,6 +609,9 @@
             fileInput.addEventListener('change', () => {
                 const file = fileInput.files[0];
                 fileSizeWarning.classList.remove('show');
+                fileDrop.classList.toggle('has-file', !!file);
+                fileName.textContent = file ? file.name : 'Chọn file từ máy tính';
+                fileMeta.textContent = file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : '';
                 if (!file || !currentLimits) {
                     renderLimitsChips();
                     return;
@@ -543,7 +624,7 @@
                 if (limitMB !== undefined) {
                     const fileSizeMB = file.size / 1024 / 1024;
                     if (fileSizeMB > limitMB) {
-                        fileSizeWarning.textContent = `⚠️ File của bạn (${fileSizeMB.toFixed(1)}MB) vượt quá giới hạn cho phép (${limitMB}MB) đối với file ${ext.toUpperCase()}.`;
+                        fileSizeWarning.textContent = `File của bạn (${fileSizeMB.toFixed(1)}MB) vượt quá giới hạn ${limitMB}MB dành cho định dạng ${ext.toUpperCase()}.`;
                         fileSizeWarning.classList.add('show');
                     }
                 }
@@ -574,8 +655,8 @@
             const isExact = result.matchType === 'Exact';
 
             document.getElementById('dupModalTitle').textContent = isExact
-                ? '⚠️ Tài liệu trùng khớp hoàn toàn'
-                : '🔍 Tài liệu có vẻ giống bản đã tải trước';
+                ? 'Tài liệu trùng khớp hoàn toàn'
+                : 'Tài liệu có vẻ giống bản đã tải trước';
 
             const keepBothOption = document.querySelector('.action-option[data-value="3"]');
 

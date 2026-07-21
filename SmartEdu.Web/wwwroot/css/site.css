@@ -734,6 +734,8 @@ a:hover { color: var(--brand-blue-600); }
 .app-breadcrumb .breadcrumb-item + .breadcrumb-item::before { color: var(--ink-300); }
 
 /* Modal polish */
+.modal { z-index: 1060; }
+.modal-backdrop { z-index: 1055; }
 .modal-content { border-radius: var(--radius-lg); border: 1px solid var(--border); }
 .modal-header { border-bottom: 1px solid var(--border); }
 .modal-footer { border-top: 1px solid var(--border); }

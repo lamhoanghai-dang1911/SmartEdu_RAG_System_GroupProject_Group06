@@ -199,17 +199,53 @@ public class DocumentService : IDocumentService
         if (doc?.EmbeddingSetId == null) return Enumerable.Empty<DocumentChunkDto>();
 
         var chunks = await _chunkRepo.GetAllAsync(c => c.EmbeddingSetId == doc.EmbeddingSetId.Value);
-        var title = doc.Title;
+        var orderedChunks = chunks.OrderBy(c => c.ChunkIndex).ToList();
+        var embeddingSet = await _embeddingSetRepo.GetByIdAsync(doc.EmbeddingSetId.Value);
+        var config = embeddingSet == null
+            ? null
+            : await _context.ChunkingConfigs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == embeddingSet.ChunkingConfigId);
 
-        return chunks
-            .OrderBy(c => c.ChunkIndex)
-            .Select(c => new DocumentChunkDto
+        var result = new List<DocumentChunkDto>(orderedChunks.Count);
+        for (var index = 0; index < orderedChunks.Count; index++)
+        {
+            var chunk = orderedChunks[index];
+            var content = chunk.Content ?? string.Empty;
+            var previousContent = index > 0 ? orderedChunks[index - 1].Content ?? string.Empty : string.Empty;
+
+            result.Add(new DocumentChunkDto
             {
-                ChunkIndex = c.ChunkIndex,
-                Content = c.Content,
-                DocumentTitle = title,
-                SourceLocation = c.SourceLocation
+                ChunkId = chunk.Id,
+                ChunkIndex = chunk.ChunkIndex,
+                Content = content,
+                DocumentTitle = doc.Title,
+                SourceLocation = chunk.SourceLocation,
+                CharacterCount = content.Length,
+                WordCount = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length,
+                ConfiguredChunkSize = config?.ChunkSize ?? 0,
+                ConfiguredOverlap = config?.ChunkOverlap ?? 0,
+                ActualOverlap = index == 0 ? 0 : CalculateActualOverlap(previousContent, content),
+                ChunkingStrategy = config?.Strategy.ToString() ?? "Unknown"
             });
+        }
+
+        return result;
+    }
+
+    private static int CalculateActualOverlap(string previousContent, string currentContent)
+    {
+        var maxLength = Math.Min(previousContent.Length, currentContent.Length);
+        for (var length = maxLength; length > 0; length--)
+        {
+            if (previousContent.AsSpan(previousContent.Length - length, length)
+                .SequenceEqual(currentContent.AsSpan(0, length)))
+            {
+                return length;
+            }
+        }
+
+        return 0;
     }
 
     public async Task<IEnumerable<DocumentDto>> GetAllAsync(int? subjectId = null)
@@ -341,6 +377,9 @@ public class DocumentService : IDocumentService
         var doc = await _docRepo.GetByIdAsync(documentId);
         if (doc is null || doc.IsDeleted) return;
 
+        var statusBeforeProcessing = doc.Status;
+        EmbeddingSet? processingSet = null;
+
         doc.Status = DocumentStatus.Processing;
         doc.UpdatedAt = DateTime.UtcNow;
         _docRepo.Update(doc);
@@ -361,6 +400,8 @@ public class DocumentService : IDocumentService
 
             if (existingSet != null)
             {
+                processingSet = existingSet;
+
                 // Nếu đã Ready → tái sử dụng ngay
                 if (existingSet.Status == EmbeddingSetStatus.Ready)
                 {
@@ -382,8 +423,15 @@ public class DocumentService : IDocumentService
                 {
                     var lastUpdate = existingSet.UpdatedAt ?? existingSet.CreatedAt;
                     var processingTimeout = TimeSpan.FromMinutes(10);
+                    var sourceDocument = existingSet.SourceDocumentId == documentId
+                        ? doc
+                        : await _docRepo.GetByIdAsync(existingSet.SourceDocumentId);
+                    var sourceDocumentUnavailableOrFailed = sourceDocument == null
+                        || (existingSet.SourceDocumentId == documentId
+                            ? statusBeforeProcessing == DocumentStatus.Failed
+                            : sourceDocument.Status == DocumentStatus.Failed);
 
-                    if (DateTime.UtcNow - lastUpdate < processingTimeout)
+                    if (!sourceDocumentUnavailableOrFailed && DateTime.UtcNow - lastUpdate < processingTimeout)
                     {
                         // Thật sự đang xử lý (chưa quá 10 phút) → gán document và chờ
                         doc.EmbeddingSetId = existingSet.Id;
@@ -396,8 +444,10 @@ public class DocumentService : IDocumentService
                         return;
                     }
 
-                    // Quá 10 phút → coi như bị kẹt, tiếp tục xử lý lại bên dưới
-                    await SaveLogAsync(documentId, $"EmbeddingSet bị kẹt ở Processing quá {processingTimeout.TotalMinutes} phút, reset để xử lý lại.", "Info");
+                    var resetReason = sourceDocumentUnavailableOrFailed
+                        ? "tài liệu nguồn đã bị xóa hoặc tiến trình trước đã thất bại"
+                        : $"đã Processing quá {processingTimeout.TotalMinutes} phút";
+                    await SaveLogAsync(documentId, $"EmbeddingSet bị kẹt vì {resetReason}, reset để xử lý lại.", "Warning");
                 }
 
                 // ====== Failed HOẶC Processing bị kẹt → xóa chunks cũ và reset ======
@@ -470,6 +520,8 @@ public class DocumentService : IDocumentService
                 }
             }
 
+            processingSet = newEmbeddingSet;
+
             // Gán document vào embedding set
             doc.EmbeddingSetId = newEmbeddingSet.Id;
             doc.UpdatedAt = DateTime.UtcNow;
@@ -479,13 +531,29 @@ public class DocumentService : IDocumentService
             // Xử lý chunking + embedding
             await ProcessChunksAndEmbeddingsAsync(doc, newEmbeddingSet, activeConfig, documentId);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            if (processingSet != null)
+            {
+                try
+                {
+                    processingSet.Status = EmbeddingSetStatus.Failed;
+                    processingSet.UpdatedAt = DateTime.UtcNow;
+                    _embeddingSetRepo.Update(processingSet);
+                    await _embeddingSetRepo.SaveChangesAsync();
+                }
+                catch (Exception setStatusException)
+                {
+                    Console.WriteLine($"Failed to mark EmbeddingSet {processingSet.Id} as Failed: {setStatusException}");
+                }
+            }
+
             doc.Status = DocumentStatus.Failed;
             doc.UpdatedAt = DateTime.UtcNow;
             _docRepo.Update(doc);
             await _docRepo.SaveChangesAsync();
-            await SaveLogAsync(documentId, "Document processing failed", "Error");
+            var errorMessage = ex.GetBaseException().Message;
+            await SaveLogAsync(documentId, $"Document processing failed: {errorMessage}", "Error");
 
             await _realtime.SendDocumentStatusChangedAsync(doc.Id, doc.SubjectId, doc.Status.ToString());
             await _realtime.SendDocumentProcessingFinishedAsync(documentId, "Failed");
@@ -559,8 +627,14 @@ public class DocumentService : IDocumentService
             if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 throw new InvalidOperationException("Server AI đang khởi động, vui lòng đợi 20 giây và bấm nút lại!");
 
-            resp.EnsureSuccessStatusCode();
             var respJson = await resp.Content.ReadAsStringAsync();
+            if (!resp.IsSuccessStatusCode)
+            {
+                var apiError = string.IsNullOrWhiteSpace(respJson)
+                    ? resp.ReasonPhrase
+                    : respJson.Length > 500 ? respJson[..500] : respJson;
+                throw new InvalidOperationException($"Hugging Face trả về HTTP {(int)resp.StatusCode}: {apiError}");
+            }
 
             using var docJson = JsonDocument.Parse(respJson);
             var vector = new List<float>();

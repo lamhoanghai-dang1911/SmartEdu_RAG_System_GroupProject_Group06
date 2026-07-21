@@ -20,8 +20,13 @@ public class ReportsController : Controller
 
     private (DateTime startUtc, DateTime endUtc) ResolveRange(DateTime? start, DateTime? end)
     {
-        DateTime startUtc = DateTime.SpecifyKind(start ?? DateTime.UtcNow.Date.AddDays(-6), DateTimeKind.Utc);
-        DateTime endUtc = DateTime.SpecifyKind((end ?? DateTime.UtcNow.Date).AddDays(1), DateTimeKind.Utc);
+        var vietnamOffset = TimeSpan.FromHours(7);
+        var todayInVietnam = DateTimeOffset.UtcNow.ToOffset(vietnamOffset).Date;
+        var startLocal = DateTime.SpecifyKind((start ?? todayInVietnam.AddDays(-6)).Date, DateTimeKind.Unspecified);
+        var endLocalExclusive = DateTime.SpecifyKind((end ?? todayInVietnam).Date.AddDays(1), DateTimeKind.Unspecified);
+
+        var startUtc = new DateTimeOffset(startLocal, vietnamOffset).UtcDateTime;
+        var endUtc = new DateTimeOffset(endLocalExclusive, vietnamOffset).UtcDateTime;
         return (startUtc, endUtc);
     }
 

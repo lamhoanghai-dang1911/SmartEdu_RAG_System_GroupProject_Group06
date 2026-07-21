@@ -11,6 +11,7 @@ namespace SmartEdu.Business.Services
     public class SubjectService : ISubjectService
     {
         private readonly IRepository<Subject> _repo;
+        private readonly IRepository<Document> _documentRepo;
         private readonly IRepository<StudentSubject> _studentSubjectRepo;
         private readonly IRepository<User> _userRepo;
         private readonly IEmailService _emailService;
@@ -20,6 +21,7 @@ namespace SmartEdu.Business.Services
 
         public SubjectService(
     IRepository<Subject> repo,
+    IRepository<Document> documentRepo,
     IRepository<StudentSubject> studentSubjectRepo,
     IRepository<User> userRepo,
     IUnitOfWork uow,
@@ -27,6 +29,7 @@ namespace SmartEdu.Business.Services
     IRealtimeNotifier realtime)
         {
             _repo = repo;
+            _documentRepo = documentRepo;
             _studentSubjectRepo = studentSubjectRepo;
             _userRepo = userRepo;
             _uow = uow;
@@ -247,19 +250,33 @@ namespace SmartEdu.Business.Services
             var subject = await _repo.GetByIdAsync(id);
             if (subject is null) return;
 
-            subject.IsDeleted = true;
-            subject.UpdatedAt = DateTime.UtcNow;
-            _repo.Update(subject);
+            var lecturerRels = (await _uow.LecturerSubjects
+                .GetAllAsync(ls => ls.SubjectId == id)).ToList();
+            var studentRels = (await _studentSubjectRepo
+                .GetAllAsync(ss => ss.SubjectId == id && !ss.IsDeleted)).ToList();
+            var documents = (await _documentRepo
+                .GetAllAsync(d => d.SubjectId == id && !d.IsDeleted)).ToList();
+
+            var affectedUserIds = lecturerRels.Select(ls => ls.LecturerId)
+                .Concat(studentRels.Select(ss => ss.StudentId))
+                .Distinct()
+                .ToList();
+
+            var deletedAt = DateTime.UtcNow;
+            await _uow.BeginTransactionAsync();
 
             try
             {
-                var lecturerRels = await _uow.LecturerSubjects.GetAllAsync(ls => ls.SubjectId == id);
-                var studentRels = await _studentSubjectRepo.GetAllAsync(ss => ss.SubjectId == id && !ss.IsDeleted);
+                subject.IsDeleted = true;
+                subject.UpdatedAt = deletedAt;
+                _repo.Update(subject);
 
-                var affectedUserIds = lecturerRels.Select(ls => ls.LecturerId)
-                    .Concat(studentRels.Select(ss => ss.StudentId))
-                    .Distinct()
-                    .ToList();
+                foreach (var document in documents)
+                {
+                    document.IsDeleted = true;
+                    document.UpdatedAt = deletedAt;
+                    _documentRepo.Update(document);
+                }
 
                 // Dọn luôn các bản ghi phân công giảng viên trỏ tới môn đã xóa
                 foreach (var rel in lecturerRels)
@@ -267,8 +284,29 @@ namespace SmartEdu.Business.Services
                     _uow.LecturerSubjects.Delete(rel);
                 }
 
-                await _repo.SaveChangesAsync();
+                await _uow.SaveChangesAsync();
+                await _uow.CommitTransactionAsync();
+            }
+            catch
+            {
+                await _uow.RollbackTransactionAsync();
+                throw;
+            }
 
+            foreach (var document in documents)
+            {
+                try
+                {
+                    await _realtime.SendDocumentDeletedAsync(document.Id, id);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to broadcast document {document.Id} deleted: {ex}");
+                }
+            }
+
+            try
+            {
                 await _realtime.SendSubjectDeletedAsync(id, affectedUserIds);
             }
             catch (Exception ex)
@@ -343,7 +381,9 @@ namespace SmartEdu.Business.Services
                 Id = e.User.Id,
                 Username = e.User.Username,
                 FullName = e.User.FullName,
-                Role = e.User.Role
+                Role = e.User.Role,
+                Email = e.User.Email,
+                StudentCode = e.User.StudentCode
             });
 
             var notEnrolledDtos = allStudents
@@ -353,7 +393,9 @@ namespace SmartEdu.Business.Services
                     Id = u.Id,
                     Username = u.Username,
                     FullName = u.FullName,
-                    Role = u.Role
+                    Role = u.Role,
+                    Email = u.Email,
+                    StudentCode = u.StudentCode
                 });
 
             return (Enrolled: enrolledDtos, NotEnrolled: notEnrolledDtos);
