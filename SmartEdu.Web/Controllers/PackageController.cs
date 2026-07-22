@@ -136,8 +136,42 @@ namespace SmartEdu.Web.Controllers
             }
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> PaymentReturn(string code, string id, bool cancel, string status, long orderCode)
+        {
+            if (cancel || status != "PAID" || code != "00")
+            {
+                TempData["Error"] = "Thanh toán thất bại hoặc bị hủy. Vui lòng thử lại.";
+                return RedirectToAction(nameof(List));
+            }
+
+            try
+            {
+                await _paymentService.HandlePaymentCallbackAsync(orderCode.ToString(), 1);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[PaymentReturn] HandleCallback error: {ex.Message}");
+            }
+
+            // Thử lấy data nếu user còn cookie
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if (int.TryParse(userIdClaim, out var userId))
+            {
+                var dto = await _subscriptionService.GetActiveSubscriptionDtoAsync(userId);
+                if (dto != null)
+                    return View("Success", dto);
+            }
+
+            // Cookie mất → hiển thị trang thành công đơn giản
+            ViewBag.OrderCode = orderCode;
+            return View("PaymentSuccess");
+        }
+
         // Trang success - người dùng quay lại sau thanh toán
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> Success()
         {
             var userIdClaim = User.FindFirst("UserId")?.Value;

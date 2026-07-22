@@ -729,6 +729,220 @@
             transition-duration: .01ms !important;
         }
     }
+
+    .chat-panel {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+
+    /* Topbar: không co giãn */
+    .chat-topbar {
+        flex: 0 0 auto !important;
+    }
+
+    /* Messages: chiếm toàn bộ không gian còn lại, có scroll riêng */
+    .chat-messages {
+        flex: 1 1 0 !important;
+        min-height: 0 !important; /* quan trọng: cho phép flex item co lại */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Input area: cố định ở dưới cùng, không bao giờ bị đẩy */
+    .chat-input-area {
+        flex: 0 0 auto !important;
+        position: relative !important; /* không dùng sticky, flex tự xử lý */
+    }
+
+    /* === 2. SOURCE PANEL LAYOUT CỐ ĐỊNH === */
+    .source-panel {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .source-header {
+        flex: 0 0 auto !important;
+    }
+
+    .source-body {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+        scroll-behavior: smooth;
+    }
+
+    /* === 3. SIDEBAR PANEL LAYOUT CỐ ĐỊNH === */
+    .sidebar-panel {
+        display: flex !important;
+        flex-direction: column !important;
+        height: 100% !important;
+        overflow: hidden !important;
+    }
+
+    .sidebar-header {
+        flex: 0 0 auto !important;
+    }
+
+    .sidebar-list {
+        flex: 1 1 0 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    /* === 4. CITATION HIGHLIGHT — HIỆU ỨNG ĐỐM SÁNG === */
+
+    /* Trạng thái highlight khi click vào citation */
+    .source-chunk.highlight {
+        background: #dff0e4 !important;
+        border-color: #246b4b !important;
+        box-shadow: 0 0 0 3px rgba(36, 107, 75, 0.15), 0 0 20px rgba(36, 107, 75, 0.12) !important;
+        position: relative;
+        animation: chunkPulse 2s ease-out;
+        z-index: 2;
+    }
+
+        /* Đốm sáng bên trái chunk được highlight */
+        .source-chunk.highlight::before {
+            content: "";
+            position: absolute;
+            left: -4px;
+            top: 12px;
+            bottom: 12px;
+            width: 4px;
+            border-radius: 4px;
+            background: #246b4b;
+            animation: dotGlow 2s ease-out;
+        }
+
+        /* Đốm tròn nhấp nháy ở góc trên bên trái */
+        .source-chunk.highlight::after {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: -8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #246b4b;
+            box-shadow: 0 0 12px 4px rgba(36, 107, 75, 0.4);
+            animation: pulseGlow 1.5s ease-out forwards;
+            z-index: 3;
+        }
+
+    /* Pulse animation cho toàn bộ chunk */
+    @@keyframes chunkPulse {
+        0% {
+            background: #c8e6d0;
+            box-shadow: 0 0 0 6px rgba(36, 107, 75, 0.25), 0 0 30px rgba(36, 107, 75, 0.2);
+        }
+
+        50% {
+            background: #dff0e4;
+            box-shadow: 0 0 0 4px rgba(36, 107, 75, 0.18), 0 0 22px rgba(36, 107, 75, 0.15);
+        }
+
+        100% {
+            background: #dff0e4;
+            box-shadow: 0 0 0 3px rgba(36, 107, 75, 0.15), 0 0 20px rgba(36, 107, 75, 0.12);
+        }
+    }
+
+    /* Glow animation cho thanh bên trái */
+    @@keyframes dotGlow {
+        0% {
+            background: #1fae63;
+            box-shadow: 0 0 8px 2px rgba(31, 174, 99, 0.5);
+        }
+
+        100% {
+            background: #246b4b;
+            box-shadow: none;
+        }
+    }
+
+    /* Pulse glow animation cho đốm tròn */
+    @@keyframes pulseGlow {
+        0% {
+            opacity: 1;
+            transform: scale(1);
+            box-shadow: 0 0 16px 6px rgba(36, 107, 75, 0.5);
+        }
+
+        40% {
+            opacity: 0.8;
+            transform: scale(1.8);
+            box-shadow: 0 0 24px 10px rgba(36, 107, 75, 0.3);
+        }
+
+        100% {
+            opacity: 0;
+            transform: scale(2.5);
+            box-shadow: 0 0 0 0 rgba(36, 107, 75, 0);
+        }
+    }
+
+    /* Location badge khi highlight */
+    .source-chunk.highlight .source-chunk-location {
+        color: #1a5c3a;
+        font-weight: 900;
+    }
+
+    /* === 5. CUSTOM SCROLLBAR CHO TẤT CẢ PANEL === */
+    .chat-messages::-webkit-scrollbar,
+    .source-body::-webkit-scrollbar,
+    .sidebar-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track,
+    .source-body::-webkit-scrollbar-track,
+    .sidebar-list::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb,
+    .source-body::-webkit-scrollbar-thumb,
+    .sidebar-list::-webkit-scrollbar-thumb {
+        background: #c8d0c8;
+        border-radius: 8px;
+    }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover,
+        .source-body::-webkit-scrollbar-thumb:hover,
+        .sidebar-list::-webkit-scrollbar-thumb:hover {
+            background: #a8b0a8;
+        }
+
+    /* === 6. WORKSPACE ROW — đảm bảo các panel lấp đầy chiều cao === */
+    .workspace-row {
+        height: calc(100vh - 115px) !important;
+    }
+
+    /* Responsive: mobile */
+    @@media (max-width: 1199.98px) {
+        .workspace-row {
+            height: auto !important;
+        }
+
+        .chat-panel,
+        .sidebar-panel,
+        .source-panel {
+            height: calc(100vh - 165px) !important;
+            min-height: 500px;
+        }
+    }
+
+    @@media (max-width: 575.98px) {
+        .chat-panel,
+        .sidebar-panel,
+        .source-panel {
+            height: calc(100vh - 150px) !important;
+        }
+    }
 </style>
 
 
@@ -1129,11 +1343,26 @@
         }
 
         function doHighlight(chunkId) {
+            // Xóa highlight cũ (nếu có)
+            sourceBody.querySelectorAll('.source-chunk.highlight').forEach(el => {
+                el.classList.remove('highlight');
+            });
+
             const el = sourceBody.querySelector(`.source-chunk[data-chunk-id="${chunkId}"]`);
             if (!el) return;
+
+            // Scroll tới chunk, đặt ở giữa viewport
             el.scrollIntoView({ behavior: "smooth", block: "center" });
-            el.classList.add("highlight");
-            setTimeout(() => el.classList.remove("highlight"), 2500);
+
+            // Thêm highlight với delay nhỏ để scroll xong mới bắt đầu animation
+            setTimeout(() => {
+                el.classList.add("highlight");
+
+                // Tự động xóa highlight sau 3.5 giây
+                setTimeout(() => {
+                    el.classList.remove("highlight");
+                }, 3500);
+            }, 300);
         }
 
         async function openSourcePanel(documentId, chunkId, range = 15) {

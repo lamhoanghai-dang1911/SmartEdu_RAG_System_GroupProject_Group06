@@ -69,8 +69,10 @@ namespace SmartEdu.Web
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SameSite = SameSiteMode.None;       // cho phép cross-site
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  // bắt buộc với SameSite=None
+        options.Cookie.HttpOnly = true;
+        options.Cookie.Name = ".SmartEdu.Auth";             // đặt tên rõ ràng
     });
             builder.Services.AddScoped<IPermissionService, PermissionService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
@@ -103,6 +105,8 @@ namespace SmartEdu.Web
                 options.IdleTimeout = TimeSpan.FromMinutes(30);
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
+                options.Cookie.SameSite = SameSiteMode.None;            // session cookie cũng cần
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
             });
             builder.WebHost.ConfigureKestrel(options =>
             {
