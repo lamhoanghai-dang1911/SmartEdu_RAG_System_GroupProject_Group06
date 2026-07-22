@@ -38,7 +38,10 @@ namespace SmartEdu.Web.Controllers
             if (userId == 0) return Unauthorized();
 
             var sessions = await _chatService.GetSessionsByUserIdAsync(userId.ToString());
-            var enrolledSubjects = await _subjectService.GetSubjectsByUserIdAsync(userId);
+            // Allow students to see all subjects in the chat UI so they can chat across any subject
+            var enrolledSubjects = User.UiIsStudent()
+                ? await _subjectService.GetAllAsync()
+                : await _subjectService.GetSubjectsByUserIdAsync(userId);
 
             var currentSession = sessions.FirstOrDefault(x => x.SessionId == sessionId);
             int? selectedSubjectId = currentSession?.SubjectId;
@@ -87,7 +90,12 @@ namespace SmartEdu.Web.Controllers
             // === Validate 2 + 3: quyền truy cập Subject + Subject đã có tài liệu Ready ===
             if (request.SubjectId.HasValue)
             {
-                bool hasAccess = await _permissionService.CanUserAccessSubject(userId, request.SubjectId.Value);
+                // Students should be allowed to chat on any subject without explicit enrollment.
+                // Keep existing permission checks for Admins/Lecturers but skip enrollment check for Students.
+                bool hasAccess = User.UiIsStudent()
+                    ? true
+                    : await _permissionService.CanUserAccessSubject(userId, request.SubjectId.Value);
+
                 if (!hasAccess) return Forbid();
 
                 bool hasDocs = await _documentService.HasReadyDocumentsAsync(request.SubjectId.Value);
