@@ -757,16 +757,9 @@ public class DocumentService : IDocumentService
         }
         else
         {
-            var enrollments = await _studentSubjectRepo.GetAllAsync();
-            var allowedSubjectIds = enrollments
-                .Where(ss => ss.StudentId == userId && !ss.IsDeleted)
-                .Select(ss => ss.SubjectId)
-                .ToList();
-
+            // Allow students to view documents from all subjects (no enrollment-based restriction).
             docs = await _docRepo.GetAllWithIncludeAsync(
-                d => allowedSubjectIds.Contains(d.SubjectId) &&
-                     (!subjectId.HasValue || d.SubjectId == subjectId.Value) &&
-                     !d.IsDeleted,
+                d => (!subjectId.HasValue || d.SubjectId == subjectId.Value) && !d.IsDeleted,
                 d => d.Subject
             );
         }
@@ -1143,16 +1136,9 @@ public class DocumentService : IDocumentService
         }
         else
         {
-            var enrollments = await _studentSubjectRepo.GetAllAsync();
-            var allowedSubjectIds = enrollments
-                .Where(ss => ss.StudentId == userId && !ss.IsDeleted)
-                .Select(ss => ss.SubjectId)
-                .ToList();
-
+            // Students should be able to view all documents across subjects.
             docs = await _docRepo.GetAllWithIncludeAsync(
-                d => allowedSubjectIds.Contains(d.SubjectId) &&
-                     (!subjectId.HasValue || d.SubjectId == subjectId.Value) &&
-                     !d.IsDeleted,
+                d => (!subjectId.HasValue || d.SubjectId == subjectId.Value) && !d.IsDeleted,
                 d => d.Subject
             );
         }
